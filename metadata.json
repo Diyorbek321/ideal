@@ -1,0 +1,6 @@
+{
+  "name": "Ideal Dizayn ERP",
+  "description": "O'zbekistondagi poligrafiya va reklama ishlab chiqarish korxonalari uchun ichki boshqaruv tizimi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
