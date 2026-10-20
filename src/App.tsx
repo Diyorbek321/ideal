@@ -1,57 +1,77 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { ApiError } from '@/api';
+import { AuthProvider, HOME_BY_ROLE, RequireRole, useAuth } from '@/lib/auth';
+import { ToastProvider } from '@/components/ui/Toast';
 import MainLayout from './components/layout/MainLayout';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import OrdersPage from './pages/orders/OrdersPage';
 import OrderDetailPage from './pages/orders/OrderDetailPage';
 import ClientsPage from './pages/clients/ClientsPage';
+import ClientDetailPage from './pages/clients/ClientDetailPage';
 import InventoryPage from './pages/inventory/InventoryPage';
 import FinancePage from './pages/finance/FinancePage';
 import DesignPage from './pages/design/DesignPage';
 import ProductionPage from './pages/production/ProductionPage';
 import InstallationPage from './pages/installation/InstallationPage';
 import CalculatorPage from './pages/calculator/CalculatorPage';
+import EmployeesPage from './pages/employees/EmployeesPage';
+import DocumentsPage from './pages/documents/DocumentsPage';
+import SettingsPage from './pages/SettingsPage';
 import PublicApprovalPage from './pages/public/PublicApprovalPage';
+import TrackPage from './pages/public/TrackPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false,
-      retry: false,
+      refetchOnWindowFocus: true,
+      staleTime: 15_000,
+      // Ruxsat/topilmadi xatolarini qayta so'ramaymiz
+      retry: (count, err) => !(err instanceof ApiError && err.status >= 400 && err.status < 500) && count < 2,
     },
   },
 });
 
+function HomeRedirect() {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  return user.role === 'ADMIN' || user.role === 'MANAGER' ? <Dashboard /> : <Navigate to={HOME_BY_ROLE[user.role]} replace />;
+}
+
+const staff = ['ADMIN', 'MANAGER'] as const;
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/approve/:token" element={<PublicApprovalPage />} />
-          
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="orders" element={<OrdersPage />} />
-            <Route path="orders/:id" element={<OrderDetailPage />} />
-            <Route path="clients" element={<ClientsPage />} />
-            <Route path="inventory" element={<InventoryPage />} />
-            <Route path="finance" element={<FinancePage />} />
-            <Route path="design" element={<DesignPage />} />
-            <Route path="production" element={<ProductionPage />} />
-            <Route path="installation" element={<InstallationPage />} />
-            <Route path="calculator" element={<CalculatorPage />} />
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/approve/:token" element={<PublicApprovalPage />} />
+              <Route path="/t/:token" element={<TrackPage />} />
+              <Route path="/" element={<MainLayout />}>
+                <Route index element={<HomeRedirect />} />
+                <Route path="orders" element={<RequireRole roles={[...staff]}><OrdersPage /></RequireRole>} />
+                <Route path="orders/:id" element={<OrderDetailPage />} />
+                <Route path="calculator" element={<RequireRole roles={[...staff]}><CalculatorPage /></RequireRole>} />
+                <Route path="design" element={<RequireRole roles={[...staff, 'DESIGNER']}><DesignPage /></RequireRole>} />
+                <Route path="production" element={<RequireRole roles={[...staff, 'PRINTER']}><ProductionPage /></RequireRole>} />
+                <Route path="installation" element={<RequireRole roles={[...staff, 'INSTALLER']}><InstallationPage /></RequireRole>} />
+                <Route path="clients" element={<RequireRole roles={[...staff]}><ClientsPage /></RequireRole>} />
+                <Route path="clients/:id" element={<RequireRole roles={[...staff]}><ClientDetailPage /></RequireRole>} />
+                <Route path="inventory" element={<RequireRole roles={[...staff, 'PRINTER']}><InventoryPage /></RequireRole>} />
+                <Route path="finance" element={<RequireRole roles={[...staff]}><FinancePage /></RequireRole>} />
+                <Route path="employees" element={<RequireRole roles={['ADMIN']}><EmployeesPage /></RequireRole>} />
+                <Route path="documents" element={<RequireRole roles={[...staff]}><DocumentsPage /></RequireRole>} />
+                <Route path="settings" element={<RequireRole roles={['ADMIN']}><SettingsPage /></RequireRole>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

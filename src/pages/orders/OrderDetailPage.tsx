@@ -1,285 +1,185 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  ArrowLeft, 
-  Clock, 
-  User, 
-  MapPin, 
-  Calendar, 
-  CheckCircle2, 
-  MessageSquare,
-  Paperclip,
-  Share2,
-  AlertCircle
-} from 'lucide-react';
-import { ordersApi } from '@/api/orders.api';
-import { clientsApi } from '@/api/clients.api';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, FileText, MapPin, Paperclip, Phone, Printer, User } from 'lucide-react';
+import { ordersApi, usersApi } from '@/api';
+import { CLIENT_TYPE_LABELS, SOURCE_LABELS, TASK_STATUS_LABELS } from '@/lib/labels';
+import { isFinance, useUser } from '@/lib/auth';
+import { fileUrl, formatCurrency, formatDate, formatPhone } from '@/lib/utils';
+import { DesignsCard } from '@/components/orders/detail/DesignsCard';
+import { InstallationCard } from '@/components/orders/detail/InstallationCard';
+import { PaymentsCard } from '@/components/orders/detail/PaymentsCard';
+import { SmsCard } from '@/components/orders/detail/SmsCard';
+import { StatusPanel } from '@/components/orders/detail/StatusPanel';
+import { TimelineCard } from '@/components/orders/detail/TimelineCard';
+import { StatusBadge } from '@/components/orders/StatusBadge';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { StatusBadge } from '@/components/orders/StatusBadge';
-import { formatCurrency, formatDate, cn } from '@/lib/utils';
-import { OrderStatus } from '@/types';
-
-const statusWorkflow: OrderStatus[] = [
-  'YANGI', 
-  'NARX_HISOBLANDI', 
-  'DIZAYNDA', 
-  'TASDIQDA', 
-  'ISHLAB_CHIQARISHDA', 
-  'TAYYOR', 
-  'ORNATISHDA', 
-  'YAKUNLANDI'
-];
+import { FileButton } from '@/components/ui/FileButton';
+import { Select } from '@/components/ui/Select';
+import { ErrorState, Loading } from '@/components/ui/States';
+import { useToast } from '@/components/ui/Toast';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const user = useUser();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const finance = isFinance(user.role);
 
-  const { data: order, isLoading } = useQuery({
+  const { data: order, isLoading, error, refetch } = useQuery({
     queryKey: ['order', id],
-    queryFn: () => ordersApi.getOrderById(id!),
+    queryFn: () => ordersApi.get(id!),
     enabled: !!id,
   });
-
-  const { data: client } = useQuery({
-    queryKey: ['client', order?.clientId],
-    queryFn: () => clientsApi.getClientById(order!.clientId),
-    enabled: !!order?.clientId,
+  const { data: designers } = useQuery({
+    queryKey: ['users', 'DESIGNER'],
+    queryFn: () => usersApi.list({ role: 'DESIGNER', active: true }),
+    enabled: finance,
   });
 
-  const statusMutation = useMutation({
-    mutationFn: ({ status }: { status: OrderStatus }) => ordersApi.updateStatus(id!, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['order', id] });
-    },
+  const assign = useMutation({
+    mutationFn: (designerId: string | null) => ordersApi.update(id!, { designerId }),
+    onSuccess: () => { toast.success('Dizayner tayinlandi'); qc.invalidateQueries({ queryKey: ['order', id] }); },
+    onError: toast.error,
   });
 
-  if (isLoading) return <div className="flex items-center justify-center h-64 animate-pulse text-gray-400">Yuklanmoqda...</div>;
-  if (!order) return <div className="text-center py-20 text-gray-500">Buyurtma topilmadi.</div>;
-
-  const currentStatusIndex = statusWorkflow.indexOf(order.status);
+  if (isLoading) return <Loading rows={8} />;
+  if (error || !order) return <ErrorState error={error} onRetry={refetch} />;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="outline" size="icon" onClick={() => navigate('/orders')}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          <Button variant="outline" size="icon" onClick={() => navigate(-1)} aria-label="Orqaga"><ArrowLeft className="h-4 w-4" /></Button>
           <div>
             <div className="flex items-center space-x-3">
               <h1 className="text-2xl font-bold text-gray-900">{order.number}</h1>
               <StatusBadge status={order.status} />
             </div>
-            <p className="text-sm text-gray-500 mt-1">Sana: {formatDate(order.createdAt)} • Manba: {order.source}</p>
+            <p className="mt-1 text-sm text-gray-500">
+              {formatDate(order.createdAt)} · {SOURCE_LABELS[order.source]} · Menejer: {order.manager.fullName}
+              {order.deadline && <> · <span className={order.isLate ? 'font-bold text-red-600' : ''}>Muddat: {formatDate(order.deadline)}</span></>}
+            </p>
           </div>
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline">
-            <Share2 className="h-4 w-4 mr-2" />
-            Tasdiqlash havolasi
-          </Button>
-          <Button variant="primary">
-            To'lov qo'shish
-          </Button>
-        </div>
+        {finance && (
+          <Link to={`/documents?order=${order.id}`}>
+            <Button variant="outline"><FileText className="mr-2 h-4 w-4" />Hujjatlar</Button>
+          </Link>
+        )}
       </div>
 
-      {/* Stepper */}
-      <Card className="p-8">
-        <div className="flex items-center justify-between relative">
-          <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-100 -translate-y-1/2 z-0" />
-          <div 
-            className="absolute top-1/2 left-0 h-0.5 bg-blue-500 -translate-y-1/2 transition-all duration-500 z-0" 
-            style={{ width: `${(currentStatusIndex / (statusWorkflow.length - 1)) * 100}%` }}
-          />
-          {statusWorkflow.map((status, idx) => {
-            const isCompleted = idx < currentStatusIndex;
-            const isCurrent = idx === currentStatusIndex;
-            return (
-              <div key={status} className="relative z-10 flex flex-col items-center group">
-                <div 
-                  className={cn(
-                    'h-8 w-8 rounded-full border-2 flex items-center justify-center transition-colors',
-                    isCompleted ? 'bg-blue-500 border-blue-500 text-white' : 
-                    isCurrent ? 'bg-white border-blue-500 text-blue-500' : 
-                    'bg-white border-gray-200 text-gray-300 group-hover:border-gray-300'
-                  )}
-                  onClick={() => statusMutation.mutate({ status })}
-                  role="button"
-                >
-                  {isCompleted ? <CheckCircle2 className="h-5 w-5" /> : <span className="text-xs font-bold">{idx + 1}</span>}
-                </div>
-                <span className={cn(
-                  'absolute top-10 whitespace-nowrap text-[10px] font-bold uppercase tracking-tighter text-center max-w-[80px]',
-                  isCurrent ? 'text-blue-600' : 'text-gray-400'
-                )}>
-                  {status.replace(/_/g, ' ')}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-16 flex justify-center">
-            {order.status !== 'YAKUNLANDI' && (
-              <Button 
-                isLoading={statusMutation.isPending}
-                onClick={() => statusMutation.mutate({ status: statusWorkflow[currentStatusIndex + 1] })}
-              >
-                Keyingi statusga o'tkazish: {statusWorkflow[currentStatusIndex + 1]?.replace(/_/g, ' ')}
-              </Button>
-            )}
-        </div>
-      </Card>
+      <StatusPanel order={order} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <Card title="Mahsulotlar">
             <div className="divide-y divide-gray-100">
-              {order.items.map((item, i) => (
-                <div key={i} className="py-4 first:pt-0 last:pb-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-bold text-gray-900">{item.productType}</p>
-                      <p className="text-sm text-gray-500">{item.widthCm}x{item.heightCm} cm ({item.areaM2} m²)</p>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge variant="outline">{item.materialId}</Badge>
-                        {item.finishing.map(f => <Badge key={f} variant="default">{f}</Badge>)}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900">{formatCurrency(item.total)}</p>
-                      <p className="text-xs text-gray-500">{item.quantity} dona x {formatCurrency(item.unitPrice)}</p>
+              {order.items.map((item) => (
+                <div key={item.id} className="flex justify-between gap-4 py-4 first:pt-0 last:pb-0">
+                  <div>
+                    <p className="font-bold text-gray-900">{item.productType}</p>
+                    <p className="text-sm text-gray-500">{item.widthCm}×{item.heightCm} sm · {item.areaM2} m² · {item.quantity} dona</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {item.material && <Badge variant="outline">{item.material.name}</Badge>}
+                      {item.finishing.map((f) => <Badge key={f}>{f}</Badge>)}
                     </div>
                   </div>
+                  {item.total !== undefined && (
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">{formatCurrency(item.total)}</p>
+                      <p className="text-xs text-gray-500">{item.quantity} × {formatCurrency(item.unitPrice)}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-            <div className="mt-6 pt-6 border-t border-gray-100 flex justify-between items-end">
-              <div className="space-y-1">
-                <p className="text-sm text-gray-500">To'langan: {formatCurrency(order.paidAmount)}</p>
-                <p className="text-sm font-bold text-red-600">Qarz: {formatCurrency(order.totalAmount - order.paidAmount)}</p>
+            {finance && (
+              <div className="mt-6 flex items-end justify-between border-t border-gray-100 pt-6">
+                <p className="text-sm text-gray-500">{order.discount ? `Chegirma: ${formatCurrency(order.discount)}` : ''}</p>
+                <div className="text-right">
+                  <p className="text-sm font-bold uppercase tracking-wider text-gray-500">Umumiy summa</p>
+                  <p className="text-3xl font-black text-blue-600">{formatCurrency(order.totalAmount)}</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500 uppercase font-bold tracking-wider">Umumiy summa</p>
-                <p className="text-3xl font-black text-blue-600">{formatCurrency(order.totalAmount)}</p>
-              </div>
-            </div>
+            )}
+            {order.notes && <p className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">{order.notes}</p>}
           </Card>
 
-          <Card title="Dizayn variantlari">
-             <div className="grid grid-cols-2 gap-4">
-                <div className="aspect-square bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all cursor-pointer">
-                  <div className="text-center p-4">
-                    <Paperclip className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-gray-600">Dizayn yuklash (v{order.revisionCount + 1})</p>
-                  </div>
-                </div>
-                {order.revisionCount > 0 && (
-                  <div className="aspect-square bg-gray-50 border border-gray-100 rounded-xl overflow-hidden relative group">
-                    <img src="https://placehold.co/400x400/2563eb/white?text=Dizayn+v1" alt="Design" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                       <Button size="sm">Ko'rish</Button>
-                    </div>
-                    <div className="absolute top-2 left-2">
-                       <Badge variant="success">TASDIQLANGAN</Badge>
-                    </div>
-                  </div>
-                )}
-             </div>
-          </Card>
+          <DesignsCard order={order} />
 
-          <Card title="Timeline / Tarix">
-             <div className="space-y-6">
-                <div className="flex space-x-4">
-                  <div className="flex flex-col items-center">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div className="flex-1 w-0.5 bg-gray-100 my-1" />
+          {order.productionTasks.length > 0 && (
+            <Card title="Ishlab chiqarish">
+              <div className="space-y-2">
+                {order.productionTasks.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between rounded-lg border border-gray-100 p-3 text-sm">
+                    <span className="flex items-center"><Printer className="mr-2 h-4 w-4 text-gray-400" />{t.equipment?.name ?? 'Uskuna tanlanmagan'}</span>
+                    <span className="text-gray-500">{t.assignee?.fullName}</span>
+                    <Badge variant={t.status === 'DONE' ? 'success' : t.status === 'IN_PROGRESS' ? 'info' : 'default'}>{TASK_STATUS_LABELS[t.status]}</Badge>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">Status o'zgardi: {order.status}</p>
-                    <p className="text-xs text-gray-500">{formatDate(order.statusChangedAt)} • Sanjar Karimov</p>
-                  </div>
-                </div>
-                <div className="flex space-x-4">
-                  <div className="flex flex-col items-center">
-                    <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center">
-                      <MessageSquare className="h-4 w-4 text-amber-600" />
-                    </div>
-                  </div>
-                  <div className="flex-1 bg-amber-50 p-3 rounded-lg border border-amber-100">
-                    <p className="text-sm text-amber-900 font-medium italic">"Mijoz shoshiltiryapti, dizaynni bugun bitirish kerak."</p>
-                    <p className="text-[10px] text-amber-700 mt-1 uppercase font-bold">Ichki izoh • 10:45</p>
-                  </div>
-                </div>
-             </div>
-          </Card>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          <TimelineCard orderId={order.id} events={order.events} />
         </div>
 
         <div className="space-y-6">
-          <Card title="Mijoz ma'lumotlari">
-            {client && (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-bold text-gray-900">{client.name}</p>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">{client.type}</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <User className="h-4 w-4 mr-3 text-gray-400" />
-                    {client.contactPerson || 'Mas\'ul xodim yo\'q'}
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="h-4 w-4 mr-3 text-gray-400" />
-                    {client.phones[0]}
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 mr-3 text-gray-400" />
-                    {client.address || 'Manzil ko\'rsatilmagan'}
-                  </div>
-                </div>
-                <Button variant="outline" className="w-full text-xs" size="sm">Mijoz kartasi</Button>
+          <Card title="Mijoz">
+            <div className="space-y-3">
+              <div>
+                {finance ? (
+                  <Link to={`/clients/${order.client.id}`} className="font-bold text-blue-600 hover:underline">{order.client.name}</Link>
+                ) : <p className="font-bold text-gray-900">{order.client.name}</p>}
+                <p className="text-xs uppercase tracking-wider text-gray-500">{CLIENT_TYPE_LABELS[order.client.type]}</p>
               </div>
-            )}
+              {order.client.contactPerson && <p className="flex items-center text-sm text-gray-600"><User className="mr-3 h-4 w-4 text-gray-400" />{order.client.contactPerson}</p>}
+              {order.client.phones.map((p) => (
+                <a key={p} href={`tel:${p}`} className="flex items-center text-sm text-gray-600 hover:text-blue-600"><Phone className="mr-3 h-4 w-4 text-gray-400" />{formatPhone(p)}</a>
+              ))}
+              {order.client.address && <p className="flex items-center text-sm text-gray-600"><MapPin className="mr-3 h-4 w-4 text-gray-400" />{order.client.address}</p>}
+            </div>
           </Card>
 
-          <Card title="O'rnatish ishlari">
-             {order.needsInstallation ? (
-               <div className="space-y-4">
-                  <div className="flex items-start space-x-3 bg-blue-50 p-3 rounded-lg border border-blue-100 text-blue-800">
-                    <MapPin className="h-5 w-5 mt-0.5" />
-                    <p className="text-xs font-medium leading-relaxed">{order.installationAddress}</p>
-                  </div>
-                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-gray-500">
-                    <span>Deadline:</span>
-                    <span className="text-red-600">{formatDate(order.deadline)}</span>
-                  </div>
-                  <Button variant="outline" className="w-full" size="sm">O'rnatuvchilarni biriktirish</Button>
-               </div>
-             ) : (
-               <p className="text-sm text-gray-500 text-center py-4">O'rnatish talab qilinmaydi.</p>
-             )}
-          </Card>
-
-          {order.status === 'TASDIQDA' && (
-            <Card className="bg-amber-50 border-amber-200">
-               <div className="flex items-center space-x-3 text-amber-800 mb-3">
-                  <AlertCircle className="h-5 w-5" />
-                  <p className="font-bold">SLA Ogohlantirish</p>
-               </div>
-               <p className="text-xs text-amber-700 leading-relaxed">Ushbu buyurtma 24 soatdan beri mijoz tasdig'ini kutmoqda. Iltimos, menejer bilan bog'laning.</p>
+          {finance && order.needsDesign && (
+            <Card title="Dizayner">
+              <Select
+                value={order.designerId ?? ''}
+                onChange={(e) => assign.mutate(e.target.value || null)}
+                placeholder="Tayinlanmagan"
+                options={(designers ?? []).map((d) => ({ value: d.id, label: d.fullName }))}
+                disabled={assign.isPending}
+              />
             </Card>
           )}
+
+          {finance && <PaymentsCard order={order} />}
+
+          {finance && <SmsCard order={order} />}
+
+          <InstallationCard order={order} />
+
+          <Card
+            title="Fayllar"
+            actions={(
+              <FileButton size="sm" variant="outline" kind="REFERENCE" orderId={order.id} onUploaded={() => qc.invalidateQueries({ queryKey: ['order', id] })}>
+                Qo'shish
+              </FileButton>
+            )}
+          >
+            {order.files.length ? (
+              <div className="space-y-2">
+                {order.files.map((f) => (
+                  <a key={f.id} href={fileUrl(f.url)} target="_blank" rel="noreferrer" className="flex items-center text-sm text-blue-600 hover:underline">
+                    <Paperclip className="mr-2 h-4 w-4 shrink-0" /><span className="truncate">{f.name}</span>
+                  </a>
+                ))}
+              </div>
+            ) : <p className="text-center text-sm text-gray-400">Fayllar yo'q</p>}
+          </Card>
         </div>
       </div>
     </div>

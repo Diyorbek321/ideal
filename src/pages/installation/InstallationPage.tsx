@@ -1,145 +1,112 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  Truck, 
-  MapPin, 
-  Phone, 
-  CheckSquare, 
-  Camera, 
-  AlertTriangle,
-  Calendar as CalendarIcon,
-  Navigation,
-  ChevronRight
-} from 'lucide-react';
-import { ordersApi } from '@/api/orders.api';
-import { Card } from '@/components/ui/Card';
+import { CheckSquare, Truck } from 'lucide-react';
+import { installationsApi } from '@/api';
+import { INSTALL_STATUS_LABELS, PROBLEM_LABELS, options } from '@/lib/labels';
+import { useUser } from '@/lib/auth';
+import { formatDateTime, toDateInput } from '@/lib/utils';
+import { InstallJobCard } from '@/components/installation/InstallJobCard';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { formatDate } from '@/lib/utils';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
 
-export default function InstallationPage() {
-  const { data: orders } = useQuery({ 
-    queryKey: ['orders-installation'], 
-    queryFn: () => ordersApi.getOrders() 
+// Ustanovkachi uchun telefon ekrani
+function InstallerView() {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['installations', 'my-today'],
+    queryFn: installationsApi.myToday,
+    refetchInterval: 60_000,
   });
-
-  const installations = orders?.filter(o => o.status === 'ORNATISHDA') || [];
+  if (isLoading) return <Loading />;
+  if (error || !data) return <ErrorState error={error} onRetry={refetch} />;
+  const open = data.filter((i) => i.status !== 'DONE');
 
   return (
-    <div className="space-y-6 max-w-lg mx-auto pb-20">
+    <div className="mx-auto max-w-lg space-y-6 pb-10">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">O'rnatish ishlari</h1>
           <p className="text-gray-500">Bugungi vazifalar</p>
         </div>
-        <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-           <Truck className="h-6 w-6" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600"><Truck className="h-6 w-6" /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 text-center shadow-sm">
+          <p className="text-2xl font-black text-blue-600">{open.length}</p>
+          <p className="text-[10px] font-bold uppercase text-gray-400">Qolgan ishlar</p>
+        </div>
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 text-center shadow-sm">
+          <p className="text-2xl font-black text-emerald-600">{data.length - open.length}</p>
+          <p className="text-[10px] font-bold uppercase text-gray-400">Bajarildi</p>
         </div>
       </div>
-
-      <div className="grid grid-cols-2 gap-4">
-         <div className="p-4 bg-white rounded-2xl border border-gray-100 text-center shadow-sm">
-            <p className="text-2xl font-black text-blue-600">{installations.length}</p>
-            <p className="text-[10px] text-gray-400 font-bold uppercase">Ishlar soni</p>
-         </div>
-         <div className="p-4 bg-white rounded-2xl border border-gray-100 text-center shadow-sm">
-            <p className="text-2xl font-black text-amber-600">2</p>
-            <p className="text-[10px] text-gray-400 font-bold uppercase">Kutilayotgan</p>
-         </div>
-      </div>
-
       <div className="space-y-4">
-        {installations.map((inst) => (
-          <Card key={inst.id} className="p-0 overflow-hidden group border-0 shadow-md">
-            <div className="bg-blue-600 p-4 text-white">
-               <div className="flex justify-between items-start mb-2">
-                  <span className="text-xs font-black uppercase tracking-widest opacity-80">{inst.number}</span>
-                  <Badge className="bg-white/20 text-white border-0 text-[10px]">BUGUN</Badge>
-               </div>
-               <h3 className="text-lg font-bold">Mijoz {inst.clientId}</h3>
-            </div>
-            <div className="p-5 space-y-5">
-               <div className="space-y-3">
-                  <div className="flex items-start text-sm text-gray-600">
-                     <MapPin className="h-4 w-4 mr-3 text-blue-500 mt-1 flex-shrink-0" />
-                     <p className="font-medium leading-relaxed">{inst.installationAddress}</p>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                     <Phone className="h-4 w-4 mr-3 text-emerald-500 flex-shrink-0" />
-                     <p className="font-bold">+998 90 123 45 67</p>
-                  </div>
-               </div>
-
-               <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" className="w-full h-12 bg-gray-50 border-gray-200">
-                    <Navigation className="h-4 w-4 mr-2 text-blue-600" />
-                    Xarita
-                  </Button>
-                  <Button variant="primary" className="w-full h-12">
-                    Boshladim
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </Button>
-               </div>
-
-               <div className="pt-4 border-t border-gray-100">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Pre-departure checklist</p>
-                  <div className="space-y-2">
-                     <div className="flex items-center space-x-3 text-sm text-gray-600">
-                        <div className="h-5 w-5 rounded border-2 border-blue-200 flex items-center justify-center bg-blue-50">
-                           <CheckSquare className="h-3 w-3 text-blue-600" />
-                        </div>
-                        <span>O'lchamlar tekshirildi</span>
-                     </div>
-                     <div className="flex items-center space-x-3 text-sm text-gray-600">
-                        <div className="h-5 w-5 rounded border-2 border-gray-200" />
-                        <span>Barcha detallar olindi</span>
-                     </div>
-                     <div className="flex items-center space-x-3 text-sm text-gray-600">
-                        <div className="h-5 w-5 rounded border-2 border-gray-200" />
-                        <span>Manzil tasdiqlandi</span>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="pt-2">
-                  <Button variant="ghost" className="w-full text-red-600 text-xs font-bold py-2">
-                    <AlertTriangle className="h-3 w-3 mr-2" />
-                    Muammo haqida xabar berish
-                  </Button>
-               </div>
-            </div>
-          </Card>
-        ))}
-
-        {installations.length === 0 && (
-          <div className="text-center py-20">
-             <div className="h-20 w-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckSquare className="h-10 w-10 text-gray-200" />
-             </div>
-             <p className="text-gray-400 font-medium">Bugun uchun vazifalar yo'q.</p>
-          </div>
-        )}
+        {data.map((job) => <InstallJobCard key={job.id} job={job} />)}
+        {data.length === 0 && <Empty text="Bugun uchun vazifalar yo'q" icon={CheckSquare} />}
       </div>
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-3 flex justify-around items-center z-20 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-         <button className="flex flex-col items-center space-y-1 text-blue-600">
-            <CalendarIcon className="h-6 w-6" />
-            <span className="text-[10px] font-bold uppercase">Ishlar</span>
-         </button>
-         <button className="flex flex-col items-center space-y-1 text-gray-400">
-            <Camera className="h-6 w-6" />
-            <span className="text-[10px] font-bold uppercase">Foto</span>
-         </button>
-         <button className="flex flex-col items-center space-y-1 text-gray-400">
-            <Truck className="h-6 w-6" />
-            <span className="text-[10px] font-bold uppercase">Mashina</span>
-         </button>
-      </nav>
     </div>
   );
+}
+
+// Menejer: kunlar bo'yicha jadval
+function ManagerView() {
+  const [from, setFrom] = React.useState(toDateInput(new Date()));
+  const [to, setTo] = React.useState(toDateInput(new Date(Date.now() + 7 * 86_400_000)));
+  const [status, setStatus] = React.useState('');
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['installations', from, to, status],
+    queryFn: () => installationsApi.list({
+      from: new Date(`${from}T00:00:00`).toISOString(),
+      to: new Date(`${to}T23:59:59`).toISOString(),
+      status: status || undefined,
+    }),
+    enabled: !!from && !!to,
+  });
+
+  const byDay = new Map<string, NonNullable<typeof data>>();
+  for (const i of data ?? []) {
+    const day = toDateInput(new Date(i.scheduledAt));
+    byDay.set(day, [...(byDay.get(day) ?? []), i]);
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="O'rnatish jadvali" subtitle="Rejalashtirish buyurtma sahifasidan amalga oshiriladi" />
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <Input type="date" label="Dan" value={from} onChange={(e) => setFrom(e.target.value)} />
+        <Input type="date" label="Gacha" value={to} onChange={(e) => setTo(e.target.value)} />
+        <Select label="Holat" value={status} onChange={(e) => setStatus(e.target.value)} placeholder="Barchasi" options={options(INSTALL_STATUS_LABELS)} />
+      </div>
+      {error ? <ErrorState error={error} onRetry={refetch} /> : isLoading ? <Loading /> : byDay.size === 0 ? <Card><Empty text="Bu davrda o'rnatish yo'q" /></Card> : (
+        [...byDay.entries()].map(([day, list]) => (
+          <Card key={day} title={`${day.split('-').reverse().join('.')} — ${list.length} ta`}>
+            <div className="space-y-3">
+              {list.map((i) => (
+                <div key={i.id} className="flex flex-col gap-2 rounded-lg border border-gray-100 p-3 text-sm md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <Link to={`/orders/${i.orderId}`} className="font-bold text-blue-600 hover:underline">{i.order?.number}</Link>
+                    <span className="ml-2 text-gray-900">{i.order?.client.name}</span>
+                    <p className="text-xs text-gray-500">{formatDateTime(i.scheduledAt)} · {i.address}</p>
+                    <p className="text-xs text-gray-500">{i.team.map((t) => t.fullName).join(', ')}</p>
+                    {i.problems.filter((p) => !p.resolved).map((p) => (
+                      <p key={p.id} className="mt-1 text-xs font-medium text-red-600">{PROBLEM_LABELS[p.type]}: {p.description}</p>
+                    ))}
+                  </div>
+                  <Badge variant={i.status === 'DONE' ? 'success' : i.status === 'PROBLEM' ? 'error' : 'info'}>{INSTALL_STATUS_LABELS[i.status]}</Badge>
+                </div>
+              ))}
+            </div>
+          </Card>
+        ))
+      )}
+    </div>
+  );
+}
+
+export default function InstallationPage() {
+  const user = useUser();
+  return user.role === 'INSTALLER' ? <InstallerView /> : <ManagerView />;
 }

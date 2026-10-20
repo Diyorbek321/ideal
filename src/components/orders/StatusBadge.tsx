@@ -1,24 +1,20 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+import type { OrderStatus } from '@/types';
+import { STATUS_LABELS } from '@/lib/labels';
+import { Badge, type BadgeProps } from '../ui/Badge';
 
-import { OrderStatus } from '@/types';
-import { Badge } from '../ui/Badge';
-
-const statusConfig: Record<OrderStatus, { label: string; variant: any }> = {
-  YANGI: { label: 'Yangi', variant: 'info' },
-  NARX_HISOBLANDI: { label: 'Narxi hisoblandi', variant: 'default' },
-  DIZAYNDA: { label: 'Dizaynda', variant: 'warning' },
-  TASDIQDA: { label: 'Tasdiqda', variant: 'warning' },
-  ISHLAB_CHIQARISHDA: { label: 'Ishlab chiqarishda', variant: 'info' },
-  TAYYOR: { label: 'Tayyor', variant: 'success' },
-  ORNATISHDA: { label: 'O\'rnatishda', variant: 'info' },
-  YAKUNLANDI: { label: 'Yakunlandi', variant: 'success' },
-  BEKOR_QILINDI: { label: 'Bekor qilindi', variant: 'error' },
+const VARIANTS: Record<OrderStatus, NonNullable<BadgeProps['variant']>> = {
+  YANGI: 'info',
+  NARX_HISOBLANDI: 'default',
+  DIZAYNDA: 'warning',
+  TASDIQDA: 'warning',
+  ISHLAB_CHIQARISHDA: 'info',
+  TAYYOR: 'success',
+  ORNATISHDA: 'info',
+  YETKAZISHDA: 'info',
+  YAKUNLANDI: 'success',
+  BEKOR_QILINDI: 'error',
 };
 
 export function StatusBadge({ status }: { status: OrderStatus }) {
-  const config = statusConfig[status];
-  return <Badge variant={config.variant}>{config.label}</Badge>;
+  return <Badge variant={VARIANTS[status]}>{STATUS_LABELS[status]}</Badge>;
 }

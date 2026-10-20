@@ -1,214 +1,176 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { 
-  LayoutGrid, 
-  List, 
-  Plus, 
-  Filter, 
-  Search,
-  MoreVertical,
-  Calendar,
-  User,
-  Phone
-} from 'lucide-react';
-import { ordersApi } from '@/api/orders.api';
-import { clientsApi } from '@/api/clients.api';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { AlertTriangle, Calendar, ChevronLeft, ChevronRight, LayoutGrid, List, Plus, Search } from 'lucide-react';
+import { ordersApi } from '@/api';
+import { CLIENT_TYPE_LABELS, SOURCE_LABELS, STATUS_LABELS, options } from '@/lib/labels';
+import { cn, formatCurrency, formatDate, formatHours } from '@/lib/utils';
+import { useDebounced } from '@/components/clients/ClientPicker';
+import { OrderFormModal } from '@/components/orders/OrderFormModal';
+import { OrdersKanban } from '@/components/orders/OrdersKanban';
+import { StatusBadge } from '@/components/orders/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { StatusBadge } from '@/components/orders/StatusBadge';
-import { formatCurrency, formatDate, cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import { Select } from '@/components/ui/Select';
+import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
+
+const LIMIT = 25;
 
 export default function OrdersPage() {
-  const [view, setView] = React.useState<'table' | 'kanban'>('table');
-  const [search, setSearch] = React.useState('');
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const [creating, setCreating] = React.useState(false);
+  const [search, setSearch] = React.useState(params.get('search') ?? '');
+  const debounced = useDebounced(search);
 
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ['orders'],
-    queryFn: () => ordersApi.getOrders(),
-  });
-
-  const { data: clients } = useQuery({
-    queryKey: ['clients'],
-    queryFn: clientsApi.getClients,
-  });
-
-  const getClientName = (id: string) => {
-    return clients?.find(c => c.id === id)?.name || 'Noma\'lum';
+  const view = (params.get('view') as 'table' | 'kanban') ?? 'table';
+  const page = Number(params.get('page') ?? 1);
+  const filters = {
+    status: params.get('status') ?? undefined,
+    source: params.get('source') ?? undefined,
+    clientType: params.get('clientType') ?? undefined,
+    debtOnly: params.get('debtOnly') === 'true' || undefined,
+    overdueOnly: params.get('overdueOnly') === 'true' || undefined,
   };
 
-  const filteredOrders = orders?.filter(o => 
-    o.number.toLowerCase().includes(search.toLowerCase()) ||
-    getClientName(o.clientId).toLowerCase().includes(search.toLowerCase())
-  );
+  const setParam = (k: string, v: string | null) => {
+    const next = new URLSearchParams(params);
+    if (v) next.set(k, v); else next.delete(k);
+    if (k !== 'page') next.delete('page');
+    setParams(next, { replace: true });
+  };
+
+  React.useEffect(() => {
+    if ((params.get('search') ?? '') !== debounced) setParam('search', debounced || null);
+  }, [debounced]);
+
+  // Yuqori paneldagi qidiruv URL'ni o'zgartirganda maydon ham yangilanadi
+  const urlSearch = params.get('search') ?? '';
+  React.useEffect(() => {
+    if (urlSearch !== search && urlSearch !== debounced) setSearch(urlSearch);
+  }, [urlSearch]);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['orders', view, page, filters, debounced],
+    queryFn: () => ordersApi.list({ ...filters, search: debounced || undefined, view, page, limit: LIMIT }),
+    placeholderData: keepPreviousData,
+  });
+
+  const orders = data?.data ?? [];
+  const meta = data?.meta;
+  const pages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Buyurtmalar</h1>
-          <p className="text-gray-500">Barcha buyurtmalar ro'yxati va holati</p>
+      <PageHeader
+        title="Buyurtmalar"
+        subtitle={meta ? `Jami: ${meta.total}` : 'Barcha buyurtmalar ro\'yxati va holati'}
+        actions={(
+          <>
+            <div className="flex rounded-lg border border-gray-200 bg-white p-1">
+              {(['table', 'kanban'] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => {
+                    const next = new URLSearchParams(params);
+                    if (v === 'kanban') { next.set('view', 'kanban'); next.delete('status'); } else next.delete('view');
+                    next.delete('page');
+                    setParams(next, { replace: true });
+                  }}
+                  className={cn('rounded-md p-1.5 transition-colors', view === v ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50')}
+                  aria-label={v === 'table' ? 'Jadval' : 'Kanban'}
+                >
+                  {v === 'table' ? <List className="h-5 w-5" /> : <LayoutGrid className="h-5 w-5" />}
+                </button>
+              ))}
+            </div>
+            <Button onClick={() => setCreating(true)}>
+              <Plus className="mr-2 h-5 w-5" /> Yangi buyurtma
+            </Button>
+          </>
+        )}
+      />
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
+        <div className="relative md:col-span-2">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input placeholder="Raqam, mijoz yoki telefon..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <div className="flex items-center space-x-3">
-          <div className="flex border border-gray-200 rounded-lg p-1 bg-white">
-            <button
-              onClick={() => setView('table')}
-              className={cn(
-                'p-1.5 rounded-md transition-colors',
-                view === 'table' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'
-              )}
-            >
-              <List className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => setView('kanban')}
-              className={cn(
-                'p-1.5 rounded-md transition-colors',
-                view === 'kanban' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'
-              )}
-            >
-              <LayoutGrid className="h-5 w-5" />
-            </button>
-          </div>
-          <Button onClick={() => navigate('/calculator')}>
-            <Plus className="h-5 w-5 mr-2" />
-            Yangi buyurtma
-          </Button>
+        {view === 'table' && (
+          <Select value={filters.status ?? ''} onChange={(e) => setParam('status', e.target.value)} placeholder="Barcha statuslar" options={options(STATUS_LABELS)} />
+        )}
+        <Select value={filters.source ?? ''} onChange={(e) => setParam('source', e.target.value)} placeholder="Barcha manbalar" options={options(SOURCE_LABELS)} />
+        <Select value={filters.clientType ?? ''} onChange={(e) => setParam('clientType', e.target.value)} placeholder="Mijoz turi" options={options(CLIENT_TYPE_LABELS)} />
+        <div className="flex items-center gap-4 text-sm text-gray-700">
+          <label className="flex items-center gap-1.5"><input type="checkbox" checked={!!filters.debtOnly} onChange={(e) => setParam('debtOnly', e.target.checked ? 'true' : null)} /> Qarzi bor</label>
+          <label className="flex items-center gap-1.5"><input type="checkbox" checked={!!filters.overdueOnly} onChange={(e) => setParam('overdueOnly', e.target.checked ? 'true' : null)} /> Kechikkan</label>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Nomer yoki mijoz bo'yicha qidiruv..."
-            className="pl-10"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Button variant="outline">
-          <Filter className="h-4 w-4 mr-2" />
-          Filtrlar
-        </Button>
-      </div>
-
-      {view === 'table' ? (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-6 py-4 font-semibold text-gray-900">ID / Sana</th>
-                  <th className="px-6 py-4 font-semibold text-gray-900">Mijoz</th>
-                  <th className="px-6 py-4 font-semibold text-gray-900">Summa</th>
-                  <th className="px-6 py-4 font-semibold text-gray-900">Status</th>
-                  <th className="px-6 py-4 font-semibold text-gray-900">Deadline</th>
-                  <th className="px-6 py-4 font-semibold text-gray-900"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                   Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="animate-pulse border-b border-gray-50">
-                      <td colSpan={6} className="px-6 py-8">
-                        <div className="h-4 bg-gray-100 rounded w-full" />
-                      </td>
-                    </tr>
-                  ))
-                ) : filteredOrders?.map((order) => (
-                  <tr 
-                    key={order.id} 
-                    className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/orders/${order.id}`)}
-                  >
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-blue-600">{order.number}</p>
-                      <p className="text-xs text-gray-500 mt-1">{formatDate(order.createdAt)}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                          <User className="h-4 w-4 text-gray-400" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{getClientName(order.clientId)}</p>
-                          <p className="text-xs text-gray-500 capitalize">{order.source.toLowerCase().replace('_', ' ')}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="font-semibold text-gray-900">{formatCurrency(order.totalAmount)}</p>
-                      {order.totalAmount > order.paidAmount && (
-                         <p className="text-xs text-red-500 mt-1 font-medium">Qarz: {formatCurrency(order.totalAmount - order.paidAmount)}</p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={order.status} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center text-gray-600">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {formatDate(order.deadline)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-400">
-                        <MoreVertical className="h-5 w-5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+      {error ? <ErrorState error={error} onRetry={refetch} /> : isLoading ? <Loading rows={8} /> : view === 'kanban' ? (
+        <OrdersKanban orders={orders} />
       ) : (
-        <div className="flex space-x-4 overflow-x-auto pb-4">
-          {/* Simple Kanban Mock */}
-          {['YANGI', 'DIZAYNDA', 'TASDIQDA', 'ISHLAB_CHIQARISHDA', 'TAYYOR'].map((status) => (
-            <div key={status} className="w-80 flex-shrink-0 space-y-4">
-              <div className="flex items-center justify-between px-2">
-                <h3 className="font-bold text-gray-700 flex items-center uppercase text-xs tracking-wider">
-                  {status.replace('_', ' ')}
-                  <span className="ml-2 px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 text-[10px]">
-                    {orders?.filter(o => o.status === status).length || 0}
-                  </span>
-                </h3>
-              </div>
-              <div className="space-y-3 min-h-[500px]">
-                {orders?.filter(o => o.status === status).slice(0, 5).map((order) => (
-                  <Card 
-                    key={order.id} 
-                    className="p-4 hover:shadow-md cursor-grab active:cursor-grabbing border-l-4 border-l-blue-500"
-                    onClick={() => navigate(`/orders/${order.id}`)}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-sm font-bold text-blue-600">{order.number}</span>
-                      <span className="text-[10px] text-gray-400 uppercase font-medium">{order.source}</span>
-                    </div>
-                    <p className="text-sm font-medium text-gray-900 mb-4">{getClientName(order.clientId)}</p>
-                    <div className="flex items-center justify-between mt-auto">
-                      <p className="text-xs font-bold text-gray-900">{formatCurrency(order.totalAmount)}</p>
-                      <div className="flex items-center text-[10px] text-gray-500">
-                        <Clock className="h-3 w-3 mr-1" />
-                        2 kun qoldi
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+        <Card className="overflow-hidden">
+          {orders.length === 0 ? <Empty text="Buyurtmalar topilmadi" /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <th className="px-6 py-4 font-semibold text-gray-900">ID / Sana</th>
+                    <th className="px-6 py-4 font-semibold text-gray-900">Mijoz</th>
+                    <th className="px-6 py-4 font-semibold text-gray-900">Summa</th>
+                    <th className="px-6 py-4 font-semibold text-gray-900">Status</th>
+                    <th className="px-6 py-4 font-semibold text-gray-900">Muddat</th>
+                    <th className="px-6 py-4 font-semibold text-gray-900">Dizayner</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((o) => (
+                    <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} className="cursor-pointer border-b border-gray-50 transition-colors hover:bg-gray-50/50">
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-blue-600">{o.number}</p>
+                        <p className="mt-1 text-xs text-gray-500">{formatDate(o.createdAt)}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-gray-900">{o.client.name}</p>
+                        <p className="text-xs text-gray-500">{SOURCE_LABELS[o.source]}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-semibold text-gray-900">{formatCurrency(o.totalAmount)}</p>
+                        {!!o.remainingAmount && <p className="mt-1 text-xs font-medium text-red-500">Qarz: {formatCurrency(o.remainingAmount)}</p>}
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={o.status} />
+                        {o.sla.isOverdue && (
+                          <p className="mt-1 flex items-center text-xs font-medium text-red-600">
+                            <AlertTriangle className="mr-1 h-3 w-3" /> {formatHours(o.sla.hoursInStatus)}
+                          </p>
+                        )}
+                      </td>
+                      <td className={cn('px-6 py-4', o.isLate ? 'font-medium text-red-600' : 'text-gray-600')}>
+                        <div className="flex items-center"><Calendar className="mr-2 h-4 w-4" />{formatDate(o.deadline)}</div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">{o.designer?.fullName ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {pages > 1 && (
+            <div className="flex items-center justify-between border-t border-gray-100 px-6 py-3 text-sm text-gray-600">
+              <span>{page} / {pages}</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setParam('page', String(page - 1))}><ChevronLeft className="h-4 w-4" /></Button>
+                <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => setParam('page', String(page + 1))}><ChevronRight className="h-4 w-4" /></Button>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        </Card>
       )}
+
+      {creating && <OrderFormModal open onClose={() => setCreating(false)} />}
     </div>
   );
 }
