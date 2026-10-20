@@ -1,187 +1,256 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { 
-  DollarSign, 
-  TrendingDown, 
-  CreditCard, 
-  Banknote,
-  Calendar,
-  User,
-  ArrowRight
-} from 'lucide-react';
-import { financeApi } from '@/api/payments.api';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { Link } from 'react-router-dom';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Banknote, CreditCard, DollarSign, FileSpreadsheet, Landmark, Plus, Trash2, TrendingDown } from 'lucide-react';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { expensesApi, paymentsApi, reportsApi } from '@/api';
+import type { PaymentMethod } from '@/types';
+import { CLIENT_TYPE_LABELS, METHOD_LABELS } from '@/lib/labels';
+import { useUser } from '@/lib/auth';
+import { cn, copyText, formatCurrency, formatDate, parseMoney, telegramShareUrl } from '@/lib/utils';
+import { AccountingExportModal } from '@/components/finance/AccountingExportModal';
 import { Button } from '@/components/ui/Button';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  AreaChart,
-  Area
-} from 'recharts';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
+import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
+import { useToast } from '@/components/ui/Toast';
+
+const METHODS: PaymentMethod[] = ['CASH', 'CARD', 'TRANSFER', 'TENDER'];
+const METHOD_ICONS = { CASH: Banknote, CARD: CreditCard, TRANSFER: Landmark, TENDER: Landmark };
+const EXPENSE_CATEGORIES = ['Material xaridi', 'Ijara', 'Kommunal', 'Transport', 'Uskuna ta\'miri', 'Soliq', 'Boshqa'];
+
+function monthBounds(ym: string) {
+  const [y, m] = ym.split('-').map(Number) as [number, number];
+  return { from: new Date(y, m - 1, 1).toISOString(), to: new Date(y, m, 1).toISOString() };
+}
 
 export default function FinancePage() {
-  const { data: stats } = useQuery({ queryKey: ['finance-stats'], queryFn: financeApi.getStats });
-  const { data: payments } = useQuery({ queryKey: ['payments'], queryFn: financeApi.getPayments });
+  const user = useUser();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const now = new Date();
+  const [month, setMonth] = React.useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+  const range = monthBounds(month);
+  const [reminder, setReminder] = React.useState<{ message: string; phones: string[]; smsStatus: string | null; smsError: string | null } | null>(null);
+  const [expenseOpen, setExpenseOpen] = React.useState(false);
+  const [exportOpen, setExportOpen] = React.useState(false);
+  const [exp, setExp] = React.useState({ category: EXPENSE_CATEGORIES[0]!, amount: '', note: '' });
 
-  const chartData = [
-    { day: '01.10', amount: 4500000 },
-    { day: '05.10', amount: 3200000 },
-    { day: '10.10', amount: 7800000 },
-    { day: '15.10', amount: 5400000 },
-    { day: '20.10', amount: 9100000 },
-  ];
+  const summary = useQuery({ queryKey: ['summary', month], queryFn: () => reportsApi.summary(range.from, range.to) });
+  const debts = useQuery({ queryKey: ['debts'], queryFn: paymentsApi.debts });
+  const recent = useQuery({ queryKey: ['payments', month], queryFn: () => paymentsApi.list({ ...range, limit: 8 }) });
+  const expenses = useQuery({ queryKey: ['expenses', month], queryFn: () => expensesApi.list({ ...range, limit: 50 }) });
+  const byMethod = useQueries({
+    queries: METHODS.map((method) => ({
+      queryKey: ['payments', month, method],
+      queryFn: () => paymentsApi.list({ ...range, method, limit: 1 }),
+    })),
+  });
+
+  const remind = useMutation({ mutationFn: paymentsApi.remind, onSuccess: setReminder, onError: toast.error });
+  const addExpense = useMutation({
+    mutationFn: () => {
+      const sum = parseMoney(exp.amount);
+      if (!sum) return Promise.reject(new Error('Summani raqam bilan kiriting'));
+      return expensesApi.create({ category: exp.category.trim(), amount: sum, note: exp.note || undefined });
+    },
+    onSuccess: () => { toast.success('Xarajat qo\'shildi'); setExpenseOpen(false); qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['summary'] }); },
+    onError: toast.error,
+  });
+  const delExpense = useMutation({
+    mutationFn: expensesApi.remove,
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['summary'] }); },
+    onError: toast.error,
+  });
+
+  if (summary.isLoading) return <Loading rows={8} />;
+  if (summary.error || !summary.data) return <ErrorState error={summary.error} onRetry={summary.refetch} />;
+  const s = summary.data;
+  const chart = s.revenueByDay.map((r) => ({ day: `${r.day.slice(8, 10)}.${r.day.slice(5, 7)}`, amount: r.amount }));
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Moliya va To'lovlar</h1>
-          <p className="text-gray-500">Daromadlar, xarajatlar va qarzlar hisobi</p>
-        </div>
-        <div className="flex space-x-3">
-          <Button variant="outline">
-            Xarajat qo'shish
-          </Button>
-          <Button>
-            Hisobot yuklash (Excel)
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Moliya va to'lovlar"
+        subtitle="Tushum, xarajat va qarzlar"
+        actions={(
+          <>
+            <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} className="h-10 rounded-md border border-gray-300 px-3 text-sm" aria-label="Oy" />
+            <Button variant="outline" onClick={() => { setExp({ category: EXPENSE_CATEGORIES[0]!, amount: '', note: '' }); setExpenseOpen(true); }}>
+              <Plus className="mr-2 h-4 w-4" />Xarajat
+            </Button>
+            <Button variant="outline" onClick={() => setExportOpen(true)}><FileSpreadsheet className="mr-2 h-4 w-4" />Buxgalter uchun Excel</Button>
+          </>
+        )}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6 bg-blue-600 text-white border-0 shadow-lg shadow-blue-100">
-           <div className="flex justify-between items-start mb-4">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <DollarSign className="h-6 w-6" />
-              </div>
-              <Badge className="bg-white/20 text-white border-0">+12%</Badge>
-           </div>
-           <p className="text-sm opacity-80 mb-1">Umumiy tushum (oylik)</p>
-           <p className="text-2xl font-black">{formatCurrency(stats?.totalRevenue || 0)}</p>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+        <Card className="border-0 bg-blue-600 p-6 text-white shadow-lg shadow-blue-100">
+          <div className="mb-4 w-fit rounded-lg bg-white/20 p-2"><DollarSign className="h-6 w-6" /></div>
+          <p className="mb-1 text-sm opacity-80">Tushum</p>
+          <p className="text-2xl font-black">{formatCurrency(s.revenue)}</p>
         </Card>
-
-        <Card className="p-6 bg-red-500 text-white border-0 shadow-lg shadow-red-100">
-           <div className="flex justify-between items-start mb-4">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <TrendingDown className="h-6 w-6" />
-              </div>
-           </div>
-           <p className="text-sm opacity-80 mb-1">Qarzdorlik (Nasiya)</p>
-           <p className="text-2xl font-black">{formatCurrency(stats?.totalDebt || 0)}</p>
+        <Card className="p-6">
+          <p className="mb-1 text-sm text-gray-500">Xarajatlar</p>
+          <p className="text-2xl font-black text-gray-900">{formatCurrency(s.expenses)}</p>
+          <p className={cn('mt-2 text-sm font-bold', s.cashFlow >= 0 ? 'text-emerald-600' : 'text-red-600')}>Sof oqim: {formatCurrency(s.cashFlow)}</p>
         </Card>
-
-        <Card className="p-6 bg-white shadow-sm">
-           <div className="flex justify-between items-start mb-4">
-              <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
-                <Banknote className="h-6 w-6" />
-              </div>
-           </div>
-           <p className="text-sm text-gray-500 mb-1">Naqd pullar</p>
-           <p className="text-2xl font-black text-gray-900">{formatCurrency((stats?.totalRevenue || 0) * 0.4)}</p>
+        <Card className="p-6">
+          <p className="mb-1 text-sm text-gray-500">Buyurtmalar</p>
+          <p className="text-2xl font-black text-gray-900">{s.ordersCount} ta</p>
+          <p className="mt-2 text-sm text-gray-500">{formatCurrency(s.ordersAmount)}</p>
         </Card>
-
-        <Card className="p-6 bg-white shadow-sm">
-           <div className="flex justify-between items-start mb-4">
-              <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
-                <CreditCard className="h-6 w-6" />
-              </div>
-           </div>
-           <p className="text-sm text-gray-500 mb-1">Karta / Perechislenie</p>
-           <p className="text-2xl font-black text-gray-900">{formatCurrency((stats?.totalRevenue || 0) * 0.6)}</p>
+        <Card className="border-0 bg-red-500 p-6 text-white shadow-lg shadow-red-100">
+          <div className="mb-4 w-fit rounded-lg bg-white/20 p-2"><TrendingDown className="h-6 w-6" /></div>
+          <p className="mb-1 text-sm opacity-80">Umumiy nasiya</p>
+          <p className="text-2xl font-black">{formatCurrency(debts.data?.total)}</p>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card title="Daromad grafigi" className="lg:col-span-2">
-           <div className="h-80">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {METHODS.map((m, i) => {
+          const Icon = METHOD_ICONS[m];
+          return (
+            <Card key={m} className="flex items-center gap-3 p-4">
+              <div className="rounded-lg bg-gray-50 p-2 text-gray-600"><Icon className="h-5 w-5" /></div>
+              <div><p className="text-xs text-gray-500">{METHOD_LABELS[m]}</p><p className="font-bold">{formatCurrency(byMethod[i]?.data?.data.totalAmount)}</p></div>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <Card title="Kunlik tushum" className="lg:col-span-2">
+          {chart.length ? (
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
+                <AreaChart data={chart}>
                   <defs>
-                    <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                    <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="day" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="amount" stroke="#2563eb" fillOpacity={1} fill="url(#colorAmount)" strokeWidth={3} />
+                  <YAxis tickFormatter={(v: number) => `${Math.round(v / 1_000_000)} mln`} />
+                  <Tooltip formatter={(v) => formatCurrency(Number(v))} />
+                  <Area type="monotone" dataKey="amount" name="Tushum" stroke="#2563eb" fill="url(#rev)" strokeWidth={3} />
                 </AreaChart>
               </ResponsiveContainer>
-           </div>
+            </div>
+          ) : <Empty text="Bu oyda to'lovlar yo'q" />}
         </Card>
 
         <Card title="Oxirgi to'lovlar">
-           <div className="space-y-4">
-              {payments?.slice(0, 6).map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-3 border border-gray-50 rounded-xl hover:bg-gray-50 transition-colors">
-                   <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs">
-                        ID
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">{formatCurrency(p.amount)}</p>
-                        <p className="text-[10px] text-gray-500 uppercase">{formatDate(p.createdAt)}</p>
-                      </div>
-                   </div>
-                   <button className="text-gray-400 hover:text-blue-600">
-                      <ArrowRight className="h-4 w-4" />
-                   </button>
-                </div>
+          {recent.data?.data.items.length ? (
+            <div className="space-y-3">
+              {recent.data.data.items.map((p) => (
+                <Link key={p.id} to={`/orders/${p.orderId}`} className="flex items-center justify-between rounded-xl border border-gray-50 p-3 hover:bg-gray-50">
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{formatCurrency(p.amount)}</p>
+                    <p className="text-[11px] text-gray-500">{p.client?.name} · {p.order?.number}</p>
+                  </div>
+                  <span className="text-[11px] uppercase text-gray-400">{METHOD_LABELS[p.method]}<br />{formatDate(p.createdAt)}</span>
+                </Link>
               ))}
-              <Button variant="ghost" className="w-full text-sm font-bold">Barchasini ko'rish</Button>
-           </div>
+            </div>
+          ) : <Empty text="To'lovlar yo'q" />}
         </Card>
       </div>
 
-      <Card title="Qarzdor mijozlar (Nasiya)">
-         <div className="overflow-x-auto">
+      <Card title="Qarzdorlar (nasiya)" description="Muddati o'tganlar birinchi">
+        {debts.isLoading ? <Loading /> : !debts.data?.items.length ? <Empty text="Qarzdorlar yo'q" /> : (
+          <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-6 py-4 font-semibold text-gray-900">Mijoz</th>
-                  <th className="px-6 py-4 font-semibold text-gray-900">Buyurtma</th>
-                  <th className="px-6 py-4 font-semibold text-gray-900">Sana</th>
-                  <th className="px-6 py-4 font-semibold text-gray-900">Umumiy summa</th>
-                  <th className="px-6 py-4 font-semibold text-gray-900">Qarz miqdori</th>
-                  <th className="px-6 py-4 font-semibold text-gray-900"></th>
+                  <th className="px-4 py-3 font-semibold">Mijoz</th><th className="px-4 py-3 font-semibold">Buyurtma</th>
+                  <th className="px-4 py-3 font-semibold">Muddat</th><th className="px-4 py-3 font-semibold">Summa</th>
+                  <th className="px-4 py-3 font-semibold">Qarz</th><th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="px-6 py-4">
-                       <div className="flex items-center space-x-3">
-                          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center"><User className="h-4 w-4 text-gray-400" /></div>
-                          <span className="font-medium text-gray-900">Byudjet Tashkiloti #{i + 1}</span>
-                       </div>
+                {debts.data.items.map((d) => (
+                  <tr key={d.orderId} className="border-b border-gray-50 hover:bg-gray-50/50">
+                    <td className="px-4 py-3"><p className="font-medium">{d.client.name}</p><p className="text-xs text-gray-400">{CLIENT_TYPE_LABELS[d.client.type]}</p></td>
+                    <td className="px-4 py-3"><Link to={`/orders/${d.orderId}`} className="font-bold text-blue-600 hover:underline">{d.orderNumber}</Link></td>
+                    <td className={cn('px-4 py-3', d.daysOverdue > 0 ? 'font-bold text-red-600' : 'text-gray-500')}>
+                      {d.dueDate ? formatDate(d.dueDate) : '—'}{d.daysOverdue > 0 && <span className="block text-xs">{d.daysOverdue} kun o'tdi</span>}
                     </td>
-                    <td className="px-6 py-4 text-blue-600 font-bold">ID-2026-00{i + 10}</td>
-                    <td className="px-6 py-4 text-gray-500">12.10.2026</td>
-                    <td className="px-6 py-4 font-semibold">{formatCurrency(2500000)}</td>
-                    <td className="px-6 py-4 text-red-600 font-black">{formatCurrency(1200000)}</td>
-                    <td className="px-6 py-4 text-right">
-                       <Button variant="outline" size="sm">Eslatma yuborish</Button>
+                    <td className="px-4 py-3">{formatCurrency(d.totalAmount)}</td>
+                    <td className="px-4 py-3 font-black text-red-600">{formatCurrency(d.remaining)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Button variant="outline" size="sm" isLoading={remind.isPending && remind.variables === d.orderId} onClick={() => remind.mutate(d.orderId)}>Eslatma</Button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-         </div>
+          </div>
+        )}
       </Card>
+
+      <Card title="Xarajatlar">
+        {expenses.data?.data.byCategory.length ? (
+          <div className="mb-4 flex flex-wrap gap-3">
+            {expenses.data.data.byCategory.map((c) => (
+              <span key={c.category} className="rounded-full bg-gray-100 px-3 py-1 text-xs">{c.category}: <b>{formatCurrency(c.amount)}</b></span>
+            ))}
+          </div>
+        ) : null}
+        {expenses.data?.data.items.length ? (
+          <div className="divide-y divide-gray-50 text-sm">
+            {expenses.data.data.items.map((e) => (
+              <div key={e.id} className="flex items-center justify-between py-2">
+                <span><b>{e.category}</b> <span className="text-gray-500">· {formatDate(e.date)}{e.note ? ` · ${e.note}` : ''}</span></span>
+                <span className="flex items-center gap-3">
+                  <b>{formatCurrency(e.amount)}</b>
+                  {user.role === 'ADMIN' && (
+                    <button onClick={() => window.confirm('Xarajatni o\'chirasizmi?') && delExpense.mutate(e.id)} className="text-gray-300 hover:text-red-600" aria-label="O'chirish">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : <Empty text="Bu oyda xarajat kiritilmagan" />}
+      </Card>
+
+      <Modal open={!!reminder} onClose={() => setReminder(null)} title="Qarz eslatmasi">
+        {reminder && (
+          <div className="space-y-4">
+            {reminder.smsStatus === 'QUEUED' && <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">SMS eslatma navbatga qo'yildi va yuboriladi.</p>}
+            {reminder.smsStatus === 'SKIPPED' && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">SMS yuborilmadi: {reminder.smsError}</p>}
+            <pre className="whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-sm">{reminder.message}</pre>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="outline" onClick={async () => (await copyText(reminder.message)) && toast.success('Nusxa olindi')}>Nusxa olish</Button>
+              <a href={telegramShareUrl(reminder.message)} target="_blank" rel="noreferrer"><Button>Telegram</Button></a>
+              {reminder.phones[0] && <a href={`sms:${reminder.phones[0]}?body=${encodeURIComponent(reminder.message)}`}><Button variant="outline">SMS</Button></a>}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={expenseOpen}
+        onClose={() => setExpenseOpen(false)}
+        title="Yangi xarajat"
+        footer={<><Button variant="outline" onClick={() => setExpenseOpen(false)}>Bekor qilish</Button><Button isLoading={addExpense.isPending} onClick={() => addExpense.mutate()}>Saqlash</Button></>}
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-gray-700">Kategoriya</label>
+            <input list="exp-cats" value={exp.category} onChange={(e) => setExp({ ...exp, category: e.target.value })} className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm" />
+            <datalist id="exp-cats">{EXPENSE_CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
+          </div>
+          <Input label="Summa (so'm)" inputMode="numeric" value={exp.amount} onChange={(e) => setExp({ ...exp, amount: e.target.value })} autoFocus />
+          <Input label="Izoh" value={exp.note} onChange={(e) => setExp({ ...exp, note: e.target.value })} />
+        </div>
+      </Modal>
+      <AccountingExportModal open={exportOpen} onClose={() => setExportOpen(false)} month={month} />
     </div>
   );
 }

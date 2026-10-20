@@ -1,66 +1,89 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authApi } from '@/api/auth.api';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { errorMessage } from '@/api';
+import { HOME_BY_ROLE, useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
 
-const roles = [
-  { id: 'ADMIN', label: 'Admin (Direktor)', desc: 'Barcha ma\'lumotlar' },
-  { id: 'MANAGER', label: 'Menejer', desc: 'Sotuv va mijozlar' },
-  { id: 'DESIGNER', label: 'Dizayner', desc: 'Dizayn vazifalari' },
-  { id: 'PRINTER', label: 'Pechatnik', desc: 'Ishlab chiqarish' },
-  { id: 'INSTALLER', label: 'O\'rnatuvchi', desc: 'O\'rnatish ishlari' },
+// Faqat dev rejimida: seed'dagi demo hisoblar (backend/prisma/seed.ts)
+const DEMO = [
+  { label: 'Direktor', phone: '+998900000001' },
+  { label: 'Menejer', phone: '+998900000002' },
+  { label: 'Dizayner', phone: '+998900000003' },
+  { label: 'Pechatnik', phone: '+998900000005' },
+  { label: 'Ustanovkachi', phone: '+998900000010' },
 ];
 
 export default function LoginPage() {
+  const { user, login } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = React.useState<string | null>(null);
+  const location = useLocation();
+  const [phone, setPhone] = React.useState('+998 ');
+  const [password, setPassword] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState(false);
 
-  const handleLogin = async (role: string) => {
-    setLoading(role);
+  if (user) return <Navigate to={HOME_BY_ROLE[user.role]} replace />;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
     try {
-      await authApi.login(role);
-      navigate('/');
-    } catch (error) {
-      console.error(error);
+      const u = await login(phone, password);
+      const from = (location.state as { from?: string } | null)?.from;
+      navigate(from && from !== '/login' ? from : HOME_BY_ROLE[u.role], { replace: true });
+    } catch (err) {
+      setError(errorMessage(err));
     } finally {
-      setLoading(null);
+      setBusy(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <Card className="max-w-md w-full" title="Ideal Dizayn ERP" description="Tizimga kirish uchun rolni tanlang">
-        <div className="space-y-4 mt-4">
-          {roles.map((role) => (
-            <button
-              key={role.id}
-              onClick={() => handleLogin(role.id)}
-              disabled={!!loading}
-              className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group text-left"
-            >
-              <div>
-                <p className="font-bold text-gray-900 group-hover:text-blue-700">{role.label}</p>
-                <p className="text-sm text-gray-500">{role.desc}</p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-blue-100">
-                {loading === role.id ? (
-                   <svg className="animate-spin h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24">
-                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                   </svg>
-                ) : (
-                  <span className="text-gray-400 group-hover:text-blue-600">→</span>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+      <Card className="w-full max-w-md" title="Ideal Dizayn ERP" description="Tizimga kirish">
+        <form onSubmit={submit} className="mt-2 space-y-4">
+          <Input
+            label="Telefon raqam"
+            type="tel"
+            inputMode="tel"
+            autoComplete="username"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+998 90 123 45 67"
+            required
+          />
+          <Input
+            label="Parol"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          <Button type="submit" className="w-full" isLoading={busy}>Kirish</Button>
+        </form>
+
+        {import.meta.env.DEV && (
+          <div className="mt-6 border-t border-gray-100 pt-4">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-400">Demo hisoblar (parol: ideal12345)</p>
+            <div className="flex flex-wrap gap-2">
+              {DEMO.map((d) => (
+                <button
+                  key={d.phone}
+                  type="button"
+                  onClick={() => { setPhone(d.phone); setPassword('ideal12345'); }}
+                  className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600 hover:border-blue-400 hover:text-blue-600"
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

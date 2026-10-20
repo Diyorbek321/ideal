@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+/* Hujjatlarni chop etishda faqat .print-area ko'rinadi */
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; inset: 0 auto auto 0; width: 100%; padding: 0; box-shadow: none; border: 0; }
+  .no-print { display: none !important; }
+}
