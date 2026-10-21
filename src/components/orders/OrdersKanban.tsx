@@ -43,7 +43,7 @@ export function OrdersKanban({ orders }: { orders: Order[] }) {
             onDragOver={(e) => { e.preventDefault(); setOver(status); }}
             onDragLeave={() => setOver((s) => (s === status ? null : s))}
             onDrop={() => drop(status)}
-            className={cn('w-72 flex-shrink-0 space-y-3 rounded-xl p-2 transition-colors', over === status && 'bg-blue-50')}
+            className={cn('w-72 flex-shrink-0 space-y-3 rounded-xl p-2 transition-colors', over === status && 'bg-brand-50')}
           >
             <h3 className="flex items-center px-2 text-xs font-bold uppercase tracking-wider text-gray-700">
               {STATUS_LABELS[status]}
@@ -60,11 +60,11 @@ export function OrdersKanban({ orders }: { orders: Order[] }) {
                     onClick={() => navigate(`/orders/${o.id}`)}
                     className={cn(
                       'cursor-grab border-l-4 p-4 hover:shadow-md active:cursor-grabbing',
-                      o.sla.isOverdue || o.isLate ? 'border-l-red-500' : 'border-l-blue-500',
+                      o.sla.isOverdue || o.isLate ? 'border-l-red-500' : 'border-l-brand-400',
                     )}
                   >
                     <div className="mb-2 flex items-start justify-between">
-                      <span className="text-sm font-bold text-blue-600">{o.number}</span>
+                      <span className="text-sm font-bold text-brand-600">{o.number}</span>
                       <span className="text-[10px] font-medium uppercase text-gray-400">{SOURCE_LABELS[o.source]}</span>
                     </div>
                     <p className="mb-3 text-sm font-medium text-gray-900">{o.client.name}</p>

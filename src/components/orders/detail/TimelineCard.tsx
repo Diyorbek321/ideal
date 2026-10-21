@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Clock, CreditCard, MessageSquare, Palette, Printer, Truck } from 'lucide-react';
+import { ArrowRight, Clock, CreditCard, MessageSquare, Palette, Printer, Truck, UserCheck } from 'lucide-react';
 import { ordersApi } from '@/api';
 import type { OrderEvent, OrderEventType } from '@/types';
 import { STATUS_LABELS } from '@/lib/labels';
@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 
 const ICONS: Record<OrderEventType, typeof Clock> = {
   CREATED: Clock, STATUS_CHANGE: ArrowRight, COMMENT: MessageSquare, PAYMENT: CreditCard,
-  DESIGN: Palette, PRODUCTION: Printer, INSTALLATION: Truck, UPDATED: Clock,
+  DESIGN: Palette, PRODUCTION: Printer, INSTALLATION: Truck, UPDATED: Clock, ASSIGNED: UserCheck,
 };
 
 function eventText(e: OrderEvent) {
@@ -37,17 +37,17 @@ export function TimelineCard({ orderId, events }: { orderId: string; events: Ord
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Ichki izoh yozing..."
-          className="h-10 flex-1 rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="h-10 flex-1 rounded-md border border-gray-300 px-3 text-sm focus:border-gray-900 focus:outline-none focus:ring-4 focus:ring-brand-300/50"
         />
         <Button type="submit" isLoading={comment.isPending} disabled={!text.trim()}>Yozish</Button>
       </form>
       <div className="space-y-4">
         {[...events].reverse().map((e) => {
-          const Icon = ICONS[e.type];
+          const Icon = ICONS[e.type] ?? Clock;
           const isComment = e.type === 'COMMENT';
           return (
             <div key={e.id} className="flex gap-3">
-              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${isComment ? 'bg-amber-100 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${isComment ? 'bg-amber-100 text-amber-600' : 'bg-brand-50 text-brand-600'}`}>
                 <Icon className="h-4 w-4" />
               </div>
               <div className={isComment ? 'flex-1 rounded-lg border border-amber-100 bg-amber-50 p-3' : 'flex-1'}>

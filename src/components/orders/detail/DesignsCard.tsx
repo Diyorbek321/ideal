@@ -51,7 +51,7 @@ export function DesignsCard({ order }: { order: OrderDetail }) {
     <Card
       title="Dizayn variantlari"
       description={order.revisionCount ? `Qayta ishlashlar: ${order.revisionCount}` : undefined}
-      actions={canUpload ? <Button size="sm" onClick={() => setUploading(true)}><Upload className="mr-1 h-4 w-4" />Yuklash</Button> : undefined}
+      actions={canUpload ? <Button size="sm" onClick={() => setUploading(true)}><Upload className="h-4 w-4" />Yuklash</Button> : undefined}
     >
       {order.designVersions.length === 0 ? (
         <p className="py-6 text-center text-sm text-gray-400">
@@ -74,17 +74,17 @@ export function DesignsCard({ order }: { order: OrderDetail }) {
                 <div className="flex flex-wrap gap-2">
                   <a href={fileUrl(v.fileUrl)} target="_blank" rel="noreferrer"><Button size="sm" variant="outline"><Download className="h-3 w-3" /></Button></a>
                   {v.status === 'DRAFT' && canUpload && (
-                    <Button size="sm" isLoading={send.isPending} onClick={() => send.mutate(v.id)}><Send className="mr-1 h-3 w-3" />Mijozga yuborish</Button>
+                    <Button size="sm" isLoading={send.isPending} onClick={() => send.mutate(v.id)}><Send className="h-3 w-3" />Mijozga yuborish</Button>
                   )}
                   {v.status === 'SENT' && (
-                    <Button size="sm" variant="outline" onClick={() => getShare.mutate(v.id)}><Share2 className="mr-1 h-3 w-3" />Havola</Button>
+                    <Button size="sm" variant="outline" onClick={() => getShare.mutate(v.id)}><Share2 className="h-3 w-3" />Havola</Button>
                   )}
                   {v.status === 'SENT' && isFinance(user.role) && (
                     <>
                       <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => decide.mutate({ id: v.id, decision: 'APPROVE' })}>
-                        <Check className="mr-1 h-3 w-3" />Tasdiqladi
+                        <Check className="h-3 w-3" />Tasdiqladi
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => requestChanges(v.id)}><X className="mr-1 h-3 w-3" />O'zgartirish</Button>
+                      <Button size="sm" variant="outline" onClick={() => requestChanges(v.id)}><X className="h-3 w-3" />O'zgartirish</Button>
                     </>
                   )}
                 </div>

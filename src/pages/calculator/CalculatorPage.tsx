@@ -102,7 +102,7 @@ export default function CalculatorPage() {
         subtitle="Narxlar sozlamalardagi narxlar ro'yxatidan olinadi"
         actions={(
           <>
-            <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" />Chop etish</Button>
+            <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4" />Chop etish</Button>
             <Button disabled={!orderItems.length || !upToDate} onClick={() => setOrdering(true)}>Buyurtmaga aylantirish<ArrowRight className="ml-2 h-4 w-4" /></Button>
           </>
         )}
@@ -141,7 +141,7 @@ export default function CalculatorPage() {
                               key={f.code}
                               type="button"
                               onClick={() => update(idx, { finishingCodes: on ? r.finishingCodes.filter((c) => c !== f.code) : [...r.finishingCodes, f.code] })}
-                              className={`rounded-full border px-3 py-1 text-xs ${on ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600'}`}
+                              className={`rounded-full border px-3 py-1 text-xs ${on ? 'border-gray-900 bg-brand-300 font-medium text-gray-900' : 'border-gray-200 text-gray-600'}`}
                             >
                               {f.name}
                             </button>
@@ -160,7 +160,7 @@ export default function CalculatorPage() {
                 );
               })}
               <Button variant="outline" className="w-full border-dashed" onClick={() => setRows((l) => [...l, newRow(materials[0]?.code, byKind(prices, 'PRINT')[0]?.code)])}>
-                <Plus className="mr-2 h-4 w-4" />Yana qo'shish
+                <Plus className="h-4 w-4" />Yana qo'shish
               </Button>
             </div>
           </Card>
@@ -175,7 +175,7 @@ export default function CalculatorPage() {
         </div>
 
         <div className="space-y-6">
-          <Card className="sticky top-24 overflow-hidden border-0 bg-blue-600 p-6 text-white shadow-xl">
+          <Card className="sticky top-24 overflow-hidden border-0 bg-gray-900 p-6 text-white">
             <div className="mb-6 flex items-center space-x-2">
               <Calculator className="h-5 w-5 opacity-80" />
               <h3 className="text-sm font-bold uppercase tracking-wider opacity-90">Hisob-kitob</h3>

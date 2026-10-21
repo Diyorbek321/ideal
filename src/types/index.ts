@@ -114,7 +114,7 @@ export interface Order {
 }
 
 export type OrderEventType =
-  | 'CREATED' | 'STATUS_CHANGE' | 'COMMENT' | 'PAYMENT' | 'DESIGN' | 'PRODUCTION' | 'INSTALLATION' | 'UPDATED';
+  | 'CREATED' | 'STATUS_CHANGE' | 'COMMENT' | 'PAYMENT' | 'DESIGN' | 'PRODUCTION' | 'INSTALLATION' | 'UPDATED' | 'ASSIGNED';
 
 export interface OrderEvent {
   id: string;

@@ -1,20 +1,70 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { AlertCircle, Clock, ShoppingBag, TrendingUp, Wallet, AlertTriangle } from 'lucide-react';
-import {
-  Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from 'recharts';
+import { AlertCircle, AlertTriangle, ArrowUpRight, ChevronRight, Clock, PackageX, ShoppingBag, TrendingUp, Wallet } from 'lucide-react';
 import { reportsApi } from '@/api';
+import { RevenueChart } from '@/components/finance/RevenueChart';
 import { Card } from '@/components/ui/Card';
 import { Empty, ErrorState, Loading } from '@/components/ui/States';
 import { StatusBadge } from '@/components/orders/StatusBadge';
+import { useUser } from '@/lib/auth';
 import { SOURCE_LABELS, STATUS_LABELS, UNIT_LABELS } from '@/lib/labels';
-import { cn, deadlineText, formatCurrency, formatHours } from '@/lib/utils';
+import { cn, deadlineText, formatCompact, formatHours, formatLongDate } from '@/lib/utils';
 
-const SOURCE_COLORS = ['#2563eb', '#0ea5e9', '#a855f7', '#f59e0b'];
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 11) return 'Xayrli tong';
+  if (h < 18) return 'Xayrli kun';
+  return 'Xayrli kech';
+}
+
+
+function Kpi({ label, value, icon: Icon, to, alert }: {
+  label: string; value: React.ReactNode; icon: typeof Clock; to: string; alert?: boolean;
+}) {
+  return (
+    <Link to={to} className="group">
+      <Card className={cn(
+        'flex h-full flex-col justify-between gap-4 p-4 transition-colors sm:p-5',
+        alert ? 'border-red-200 bg-red-50 hover:border-red-300' : 'hover:border-gray-900',
+      )}>
+        <div className="flex items-start justify-between gap-2">
+          <p className={cn('text-[13px] font-medium leading-tight', alert ? 'text-red-700' : 'text-gray-500')}>{label}</p>
+          <Icon className={cn('h-4 w-4 shrink-0', alert ? 'text-red-600' : 'text-gray-400 group-hover:text-gray-900')} />
+        </div>
+        <p className={cn('font-display text-xl font-bold leading-none tabular-nums sm:text-2xl', alert ? 'text-red-700' : 'text-gray-900')}>
+          {value}
+        </p>
+      </Card>
+    </Link>
+  );
+}
+
+// Uzun o'zbekcha nomlar sig'ishi uchun gorizontal chiziqlar (aylana diagramma o'rniga)
+function BarList({ rows, onPick }: { rows: Array<{ key: string; label: string; value: number }>; onPick?: (key: string) => void }) {
+  const max = Math.max(...rows.map((r) => r.value), 1);
+  return (
+    <ul className="space-y-1">
+      {rows.map((r) => (
+        <li key={r.key}>
+          <button
+            type="button"
+            disabled={!onPick}
+            onClick={() => onPick?.(r.key)}
+            className="group relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-lg px-3 py-2 text-left text-sm enabled:hover:bg-gray-50"
+          >
+            <span className="absolute inset-y-1 left-0 rounded-md bg-brand-200/70 transition-[width] group-enabled:group-hover:bg-brand-300" style={{ width: `${(r.value / max) * 100}%` }} />
+            <span className="relative truncate font-medium text-gray-800">{r.label}</span>
+            <span className="relative font-display text-sm font-bold tabular-nums text-gray-900">{r.value}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const user = useUser();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: reportsApi.dashboard,
@@ -25,144 +75,98 @@ export default function Dashboard() {
   if (error || !data) return <ErrorState error={error} onRetry={refetch} />;
 
   const { kpi } = data;
-  const kpis = [
-    { label: 'Bugungi buyurtmalar', value: kpi.todayOrders, icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50', to: '/orders' },
-    { label: 'Jarayondagi ishlar', value: kpi.inProgress, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', to: '/orders?view=kanban' },
-    { label: 'Tasdiqlash kutilmoqda', value: kpi.waitingApproval, icon: AlertCircle, color: 'text-purple-600', bg: 'bg-purple-50', to: '/orders?status=TASDIQDA' },
-    { label: 'Muddati o\'tgan', value: kpi.overdue, icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50', to: '/orders?overdueOnly=true' },
-    { label: 'Oy tushumi', value: formatCurrency(kpi.revenueThisMonth), icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', to: '/finance' },
-    { label: 'Umumiy nasiya', value: formatCurrency(kpi.totalDebt), icon: Wallet, color: 'text-red-600', bg: 'bg-red-50', to: '/finance' },
-  ];
-
-  const sourceData = data.ordersBySource.map((s) => ({ name: SOURCE_LABELS[s.source], value: s.count }));
-  const sourceTotal = sourceData.reduce((s, x) => s + x.value, 0);
-  const statusData = data.ordersByStatus.map((s) => ({ name: STATUS_LABELS[s.status], value: s.count }));
+  const statusRows = data.ordersByStatus.map((s) => ({ key: s.status, label: STATUS_LABELS[s.status], value: s.count }));
+  const sourceRows = data.ordersBySource
+    .map((s) => ({ key: s.source, label: SOURCE_LABELS[s.source], value: s.count }))
+    .sort((a, b) => b.value - a.value);
   const revenueData = data.revenueByDay.map((r) => ({ day: r.day.slice(8, 10) + '.' + r.day.slice(5, 7), amount: r.amount }));
+  const firstName = user.fullName.split(' ')[0];
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        {kpis.map((k) => (
-          <Link key={k.label} to={k.to}>
-            <Card className="flex h-full flex-col items-center space-y-2 p-4 text-center transition-shadow hover:shadow-md">
-              <div className={cn('rounded-full p-3', k.bg)}>
-                <k.icon className={cn('h-6 w-6', k.color)} />
-              </div>
-              <p className="text-sm font-medium text-gray-500">{k.label}</p>
-              <p className="text-xl font-bold text-gray-900">{k.value}</p>
-            </Card>
-          </Link>
-        ))}
+    <div className="space-y-6 lg:space-y-8">
+      <div>
+        <p className="text-sm text-gray-500">{formatLongDate(new Date())}</p>
+        <h1 className="mt-1 font-display text-xl font-bold text-gray-900 sm:text-2xl">{greeting()}, {firstName}</h1>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <Card title="Faol buyurtmalar statusi bo'yicha">
-          {statusData.length ? (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={statusData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="value" name="Buyurtmalar" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : <Empty text="Faol buyurtmalar yo'q" />}
-        </Card>
-
-        <Card title="Buyurtma manbalari (shu oy)">
-          {sourceTotal ? (
-            <div className="flex h-80 flex-col items-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={sourceData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                    {sourceData.map((_, i) => <Cell key={i} fill={SOURCE_COLORS[i % SOURCE_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap justify-center gap-4">
-                {sourceData.map((s, i) => (
-                  <div key={s.name} className="flex items-center space-x-2">
-                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: SOURCE_COLORS[i % SOURCE_COLORS.length] }} />
-                    <span className="text-sm text-gray-600">{s.name} ({Math.round((s.value / sourceTotal) * 100)}%)</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : <Empty text="Shu oy buyurtmalar yo'q" />}
-        </Card>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <Kpi label="Muddati o'tgan" value={kpi.overdue} icon={AlertTriangle} to="/orders?overdueOnly=true" alert={kpi.overdue > 0} />
+        <Kpi label="Tasdiqlash kutilmoqda" value={kpi.waitingApproval} icon={AlertCircle} to="/orders?status=TASDIQDA" />
+        <Kpi label="Jarayondagi ishlar" value={kpi.inProgress} icon={Clock} to="/orders?view=kanban" />
+        <Kpi label="Bugungi buyurtmalar" value={kpi.todayOrders} icon={ShoppingBag} to="/orders" />
+        <Kpi label="Oy tushumi" value={<>{formatCompact(kpi.revenueThisMonth)}<span className="ml-1 font-sans text-sm font-medium text-gray-500">so'm</span></>} icon={TrendingUp} to="/finance" />
+        <Kpi label="Umumiy nasiya" value={<>{formatCompact(kpi.totalDebt)}<span className="ml-1 font-sans text-sm font-medium text-gray-500">so'm</span></>} icon={Wallet} to="/finance" />
       </div>
 
-      <Card title="Tushum (oxirgi 30 kun)">
-        {revenueData.length ? (
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="day" />
-                <YAxis tickFormatter={(v: number) => `${Math.round(v / 1_000_000)} mln`} />
-                <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-                <Line type="monotone" dataKey="amount" name="Tushum" stroke="#10b981" strokeWidth={3} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        ) : <Empty text="To'lovlar hali yo'q" />}
-      </Card>
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <Card title="Muammoli buyurtmalar" description="SLA yoki muddati o'tganlar" className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+        <Card title="Muammoli buyurtmalar" description="SLA yoki muddati o'tganlar" className="lg:col-span-2"
+          actions={<Link to="/orders?overdueOnly=true" className="flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">Hammasi<ArrowUpRight className="h-4 w-4" /></Link>}>
           {data.problemOrders.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="py-3 font-semibold text-gray-900">Nomer</th>
-                    <th className="py-3 font-semibold text-gray-900">Mijoz</th>
-                    <th className="py-3 font-semibold text-gray-900">Status</th>
-                    <th className="py-3 font-semibold text-gray-900">Shu holatda</th>
-                    <th className="py-3 font-semibold text-gray-900">Muddat</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.problemOrders.map((o) => {
-                    const dl = deadlineText(o.deadline);
-                    return (
-                      <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} className="cursor-pointer border-b border-gray-50 last:border-0 hover:bg-gray-50">
-                        <td className="py-4 font-medium text-blue-600">{o.number}</td>
-                        <td className="py-4 text-gray-600">{o.client.name}</td>
-                        <td className="py-4"><StatusBadge status={o.status} /></td>
-                        <td className="py-4 font-medium text-red-600">
+            <ul className="-mx-2 divide-y divide-gray-100">
+              {data.problemOrders.map((o) => {
+                const dl = deadlineText(o.deadline);
+                return (
+                  <li key={o.id}>
+                    <button onClick={() => navigate(`/orders/${o.id}`)}
+                      className="flex w-full items-center gap-3 rounded-xl px-2 py-3 text-left hover:bg-gray-50">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-sm font-semibold text-gray-900">{o.number}</span>
+                          <StatusBadge status={o.status} />
+                        </div>
+                        <p className="mt-0.5 truncate text-sm text-gray-500">{o.client.name}</p>
+                      </div>
+                      <div className="shrink-0 text-right text-xs">
+                        <p className="font-semibold text-red-700">
                           {formatHours((Date.now() - new Date(o.statusChangedAt).getTime()) / 3_600_000)}
-                        </td>
-                        <td className={cn('py-4', dl?.late ? 'font-medium text-red-600' : 'text-gray-500')}>{dl?.text ?? '—'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : <Empty text="Muammoli buyurtmalar yo'q" />}
+                        </p>
+                        <p className={cn('mt-0.5', dl?.late ? 'font-medium text-red-700' : 'text-gray-500')}>{dl?.text ?? '—'}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : <Empty text="Hammasi o'z vaqtida — muammoli buyurtma yo'q" />}
         </Card>
 
-        <Card title="Ombor: kam qolganlar">
-          <div className="space-y-4">
-            {data.lowStock.length ? data.lowStock.map((m) => (
-              <div key={m.id} className="flex items-center justify-between rounded-lg border border-red-100 bg-red-50 p-3">
-                <div>
-                  <p className="font-semibold text-gray-900">{m.name}</p>
-                  <p className="text-xs text-gray-500">Qoldiq: {m.stock} {UNIT_LABELS[m.unit]}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-medium text-red-600">Min: {m.minStock}</p>
-                  <Link to="/inventory" className="text-xs text-blue-600 hover:underline">Kirim qilish</Link>
-                </div>
-              </div>
-            )) : <div className="py-8 text-center text-gray-500">Barcha materiallar yetarli.</div>}
-          </div>
+        <Card title="Faol buyurtmalar" description="Bosqich bo'yicha">
+          {statusRows.length
+            ? <BarList rows={statusRows} onPick={(s) => navigate(`/orders?status=${s}`)} />
+            : <Empty text="Faol buyurtmalar yo'q" />}
         </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+        <Card title="Tushum" description="Oxirgi 30 kun" className="lg:col-span-2">
+          {revenueData.length ? (
+            <RevenueChart data={revenueData} />
+          ) : <Empty text="To'lovlar hali yo'q" />}
+        </Card>
+
+        <div className="space-y-4 lg:space-y-6">
+          <Card title="Manbalar" description="Shu oy">
+            {sourceRows.length ? <BarList rows={sourceRows} /> : <Empty text="Shu oy buyurtmalar yo'q" />}
+          </Card>
+
+          <Card title="Omborda kam qolgan">
+            {data.lowStock.length ? (
+              <ul className="space-y-2">
+                {data.lowStock.map((m) => (
+                  <li key={m.id} className="flex items-center gap-3 rounded-xl bg-red-50 px-3 py-2.5">
+                    <PackageX className="h-4 w-4 shrink-0 text-red-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-gray-900">{m.name}</p>
+                      <p className="text-xs text-red-700">{m.stock} {UNIT_LABELS[m.unit]} · min {m.minStock}</p>
+                    </div>
+                    <Link to="/inventory" className="shrink-0 text-xs font-semibold text-gray-900 underline-offset-2 hover:underline">Kirim</Link>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="py-4 text-center text-sm text-gray-500">Barcha materiallar yetarli.</p>}
+          </Card>
+        </div>
       </div>
     </div>
   );

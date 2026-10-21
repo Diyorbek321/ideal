@@ -45,16 +45,16 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
         <div className="overflow-x-auto pb-2">
           <div className="relative flex min-w-[640px] items-start justify-between">
             <div className="absolute left-0 top-4 z-0 h-0.5 w-full bg-gray-100" />
-            <div className="absolute left-0 top-4 z-0 h-0.5 bg-blue-500 transition-all" style={{ width: `${(Math.max(idx, 0) / (flow.length - 1)) * 100}%` }} />
+            <div className="absolute left-0 top-4 z-0 h-0.5 bg-gray-900 transition-all" style={{ width: `${(Math.max(idx, 0) / (flow.length - 1)) * 100}%` }} />
             {flow.map((s, i) => (
               <div key={s} className="relative z-10 flex w-20 flex-col items-center">
                 <div className={cn(
                   'flex h-8 w-8 items-center justify-center rounded-full border-2',
-                  i < idx || finished ? 'border-blue-500 bg-blue-500 text-white' : i === idx ? 'border-blue-500 bg-white text-blue-500' : 'border-gray-200 bg-white text-gray-300',
+                  i < idx || finished ? 'border-gray-900 bg-gray-900 text-brand-400' : i === idx ? 'border-gray-900 bg-brand-400 text-gray-900' : 'border-gray-200 bg-white text-gray-300',
                 )}>
                   {i < idx || finished ? <CheckCircle2 className="h-5 w-5" /> : <span className="text-xs font-bold">{i + 1}</span>}
                 </div>
-                <span className={cn('mt-2 text-center text-[10px] font-bold uppercase leading-tight', i === idx ? 'text-blue-600' : 'text-gray-400')}>
+                <span className={cn('mt-2 text-center text-[10px] font-bold uppercase leading-tight', i === idx ? 'text-gray-900' : 'text-gray-400')}>
                   {STATUS_LABELS[s]}
                 </span>
               </div>

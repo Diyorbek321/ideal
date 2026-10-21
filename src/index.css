@@ -1,5 +1,55 @@
 @import "tailwindcss";
 
+/*
+ * Ideal Dizayn brendi — korporativ sayt (website/css/base.css) bilan bir xil.
+ * Sariq faqat fon bo'ladi (ustida siyoh rang matn, 11:1). Oq fonda sariq matn/chegara 1.6:1 — taqiqlangan,
+ * urg'u matni uchun brand-600/700 (6.2–7.4:1).
+ */
+@theme {
+  --font-sans: "Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Unbounded", "Onest", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #FFFBEB;
+  --color-brand-100: #FFF6D6;
+  --color-brand-200: #FFE89A;
+  --color-brand-300: #FFD54F;
+  --color-brand-400: #FFC20E;
+  --color-brand-500: #F0B000;
+  --color-brand-600: #7A5C00;
+  --color-brand-700: #6B5200;
+  --color-brand-800: #4F3C00;
+  --color-brand-900: #3D2E00;
+
+  --color-ink-900: #0E1726;
+  --color-ink-800: #18233A;
+  --color-ink-700: #243049;
+
+  /* Neytral shkala siyoh rangga moslangan; 400 ham oq fonda 4.2:1 (asl Tailwind 2.6:1 edi) */
+  --color-gray-50: #F6F6F3;
+  --color-gray-100: #EEEEEA;
+  --color-gray-200: #E4E5E1;
+  --color-gray-300: #CDD0D5;
+  --color-gray-400: #737B8A;
+  --color-gray-500: #5D6676;
+  --color-gray-600: #4A5565;
+  --color-gray-700: #344054;
+  --color-gray-800: #18233A;
+  --color-gray-900: #0E1726;
+}
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  body { @apply bg-gray-50 font-sans text-gray-900 antialiased; font-feature-settings: "tnum" 1; }
+  h1, h2, h3 { letter-spacing: -0.01em; }
+  :focus-visible { outline: 2px solid var(--color-brand-600); outline-offset: 2px; }
+  ::selection { background: var(--color-brand-300); color: var(--color-ink-900); }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
 /* Hujjatlarni chop etishda faqat .print-area ko'rinadi */
 @media print {
   body * { visibility: hidden; }

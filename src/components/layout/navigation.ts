@@ -4,17 +4,49 @@ import {
 } from 'lucide-react';
 import type { UserRole } from '@/types';
 
-export const NAV_ITEMS: Array<{ path: string; label: string; icon: typeof LayoutDashboard; roles: UserRole[] }> = [
-  { path: '/', label: 'Bosh sahifa', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/orders', label: 'Buyurtmalar', icon: ShoppingBag, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/calculator', label: 'Narx kalkulyatori', icon: Calculator, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/design', label: 'Dizayn', icon: Palette, roles: ['ADMIN', 'MANAGER', 'DESIGNER'] },
-  { path: '/production', label: 'Ishlab chiqarish', icon: Printer, roles: ['ADMIN', 'MANAGER', 'PRINTER'] },
-  { path: '/installation', label: 'O\'rnatish', icon: Truck, roles: ['ADMIN', 'MANAGER', 'INSTALLER'] },
-  { path: '/clients', label: 'Mijozlar', icon: Users, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/inventory', label: 'Ombor', icon: Warehouse, roles: ['ADMIN', 'MANAGER', 'PRINTER'] },
-  { path: '/finance', label: 'Moliya', icon: DollarSign, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/employees', label: 'Xodimlar va oylik', icon: UserCheck, roles: ['ADMIN'] },
-  { path: '/documents', label: 'Hujjatlar', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/settings', label: 'Sozlamalar', icon: Settings, roles: ['ADMIN'] },
+export interface NavItem {
+  path: string;
+  label: string;
+  /** Telefondagi pastki menyu uchun qisqa nom */
+  short: string;
+  icon: typeof LayoutDashboard;
+  roles: UserRole[];
+}
+
+export const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
+  {
+    title: 'Ish jarayoni',
+    items: [
+      { path: '/', label: 'Bosh sahifa', short: 'Asosiy', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/orders', label: 'Buyurtmalar', short: 'Buyurtma', icon: ShoppingBag, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/calculator', label: 'Narx kalkulyatori', short: 'Narx', icon: Calculator, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/design', label: 'Dizayn', short: 'Dizayn', icon: Palette, roles: ['ADMIN', 'MANAGER', 'DESIGNER'] },
+      { path: '/production', label: 'Ishlab chiqarish', short: 'Pechat', icon: Printer, roles: ['ADMIN', 'MANAGER', 'PRINTER'] },
+      { path: '/installation', label: 'O\'rnatish', short: 'Montaj', icon: Truck, roles: ['ADMIN', 'MANAGER', 'INSTALLER'] },
+    ],
+  },
+  {
+    title: 'Resurslar',
+    items: [
+      { path: '/clients', label: 'Mijozlar', short: 'Mijoz', icon: Users, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/inventory', label: 'Ombor', short: 'Ombor', icon: Warehouse, roles: ['ADMIN', 'MANAGER', 'PRINTER'] },
+    ],
+  },
+  {
+    title: 'Boshqaruv',
+    items: [
+      { path: '/finance', label: 'Moliya', short: 'Moliya', icon: DollarSign, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/employees', label: 'Xodimlar va oylik', short: 'Xodim', icon: UserCheck, roles: ['ADMIN'] },
+      { path: '/documents', label: 'Hujjatlar', short: 'Hujjat', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/settings', label: 'Sozlamalar', short: 'Sozlama', icon: Settings, roles: ['ADMIN'] },
+    ],
+  },
 ];
+
+export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
+
+export function navForRole(role: UserRole) {
+  return NAV_GROUPS
+    .map((g) => ({ ...g, items: g.items.filter((i) => i.roles.includes(role)) }))
+    .filter((g) => g.items.length > 0);
+}

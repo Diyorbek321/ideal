@@ -96,7 +96,7 @@ function PayrollRow({ e }: { e: PayrollEntry }) {
         <td className="px-4 py-3">{field('bonus')}</td>
         <td className="px-4 py-3">{field('fine')}</td>
         <td className="px-4 py-3">{field('advance')}</td>
-        <td className="px-4 py-3 font-black text-blue-600">{formatCurrency(e.total)}</td>
+        <td className="px-4 py-3 font-black text-brand-600">{formatCurrency(e.total)}</td>
         <td className="space-x-2 whitespace-nowrap px-4 py-3 text-right">
           {e.isPaid ? <Badge variant="success">To'langan</Badge> : (
             <>
@@ -135,7 +135,7 @@ export default function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Xodimlar va oylik" actions={<Button onClick={() => setEditing(null)}><Plus className="mr-2 h-4 w-4" />Yangi xodim</Button>} />
+      <PageHeader title="Xodimlar va oylik" actions={<Button onClick={() => setEditing(null)}><Plus className="h-4 w-4" />Yangi xodim</Button>} />
 
       <Card>
         {users.error ? <ErrorState error={users.error} onRetry={users.refetch} /> : users.isLoading ? <Loading /> : (
@@ -152,7 +152,7 @@ export default function EmployeesPage() {
                   <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50/50">
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 font-bold uppercase text-blue-600">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 font-bold uppercase text-brand-600">
                           {u.fullName.split(' ').map((p) => p[0]).slice(0, 2).join('')}
                         </div>
                         <div><p className="font-bold text-gray-900">{u.fullName}</p><p className="text-xs text-gray-500">{formatPhone(u.phone)}</p></div>
@@ -180,12 +180,12 @@ export default function EmployeesPage() {
         actions={(
           <div className="flex gap-2">
             <input type="month" value={period} onChange={(e) => e.target.value && setPeriod(e.target.value)} className="h-9 rounded-md border border-gray-300 px-2 text-sm" aria-label="Davr" />
-            <Button size="sm" isLoading={calc.isPending} onClick={() => calc.mutate()}><Calculator className="mr-1 h-4 w-4" />Hisoblash</Button>
+            <Button size="sm" isLoading={calc.isPending} onClick={() => calc.mutate()}><Calculator className="h-4 w-4" />Hisoblash</Button>
           </div>
         )}
       >
         <div className="mb-4 grid grid-cols-2 gap-4">
-          <div className="rounded-lg bg-blue-50 p-3"><p className="text-xs text-blue-700">Jami</p><p className="text-xl font-black text-blue-700">{formatCurrency(payroll.data?.total)}</p></div>
+          <div className="rounded-lg bg-brand-50 p-3"><p className="text-xs text-brand-700">Jami</p><p className="text-xl font-black text-brand-700">{formatCurrency(payroll.data?.total)}</p></div>
           <div className="rounded-lg bg-emerald-50 p-3"><p className="text-xs text-emerald-700">To'langan</p><p className="text-xl font-black text-emerald-700">{formatCurrency(paid)}</p></div>
         </div>
         {payroll.isLoading ? <Loading /> : entries.length === 0 ? <Empty text={'Bu oy hali hisoblanmagan — "Hisoblash" tugmasini bosing'} /> : (

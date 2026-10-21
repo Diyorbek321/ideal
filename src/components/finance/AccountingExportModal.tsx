@@ -58,7 +58,7 @@ export function AccountingExportModal({ open, onClose, month }: Props) {
       title="Buxgalter uchun Excel"
       footer={<>
         <Button variant="outline" onClick={onClose}>Bekor qilish</Button>
-        <Button onClick={download} isLoading={busy} disabled={!valid}><FileSpreadsheet className="mr-2 h-4 w-4" />Yuklab olish</Button>
+        <Button onClick={download} isLoading={busy} disabled={!valid}><FileSpreadsheet className="h-4 w-4" />Yuklab olish</Button>
       </>}
     >
       <div className="space-y-4">

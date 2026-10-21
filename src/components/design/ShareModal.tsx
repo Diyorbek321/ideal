@@ -30,9 +30,9 @@ export function ShareModal({ info, onClose }: { info: ShareInfo | null; onClose:
             <pre className="whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-sm text-gray-800">{info.telegramMessage}</pre>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" onClick={() => copy(info.telegramMessage)}><Copy className="mr-2 h-4 w-4" />Xabardan nusxa</Button>
+            <Button variant="outline" onClick={() => copy(info.telegramMessage)}><Copy className="h-4 w-4" />Xabardan nusxa</Button>
             <a href={telegramShareUrl(info.telegramMessage)} target="_blank" rel="noreferrer">
-              <Button><Send className="mr-2 h-4 w-4" />Telegram'da yuborish</Button>
+              <Button><Send className="h-4 w-4" />Telegram'da yuborish</Button>
             </a>
           </div>
         </div>

@@ -67,7 +67,7 @@ export function InstallationCard({ order }: { order: OrderDetail }) {
   return (
     <Card title="O'rnatish" actions={isFinance(user.role) && !closed ? <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Rejalashtirish</Button> : undefined}>
       {order.installationAddress && (
-        <div className="mb-4 flex items-start space-x-3 rounded-lg border border-blue-100 bg-blue-50 p-3 text-blue-800">
+        <div className="mb-4 flex items-start space-x-3 rounded-lg border border-brand-100 bg-brand-50 p-3 text-brand-800">
           <MapPin className="mt-0.5 h-5 w-5 shrink-0" />
           <p className="text-xs font-medium leading-relaxed">{order.installationAddress}</p>
         </div>
@@ -129,7 +129,7 @@ export function InstallationCard({ order }: { order: OrderDetail }) {
                     key={u.id}
                     type="button"
                     onClick={() => setTeam((t) => (on ? t.filter((x) => x !== u.id) : [...t, u.id]))}
-                    className={`rounded-full border px-3 py-1 text-sm ${on ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600'}`}
+                    className={`rounded-full border px-3 py-1 text-sm ${on ? 'border-gray-900 bg-brand-300 font-medium text-gray-900' : 'border-gray-200 text-gray-600'}`}
                   >
                     {u.fullName}
                   </button>

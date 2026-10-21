@@ -34,27 +34,27 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }: M
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onMouseDown={(e) => e.stopPropagation()}
         className={cn(
-          'flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl',
+          'flex max-h-[92dvh] w-full flex-col rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl',
           size === 'md' && 'sm:max-w-lg',
           size === 'lg' && 'sm:max-w-2xl',
           size === 'xl' && 'sm:max-w-4xl',
         )}
       >
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100" aria-label="Yopish">
+        <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-5 py-4 sm:px-6">
+          <h2 className="font-display text-base font-semibold text-gray-900">{title}</h2>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900" aria-label="Yopish">
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="overflow-y-auto px-6 py-4">{children}</div>
-        {footer && <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">{footer}</div>}
+        <div className="overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
+        {footer && <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/60 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:gap-3 sm:rounded-b-2xl sm:px-6 [&>button]:w-full sm:[&>button]:w-auto">{footer}</div>}
       </div>
     </div>
   );

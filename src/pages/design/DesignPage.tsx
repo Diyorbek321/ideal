@@ -59,7 +59,7 @@ export default function DesignPage() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <Link to={`/orders/${t.id}`} className="font-black text-blue-600 hover:underline">{t.number}</Link>
+              <Link to={`/orders/${t.id}`} className="font-black text-brand-600 hover:underline">{t.number}</Link>
               {v && <Badge variant={DESIGN_VARIANT[v.status]}>v{v.version} · {DESIGN_STATUS_LABELS[v.status]}</Badge>}
             </div>
             <p className="font-bold text-gray-900">{t.client.name}</p>
@@ -76,7 +76,7 @@ export default function DesignPage() {
         {t.notes && <p className="mt-2 text-xs italic text-gray-500">{t.notes}</p>}
         {t.files.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
-            {t.files.map((f) => <a key={f.id} href={fileUrl(f.url)} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">{f.name}</a>)}
+            {t.files.map((f) => <a key={f.id} href={fileUrl(f.url)} target="_blank" rel="noreferrer" className="text-xs text-brand-600 underline">{f.name}</a>)}
           </div>
         )}
 
@@ -93,16 +93,16 @@ export default function DesignPage() {
           <div className="flex gap-2">
             {t.status === 'DIZAYNDA' && v?.status === 'DRAFT' && (
               <Button size="sm" isLoading={send.isPending && send.variables === v.id} onClick={() => send.mutate(v.id)}>
-                <Send className="mr-1 h-3 w-3" />Yuborish
+                <Send className="h-3 w-3" />Yuborish
               </Button>
             )}
             {t.status === 'DIZAYNDA' && (
               <Button size="sm" variant={v?.status === 'DRAFT' ? 'outline' : 'primary'} onClick={() => setUploadFor(t)}>
-                <Upload className="mr-1 h-3 w-3" />Yuklash
+                <Upload className="h-3 w-3" />Yuklash
               </Button>
             )}
             {t.status === 'TASDIQDA' && v?.status === 'SENT' && (
-              <Button size="sm" variant="outline" onClick={() => getShare.mutate(v.id)}><Share2 className="mr-1 h-3 w-3" />Havola</Button>
+              <Button size="sm" variant="outline" onClick={() => getShare.mutate(v.id)}><Share2 className="h-3 w-3" />Havola</Button>
             )}
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function DesignPage() {
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card className="p-4"><p className="mb-1 text-sm text-gray-500">Dizayndagi ishlar</p><p className="text-2xl font-black text-amber-600">{inDesign.length}</p></Card>
-        <Card className="p-4"><p className="mb-1 text-sm text-gray-500">Tasdiq kutilmoqda</p><p className="text-2xl font-black text-blue-600">{waiting.length}</p></Card>
+        <Card className="p-4"><p className="mb-1 text-sm text-gray-500">Tasdiq kutilmoqda</p><p className="text-2xl font-black text-brand-600">{waiting.length}</p></Card>
         <Card className="p-4"><p className="mb-1 text-sm text-gray-500">Muddati o'tgan</p><p className="text-2xl font-black text-red-600">{overdue}</p></Card>
         <Card className="p-4"><p className="mb-1 text-sm text-gray-500">Qayta ishlashlar</p><p className="text-2xl font-black text-gray-900">{tasks.reduce((s, t) => s + t.revisionCount, 0)}</p></Card>
       </div>
@@ -153,7 +153,7 @@ export default function DesignPage() {
           {inDesign.length ? inDesign.map(renderTask) : <Card><Empty text="Navbatda ish yo'q" /></Card>}
         </div>
         <div className="space-y-4">
-          <h2 className="flex items-center text-lg font-bold text-gray-900"><CheckCircle2 className="mr-2 h-5 w-5 text-blue-600" />Mijoz javobini kutmoqda</h2>
+          <h2 className="flex items-center text-lg font-bold text-gray-900"><CheckCircle2 className="mr-2 h-5 w-5 text-brand-600" />Mijoz javobini kutmoqda</h2>
           {waiting.length ? waiting.map(renderTask) : <Card><Empty text="Javob kutilayotgan ish yo'q" /></Card>}
         </div>
       </div>

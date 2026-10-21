@@ -66,7 +66,7 @@ export default function OrderDetailPage() {
         </div>
         {finance && (
           <Link to={`/documents?order=${order.id}`}>
-            <Button variant="outline"><FileText className="mr-2 h-4 w-4" />Hujjatlar</Button>
+            <Button variant="outline"><FileText className="h-4 w-4" />Hujjatlar</Button>
           </Link>
         )}
       </div>
@@ -101,7 +101,7 @@ export default function OrderDetailPage() {
                 <p className="text-sm text-gray-500">{order.discount ? `Chegirma: ${formatCurrency(order.discount)}` : ''}</p>
                 <div className="text-right">
                   <p className="text-sm font-bold uppercase tracking-wider text-gray-500">Umumiy summa</p>
-                  <p className="text-3xl font-black text-blue-600">{formatCurrency(order.totalAmount)}</p>
+                  <p className="text-3xl font-black text-brand-600">{formatCurrency(order.totalAmount)}</p>
                 </div>
               </div>
             )}
@@ -132,13 +132,13 @@ export default function OrderDetailPage() {
             <div className="space-y-3">
               <div>
                 {finance ? (
-                  <Link to={`/clients/${order.client.id}`} className="font-bold text-blue-600 hover:underline">{order.client.name}</Link>
+                  <Link to={`/clients/${order.client.id}`} className="font-bold text-brand-600 hover:underline">{order.client.name}</Link>
                 ) : <p className="font-bold text-gray-900">{order.client.name}</p>}
                 <p className="text-xs uppercase tracking-wider text-gray-500">{CLIENT_TYPE_LABELS[order.client.type]}</p>
               </div>
               {order.client.contactPerson && <p className="flex items-center text-sm text-gray-600"><User className="mr-3 h-4 w-4 text-gray-400" />{order.client.contactPerson}</p>}
               {order.client.phones.map((p) => (
-                <a key={p} href={`tel:${p}`} className="flex items-center text-sm text-gray-600 hover:text-blue-600"><Phone className="mr-3 h-4 w-4 text-gray-400" />{formatPhone(p)}</a>
+                <a key={p} href={`tel:${p}`} className="flex items-center text-sm text-gray-600 hover:text-brand-600"><Phone className="mr-3 h-4 w-4 text-gray-400" />{formatPhone(p)}</a>
               ))}
               {order.client.address && <p className="flex items-center text-sm text-gray-600"><MapPin className="mr-3 h-4 w-4 text-gray-400" />{order.client.address}</p>}
             </div>
@@ -173,7 +173,7 @@ export default function OrderDetailPage() {
             {order.files.length ? (
               <div className="space-y-2">
                 {order.files.map((f) => (
-                  <a key={f.id} href={fileUrl(f.url)} target="_blank" rel="noreferrer" className="flex items-center text-sm text-blue-600 hover:underline">
+                  <a key={f.id} href={fileUrl(f.url)} target="_blank" rel="noreferrer" className="flex items-center text-sm text-brand-600 hover:underline">
                     <Paperclip className="mr-2 h-4 w-4 shrink-0" /><span className="truncate">{f.name}</span>
                   </a>
                 ))}

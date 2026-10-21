@@ -198,7 +198,7 @@ export default function SettingsPage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={cn('flex w-full items-center space-x-3 rounded-lg px-4 py-2 text-left text-sm', tab === t.id ? 'bg-blue-50 font-bold text-blue-600' : 'font-medium text-gray-600 hover:bg-gray-50')}
+              className={cn('flex w-full items-center space-x-3 rounded-lg px-4 py-2 text-left text-sm', tab === t.id ? 'bg-brand-50 font-bold text-brand-600' : 'font-medium text-gray-600 hover:bg-gray-50')}
             >
               <t.icon className="h-4 w-4" /><span>{t.label}</span>
             </button>

@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/Toast';
 
 const ACTION = {
   create: { label: 'Yangi', cls: 'bg-emerald-50 text-emerald-700', icon: CheckCircle2 },
-  exists: { label: 'Bazada bor', cls: 'bg-blue-50 text-blue-700', icon: RefreshCw },
+  exists: { label: 'Bazada bor', cls: 'bg-brand-50 text-brand-700', icon: RefreshCw },
   error: { label: 'Xato', cls: 'bg-red-50 text-red-700', icon: XCircle },
 } as const;
 
@@ -92,10 +92,10 @@ export function ClientImportModal({ open, onClose }: { open: boolean; onClose: (
             <li>Natijani ko'rib, "Import qilish" ni bosing. Xato qatorlar o'tkazib yuboriladi.</li>
           </ol>
           <Button variant="outline" onClick={() => run('template', excelApi.clientsTemplate)} isLoading={busy === 'template'}>
-            <Download className="mr-2 h-4 w-4" />Shablonni yuklab olish
+            <Download className="h-4 w-4" />Shablonni yuklab olish
           </Button>
           <label className={cn(
-            'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 px-6 py-10 text-center hover:border-blue-400 hover:bg-blue-50/40',
+            'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 px-6 py-10 text-center hover:border-brand-400 hover:bg-brand-50/40',
             busy === 'check' && 'pointer-events-none opacity-60',
           )}>
             <FileSpreadsheet className="h-10 w-10 text-emerald-600" />
@@ -110,7 +110,7 @@ export function ClientImportModal({ open, onClose }: { open: boolean; onClose: (
           <p className="text-sm text-gray-500">{file?.name} — <b>hali hech narsa yozilmagan</b></p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Stat label="Yangi mijoz" value={s!.toCreate} cls="text-emerald-600" />
-            <Stat label="Bazada bor" value={s!.existing} cls="text-blue-600" />
+            <Stat label="Bazada bor" value={s!.existing} cls="text-brand-600" />
             <Stat label="Xato (o'tkaziladi)" value={s!.errors} cls={s!.errors ? 'text-red-600' : 'text-gray-400'} />
             <Stat label={`Eski qarz (${s!.debtRows} ta)`} value={formatCurrency(s!.debtTotal)} cls="text-amber-600" />
           </div>

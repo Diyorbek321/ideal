@@ -14,7 +14,7 @@ import { Empty, PageHeader } from '@/components/ui/States';
 
 type Template = 'contract' | 'invoice' | 'act' | 'offer';
 const TEMPLATES: Array<{ id: Template; name: string; icon: typeof FileText; color: string }> = [
-  { id: 'contract', name: 'Shartnoma', icon: FileSignature, color: 'text-blue-600 bg-blue-50' },
+  { id: 'contract', name: 'Shartnoma', icon: FileSignature, color: 'text-brand-600 bg-brand-50' },
   { id: 'invoice', name: 'Hisob-faktura', icon: FileText, color: 'text-emerald-600 bg-emerald-50' },
   { id: 'act', name: 'Dalolatnoma', icon: FileCheck, color: 'text-purple-600 bg-purple-50' },
   { id: 'offer', name: 'Tijorat taklifi', icon: Briefcase, color: 'text-amber-600 bg-amber-50' },
@@ -137,7 +137,7 @@ export default function DocumentsPage() {
             <div className="mt-2 divide-y divide-gray-50">
               {found.data.map((o) => (
                 <button key={o.id} onClick={() => { setParams({ order: o.id }); setSearch(''); }} className="flex w-full justify-between px-2 py-2 text-left text-sm hover:bg-gray-50">
-                  <span><b className="text-blue-600">{o.number}</b> {o.client.name}</span>
+                  <span><b className="text-brand-600">{o.number}</b> {o.client.name}</span>
                   <span>{formatCurrency(o.totalAmount)}</span>
                 </button>
               ))}
@@ -147,7 +147,7 @@ export default function DocumentsPage() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {TEMPLATES.map((t) => (
             <button key={t.id} onClick={() => setTemplate(t.id)}>
-              <Card className={cn('flex items-center gap-3 p-4 transition-all', template === t.id && 'border-blue-500 ring-1 ring-blue-500')}>
+              <Card className={cn('flex items-center gap-3 p-4 transition-all', template === t.id && 'border-gray-900 ring-1 ring-gray-900')}>
                 <div className={cn('rounded-xl p-2', t.color)}><t.icon className="h-5 w-5" /></div>
                 <span className="font-bold text-gray-900">{t.name}</span>
               </Card>
@@ -157,7 +157,7 @@ export default function DocumentsPage() {
         {order && (
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-600">Buyurtma: <b>{order.number}</b> — {order.client.name}</p>
-            <Button onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" />Chop etish / PDF</Button>
+            <Button onClick={() => window.print()}><Printer className="h-4 w-4" />Chop etish / PDF</Button>
           </div>
         )}
       </div>

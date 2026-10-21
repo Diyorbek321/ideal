@@ -23,7 +23,7 @@ export default function ClientDetailPage() {
   const info: Array<[string, React.ReactNode]> = [
     ['Turi', CLIENT_TYPE_LABELS[c.type]],
     ['Manba', SOURCE_LABELS[c.source]],
-    ['Telefon', c.phones.map((p) => <a key={p} href={`tel:${p}`} className="mr-2 text-blue-600">{formatPhone(p)}</a>)],
+    ['Telefon', c.phones.map((p) => <a key={p} href={`tel:${p}`} className="mr-2 text-brand-600">{formatPhone(p)}</a>)],
     ['Telegram', c.telegram],
     ['Mas\'ul shaxs', c.contactPerson],
     ['STIR', c.inn],
@@ -39,7 +39,7 @@ export default function ClientDetailPage() {
           <Button variant="outline" size="icon" onClick={() => navigate(-1)} aria-label="Orqaga"><ArrowLeft className="h-4 w-4" /></Button>
           <h1 className="text-2xl font-bold text-gray-900">{c.name}</h1>
         </div>
-        <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="mr-2 h-4 w-4" />Tahrirlash</Button>
+        <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Tahrirlash</Button>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -63,7 +63,7 @@ export default function ClientDetailPage() {
                 <tbody>
                   {c.orders.map((o) => (
                     <tr key={o.id} className="border-b border-gray-50 last:border-0">
-                      <td className="py-2"><Link to={`/orders/${o.id}`} className="font-bold text-blue-600 hover:underline">{o.number}</Link></td>
+                      <td className="py-2"><Link to={`/orders/${o.id}`} className="font-bold text-brand-600 hover:underline">{o.number}</Link></td>
                       <td className="py-2 text-gray-500">{formatDate(o.createdAt)}</td>
                       <td className="py-2"><StatusBadge status={o.status} /></td>
                       <td className="py-2 text-right font-medium">{formatCurrency(o.totalAmount)}</td>

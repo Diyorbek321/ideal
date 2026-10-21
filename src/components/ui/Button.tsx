@@ -15,18 +15,18 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, children, ...props }, ref) => {
     const variants = {
-      primary: 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800',
-      secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300',
-      outline: 'border border-gray-300 bg-transparent hover:bg-gray-50 active:bg-gray-100',
-      ghost: 'bg-transparent hover:bg-gray-100 active:bg-gray-200',
+      primary: 'bg-brand-400 text-gray-900 shadow-[inset_0_-2px_0_rgb(0_0_0/0.12)] hover:bg-brand-300 active:bg-brand-500',
+      secondary: 'bg-gray-900 text-white hover:bg-gray-700 active:bg-gray-800',
+      outline: 'border border-gray-300 bg-white text-gray-900 hover:border-gray-900 hover:bg-gray-50 active:bg-gray-100',
+      ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200',
       danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
     };
 
     const sizes = {
-      sm: 'px-3 py-1.5 text-sm',
-      md: 'px-4 py-2',
-      lg: 'px-6 py-3 text-lg',
-      icon: 'p-2',
+      sm: 'h-8 gap-1.5 px-3 text-sm',
+      md: 'h-10 gap-2 px-4 text-sm',
+      lg: 'h-12 gap-2 px-6 text-base',
+      icon: 'h-10 w-10',
     };
 
     return (
@@ -34,7 +34,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type={props.type ?? 'button'}
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-lg font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+          'inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2',
           variants[variant],
           sizes[size],
           className

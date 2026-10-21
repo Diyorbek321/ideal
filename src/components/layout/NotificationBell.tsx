@@ -16,7 +16,7 @@ const ICONS = {
   ASSIGNED: { icon: UserCheck, cls: 'bg-violet-50 text-violet-600' },
   APPROVED: { icon: CheckCircle2, cls: 'bg-emerald-50 text-emerald-600' },
   CHANGES_REQUESTED: { icon: PencilLine, cls: 'bg-amber-50 text-amber-600' },
-  READY: { icon: PackageCheck, cls: 'bg-blue-50 text-blue-600' },
+  READY: { icon: PackageCheck, cls: 'bg-brand-50 text-brand-600' },
 } as const;
 
 // Yangi buyurtma, tayinlash, mijoz qarori, "tayyor": 30 soniyada tekshiriladi, yangisida o'zbekcha ovozli xabar
@@ -33,15 +33,17 @@ export default function NotificationBell() {
   const known = React.useRef<Set<string> | null>(null);
   const boxRef = React.useRef<HTMLDivElement>(null);
 
-  const { data = [] } = useQuery({
+  const { data = [], isFetched } = useQuery({
     queryKey: ['notifications'],
     queryFn: notificationsApi.list,
     refetchInterval: POLL_MS,
     refetchIntervalInBackground: true,
   });
 
-  // Birinchi yuklashda signal yo'q; keyingi so'rovlarda faqat yangi kelganlar uchun
+  // Birinchi yuklashda signal yo'q; keyingi so'rovlarda faqat yangi kelganlar uchun.
+  // Javob kelguncha data = [] — uni boshlang'ich holat deb olsak, birinchi javobdagi hamma xabar "yangi" bo'lib ketadi
   React.useEffect(() => {
+    if (!isFetched) return;
     if (known.current === null) {
       known.current = new Set(data.map((n) => n.id));
       return;
@@ -58,7 +60,7 @@ export default function NotificationBell() {
     void queryClient.invalidateQueries({ queryKey: ['orders'] });
     void queryClient.invalidateQueries({ queryKey: ['order'] });
     void queryClient.invalidateQueries({ queryKey: ['design-tasks'] });
-  }, [data, toast, queryClient]);
+  }, [data, isFetched, toast, queryClient]);
 
   React.useEffect(() => {
     if (!open) return;

@@ -126,7 +126,7 @@ export default function ProductionPage() {
         {equipment?.map((eq) => (
           <Card
             key={eq.id}
-            className={cn('cursor-pointer p-4 transition-colors', eqFilter === eq.id && 'border-blue-500 ring-1 ring-blue-500')}
+            className={cn('cursor-pointer p-4 transition-colors', eqFilter === eq.id && 'border-gray-900 ring-1 ring-gray-900')}
             onClick={() => setEqFilter((f) => (f === eq.id ? '' : eq.id))}
           >
             <div className="mb-3 flex items-start justify-between">
@@ -165,7 +165,7 @@ export default function ProductionPage() {
                     )}
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <Link to={`/orders/${t.order.id}`} className="font-black text-blue-600 hover:underline">{t.order.number}</Link>
+                        <Link to={`/orders/${t.order.id}`} className="font-black text-brand-600 hover:underline">{t.order.number}</Link>
                         <Badge variant={t.status === 'IN_PROGRESS' ? 'info' : 'default'}>{TASK_STATUS_LABELS[t.status]}</Badge>
                         {dl && <span className={cn('text-xs', dl.late ? 'font-bold text-red-600' : 'text-gray-400')}>{dl.text}</span>}
                       </div>
@@ -197,10 +197,10 @@ export default function ProductionPage() {
                       )}
                       {t.status === 'QUEUED' && (
                         <Button size="sm" variant="outline" isLoading={start.isPending && start.variables?.id === t.id} onClick={() => start.mutate(t)}>
-                          <Play className="mr-1 h-3 w-3" />Boshlash
+                          <Play className="h-3 w-3" />Boshlash
                         </Button>
                       )}
-                      <Button size="sm" onClick={() => setFinishing(t)}><CheckCircle className="mr-1 h-3 w-3" />Tayyor</Button>
+                      <Button size="sm" onClick={() => setFinishing(t)}><CheckCircle className="h-3 w-3" />Tayyor</Button>
                     </div>
                   </div>
                 );

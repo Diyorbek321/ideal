@@ -42,7 +42,7 @@ export function SmsCard({ order }: { order: OrderDetail }) {
       title="Mijozga SMS"
       actions={trackLink ? (
         <Button size="sm" variant="outline" onClick={async () => (await copyText(trackLink)) && toast.success('Kuzatish havolasi nusxalandi')}>
-          <Copy className="mr-1 h-3 w-3" />Kuzatish havolasi
+          <Copy className="h-3 w-3" />Kuzatish havolasi
         </Button>
       ) : undefined}
     >
@@ -52,12 +52,12 @@ export function SmsCard({ order }: { order: OrderDetail }) {
           onChange={(e) => setText(e.target.value.slice(0, MAX_LEN))}
           rows={2}
           placeholder="Masalan: Buyurtmangiz ertaga soat 15:00 da tayyor bo'ladi"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-4 focus:ring-brand-300/50"
           aria-label="SMS matni"
         />
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-400">{text.length}/{MAX_LEN} · {order.client.phones[0] ?? 'telefon yo\'q'}</span>
-          <Button type="submit" size="sm" disabled={text.trim().length < 3} isLoading={send.isPending}><Send className="mr-1 h-3 w-3" />Yuborish</Button>
+          <Button type="submit" size="sm" disabled={text.trim().length < 3} isLoading={send.isPending}><Send className="h-3 w-3" />Yuborish</Button>
         </div>
       </form>
       {data?.data.length ? (
@@ -68,7 +68,7 @@ export function SmsCard({ order }: { order: OrderDetail }) {
                 <span className="font-medium text-gray-700">{SMS_EVENT_LABELS[m.event]}</span>
                 <span className="flex items-center gap-1">
                   {m.status === 'FAILED' && (
-                    <button onClick={() => retry.mutate(m.id)} className="text-blue-600" aria-label="Qayta yuborish"><RotateCcw className="h-3 w-3" /></button>
+                    <button onClick={() => retry.mutate(m.id)} className="text-brand-600" aria-label="Qayta yuborish"><RotateCcw className="h-3 w-3" /></button>
                   )}
                   <Badge variant={SMS_VARIANT[m.status]}>{SMS_STATUS_LABELS[m.status]}</Badge>
                 </span>

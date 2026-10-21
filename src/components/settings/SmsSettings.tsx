@@ -98,10 +98,10 @@ export function SmsSettings() {
               <div key={m.id} className="py-3 text-sm">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-gray-900">
-                    {formatPhone(m.phone)} · {m.client?.name ?? '—'} {m.order && <span className="text-blue-600">{m.order.number}</span>}
+                    {formatPhone(m.phone)} · {m.client?.name ?? '—'} {m.order && <span className="text-brand-600">{m.order.number}</span>}
                   </span>
                   <span className="flex items-center gap-2">
-                    {m.status === 'FAILED' && <button onClick={() => retry.mutate(m.id)} className="text-blue-600" aria-label="Qayta yuborish"><RotateCcw className="h-4 w-4" /></button>}
+                    {m.status === 'FAILED' && <button onClick={() => retry.mutate(m.id)} className="text-brand-600" aria-label="Qayta yuborish"><RotateCcw className="h-4 w-4" /></button>}
                     <Badge variant={SMS_VARIANT[m.status]}>{SMS_STATUS_LABELS[m.status]}</Badge>
                   </span>
                 </div>

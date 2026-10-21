@@ -46,7 +46,7 @@ export function PaymentsCard({ order }: { order: OrderDetail }) {
   return (
     <Card
       title="To'lovlar"
-      actions={remaining > 0 && order.status !== 'BEKOR_QILINDI' ? <Button size="sm" onClick={openModal}><Plus className="mr-1 h-4 w-4" />To'lov</Button> : undefined}
+      actions={remaining > 0 && order.status !== 'BEKOR_QILINDI' ? <Button size="sm" onClick={openModal}><Plus className="h-4 w-4" />To'lov</Button> : undefined}
     >
       <div className="mb-4 grid grid-cols-3 gap-3 text-center">
         <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">Jami</p><p className="font-bold">{formatCurrency(order.totalAmount)}</p></div>

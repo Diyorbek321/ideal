@@ -10,6 +10,21 @@ export function formatCurrency(amount: number | null | undefined) {
   return `${formatNumber(Math.round(amount ?? 0))} so'm`;
 }
 
+// KPI kartalari uchun: 3 393 000 -> "3,39 mln"
+export function formatCompact(amount: number | null | undefined) {
+  const n = Math.round(amount ?? 0);
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `${formatNumber(n / 1_000_000_000, 2).replace('.', ',')} mlrd`;
+  if (abs >= 1_000_000) return `${formatNumber(n / 1_000_000, 2).replace('.', ',')} mln`;
+  if (abs >= 10_000) return `${formatNumber(n / 1000)} ming`;
+  return formatNumber(n);
+}
+
+// Brauzerlarda uz-UZ lokali ko'pincha yo'q — nomlar qo'lda
+const MONTHS = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
+const WEEKDAYS = ['yakshanba', 'dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba'];
+export const formatLongDate = (d: Date) => `${d.getDate()}-${MONTHS[d.getMonth()]}, ${WEEKDAYS[d.getDay()]}`;
+
 export function formatNumber(n: number, digits = 0) {
   return n.toFixed(digits).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }

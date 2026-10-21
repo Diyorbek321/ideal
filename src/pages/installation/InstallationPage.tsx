@@ -31,11 +31,11 @@ function InstallerView() {
           <h1 className="text-2xl font-bold text-gray-900">O'rnatish ishlari</h1>
           <p className="text-gray-500">Bugungi vazifalar</p>
         </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600"><Truck className="h-6 w-6" /></div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-brand-600"><Truck className="h-6 w-6" /></div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="rounded-2xl border border-gray-100 bg-white p-4 text-center shadow-sm">
-          <p className="text-2xl font-black text-blue-600">{open.length}</p>
+          <p className="text-2xl font-black text-brand-600">{open.length}</p>
           <p className="text-[10px] font-bold uppercase text-gray-400">Qolgan ishlar</p>
         </div>
         <div className="rounded-2xl border border-gray-100 bg-white p-4 text-center shadow-sm">
@@ -87,7 +87,7 @@ function ManagerView() {
               {list.map((i) => (
                 <div key={i.id} className="flex flex-col gap-2 rounded-lg border border-gray-100 p-3 text-sm md:flex-row md:items-center md:justify-between">
                   <div>
-                    <Link to={`/orders/${i.orderId}`} className="font-bold text-blue-600 hover:underline">{i.order?.number}</Link>
+                    <Link to={`/orders/${i.orderId}`} className="font-bold text-brand-600 hover:underline">{i.order?.number}</Link>
                     <span className="ml-2 text-gray-900">{i.order?.client.name}</span>
                     <p className="text-xs text-gray-500">{formatDateTime(i.scheduledAt)} · {i.address}</p>
                     <p className="text-xs text-gray-500">{i.team.map((t) => t.fullName).join(', ')}</p>

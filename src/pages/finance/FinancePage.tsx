@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Banknote, CreditCard, DollarSign, FileSpreadsheet, Landmark, Plus, Trash2, TrendingDown } from 'lucide-react';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { expensesApi, paymentsApi, reportsApi } from '@/api';
 import type { PaymentMethod } from '@/types';
 import { CLIENT_TYPE_LABELS, METHOD_LABELS } from '@/lib/labels';
@@ -10,6 +9,7 @@ import { useUser } from '@/lib/auth';
 import { cn, copyText, formatCurrency, formatDate, parseMoney, telegramShareUrl } from '@/lib/utils';
 import { AccountingExportModal } from '@/components/finance/AccountingExportModal';
 import { Button } from '@/components/ui/Button';
+import { RevenueChart } from '@/components/finance/RevenueChart';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -78,33 +78,33 @@ export default function FinancePage() {
           <>
             <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} className="h-10 rounded-md border border-gray-300 px-3 text-sm" aria-label="Oy" />
             <Button variant="outline" onClick={() => { setExp({ category: EXPENSE_CATEGORIES[0]!, amount: '', note: '' }); setExpenseOpen(true); }}>
-              <Plus className="mr-2 h-4 w-4" />Xarajat
+              <Plus className="h-4 w-4" />Xarajat
             </Button>
-            <Button variant="outline" onClick={() => setExportOpen(true)}><FileSpreadsheet className="mr-2 h-4 w-4" />Buxgalter uchun Excel</Button>
+            <Button variant="outline" onClick={() => setExportOpen(true)}><FileSpreadsheet className="h-4 w-4" />Buxgalter uchun Excel</Button>
           </>
         )}
       />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-        <Card className="border-0 bg-blue-600 p-6 text-white shadow-lg shadow-blue-100">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <Card className="border-0 bg-brand-400 p-6 text-gray-900">
           <div className="mb-4 w-fit rounded-lg bg-white/20 p-2"><DollarSign className="h-6 w-6" /></div>
           <p className="mb-1 text-sm opacity-80">Tushum</p>
-          <p className="text-2xl font-black">{formatCurrency(s.revenue)}</p>
+          <p className="font-display text-base font-bold tabular-nums sm:text-2xl">{formatCurrency(s.revenue)}</p>
         </Card>
         <Card className="p-6">
           <p className="mb-1 text-sm text-gray-500">Xarajatlar</p>
-          <p className="text-2xl font-black text-gray-900">{formatCurrency(s.expenses)}</p>
+          <p className="font-display text-base font-bold tabular-nums sm:text-2xl text-gray-900">{formatCurrency(s.expenses)}</p>
           <p className={cn('mt-2 text-sm font-bold', s.cashFlow >= 0 ? 'text-emerald-600' : 'text-red-600')}>Sof oqim: {formatCurrency(s.cashFlow)}</p>
         </Card>
         <Card className="p-6">
           <p className="mb-1 text-sm text-gray-500">Buyurtmalar</p>
-          <p className="text-2xl font-black text-gray-900">{s.ordersCount} ta</p>
+          <p className="font-display text-base font-bold tabular-nums sm:text-2xl text-gray-900">{s.ordersCount} ta</p>
           <p className="mt-2 text-sm text-gray-500">{formatCurrency(s.ordersAmount)}</p>
         </Card>
-        <Card className="border-0 bg-red-500 p-6 text-white shadow-lg shadow-red-100">
+        <Card className="border-red-200 bg-red-50 p-6 text-red-800">
           <div className="mb-4 w-fit rounded-lg bg-white/20 p-2"><TrendingDown className="h-6 w-6" /></div>
           <p className="mb-1 text-sm opacity-80">Umumiy nasiya</p>
-          <p className="text-2xl font-black">{formatCurrency(debts.data?.total)}</p>
+          <p className="font-display text-base font-bold tabular-nums sm:text-2xl">{formatCurrency(debts.data?.total)}</p>
         </Card>
       </div>
 
@@ -120,26 +120,10 @@ export default function FinancePage() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
         <Card title="Kunlik tushum" className="lg:col-span-2">
           {chart.length ? (
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chart}>
-                  <defs>
-                    <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="day" />
-                  <YAxis tickFormatter={(v: number) => `${Math.round(v / 1_000_000)} mln`} />
-                  <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-                  <Area type="monotone" dataKey="amount" name="Tushum" stroke="#2563eb" fill="url(#rev)" strokeWidth={3} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            <RevenueChart data={chart} className="h-64 sm:h-72" />
           ) : <Empty text="Bu oyda to'lovlar yo'q" />}
         </Card>
 
@@ -175,7 +159,7 @@ export default function FinancePage() {
                 {debts.data.items.map((d) => (
                   <tr key={d.orderId} className="border-b border-gray-50 hover:bg-gray-50/50">
                     <td className="px-4 py-3"><p className="font-medium">{d.client.name}</p><p className="text-xs text-gray-400">{CLIENT_TYPE_LABELS[d.client.type]}</p></td>
-                    <td className="px-4 py-3"><Link to={`/orders/${d.orderId}`} className="font-bold text-blue-600 hover:underline">{d.orderNumber}</Link></td>
+                    <td className="px-4 py-3"><Link to={`/orders/${d.orderId}`} className="font-bold text-brand-600 hover:underline">{d.orderNumber}</Link></td>
                     <td className={cn('px-4 py-3', d.daysOverdue > 0 ? 'font-bold text-red-600' : 'text-gray-500')}>
                       {d.dueDate ? formatDate(d.dueDate) : '—'}{d.daysOverdue > 0 && <span className="block text-xs">{d.daysOverdue} kun o'tdi</span>}
                     </td>

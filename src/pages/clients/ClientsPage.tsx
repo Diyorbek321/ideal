@@ -20,7 +20,7 @@ const ICONS: Record<ClientType, typeof User> = {
   BUDGET: Building2, MILITARY: Shield, SCHOOL: GraduationCap, COMPANY: Building2, INDIVIDUAL: User,
 };
 const COLORS: Record<ClientType, string> = {
-  BUDGET: 'bg-blue-50 text-blue-600', MILITARY: 'bg-red-50 text-red-600', SCHOOL: 'bg-amber-50 text-amber-600',
+  BUDGET: 'bg-brand-50 text-brand-600', MILITARY: 'bg-red-50 text-red-600', SCHOOL: 'bg-amber-50 text-amber-600',
   COMPANY: 'bg-emerald-50 text-emerald-600', INDIVIDUAL: 'bg-gray-50 text-gray-600',
 };
 
@@ -49,8 +49,8 @@ export default function ClientsPage() {
         subtitle={data ? `Jami: ${data.meta.total}` : undefined}
         actions={(
           <>
-            <Button variant="outline" onClick={() => setImporting(true)}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel'dan import</Button>
-            <Button onClick={() => setCreating(true)}><Plus className="mr-2 h-4 w-4" />Yangi mijoz</Button>
+            <Button variant="outline" onClick={() => setImporting(true)}><FileSpreadsheet className="h-4 w-4" />Excel'dan import</Button>
+            <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" />Yangi mijoz</Button>
           </>
         )}
       />
@@ -83,7 +83,7 @@ export default function ClientsPage() {
                     <span className="flex items-center"><Phone className="mr-2 h-3 w-3" />{formatPhone(c.phones[0])}</span>
                     <span>{c.ordersCount ?? 0} buyurtma · {formatCurrency(c.totalOrdered)}</span>
                   </div>
-                  <div className="absolute right-0 top-0 h-1 w-0 bg-blue-500 transition-all group-hover:w-full" />
+                  <div className="absolute right-0 top-0 h-1 w-0 bg-brand-400 transition-all group-hover:w-full" />
                 </Card>
               </Link>
             );

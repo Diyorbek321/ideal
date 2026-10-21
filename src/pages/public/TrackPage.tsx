@@ -45,7 +45,7 @@ export default function TrackPage() {
     <div className="min-h-screen bg-gray-100 pb-12">
       <header className="border-b border-gray-200 bg-white px-4 py-4">
         <div className="mx-auto flex max-w-lg items-center justify-between">
-          {t.company?.logoUrl ? <img src={fileUrl(t.company.logoUrl)} alt={company} className="h-8" /> : <span className="text-xl font-black text-blue-600">{company}</span>}
+          {t.company?.logoUrl ? <img src={fileUrl(t.company.logoUrl)} alt={company} className="h-8" /> : <span className="text-xl font-black text-brand-600">{company}</span>}
           <span className="text-sm font-bold text-gray-900">{t.number}</span>
         </div>
       </header>
@@ -59,7 +59,7 @@ export default function TrackPage() {
             <a href={t.approvalUrl} className="mt-4 block"><Button className="h-12 w-full bg-emerald-600 hover:bg-emerald-700">Dizaynni ko'rish va tasdiqlash</Button></a>
           )}
           {t.installation && (
-            <p className="mt-4 flex items-center justify-center rounded-lg bg-blue-50 p-3 text-sm font-medium text-blue-800">
+            <p className="mt-4 flex items-center justify-center rounded-lg bg-brand-50 p-3 text-sm font-medium text-brand-800">
               <Truck className="mr-2 h-4 w-4" />O'rnatish: {formatDateTime(t.installation.scheduledAt)}
             </p>
           )}
@@ -75,7 +75,7 @@ export default function TrackPage() {
                 return (
                   <li key={s} className="flex items-start gap-3">
                     <span className={cn('mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
-                      done ? 'bg-emerald-500 text-white' : active ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-300')}>
+                      done ? 'bg-emerald-500 text-white' : active ? 'bg-brand-400 text-gray-900' : 'bg-gray-100 text-gray-300')}>
                       {done ? <Check className="h-4 w-4" /> : <Circle className="h-3 w-3" fill="currentColor" />}
                     </span>
                     <div>
@@ -101,7 +101,7 @@ export default function TrackPage() {
         </Card>
 
         {t.company?.phone && (
-          <a href={`tel:${t.company.phone}`} className="flex items-center justify-center rounded-2xl bg-white p-4 font-bold text-blue-600 shadow-sm">
+          <a href={`tel:${t.company.phone}`} className="flex items-center justify-center rounded-2xl bg-white p-4 font-bold text-brand-600 shadow-sm">
             <Phone className="mr-2 h-4 w-4" />{formatPhone(t.company.phone)}
           </a>
         )}

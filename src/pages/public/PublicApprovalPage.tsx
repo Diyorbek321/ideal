@@ -72,7 +72,7 @@ export default function PublicApprovalPage() {
       <header className="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center space-x-3">
-            {data.company?.logoUrl ? <img src={fileUrl(data.company.logoUrl)} alt={company} className="h-8" /> : <span className="text-xl font-black text-blue-600">{company}</span>}
+            {data.company?.logoUrl ? <img src={fileUrl(data.company.logoUrl)} alt={company} className="h-8" /> : <span className="text-xl font-black text-brand-600">{company}</span>}
             <Badge variant="outline">TASDIQLASH</Badge>
           </div>
           <p className="text-sm font-bold text-gray-900">{data.order.number}</p>
@@ -87,7 +87,7 @@ export default function PublicApprovalPage() {
             </a>
             {data.note && <p className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">{data.note}</p>}
             <div className="mt-6 flex justify-center">
-              <a href={fileUrl(data.previewUrl)} download><Button variant="outline"><Download className="mr-2 h-4 w-4" />Yuklab olish</Button></a>
+              <a href={fileUrl(data.previewUrl)} download><Button variant="outline"><Download className="h-4 w-4" />Yuklab olish</Button></a>
             </div>
           </Card>
 
@@ -103,7 +103,7 @@ export default function PublicApprovalPage() {
               />
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={uploadMarkup} />
               <Button variant="ghost" size="sm" className="mt-2 text-amber-800" isLoading={uploading} onClick={() => fileRef.current?.click()}>
-                <ImagePlus className="mr-2 h-4 w-4" />{markupUrl ? 'Rasm biriktirildi ✓' : 'Belgilangan rasm biriktirish'}
+                <ImagePlus className="h-4 w-4" />{markupUrl ? 'Rasm biriktirildi ✓' : 'Belgilangan rasm biriktirish'}
               </Button>
               {uploadError && <p className="mt-2 text-sm text-red-600">{uploadError}</p>}
               {decide.error && <p className="mt-2 text-sm text-red-600">{(decide.error as Error).message}</p>}
@@ -135,7 +135,7 @@ export default function PublicApprovalPage() {
               {data.order.deadline && <p className="text-sm text-gray-600">Topshirish: {formatDate(data.order.deadline)}</p>}
               <div className="flex items-end justify-between border-t border-gray-100 pt-4">
                 <p className="text-xs font-black uppercase text-gray-400">Jami</p>
-                <p className="text-2xl font-black text-blue-600">{formatCurrency(data.order.totalAmount)}</p>
+                <p className="text-2xl font-black text-brand-600">{formatCurrency(data.order.totalAmount)}</p>
               </div>
             </div>
           </Card>
@@ -161,10 +161,10 @@ export default function PublicApprovalPage() {
           )}
 
           {data.company?.phone && (
-            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-6">
-              <h4 className="mb-2 font-bold text-blue-900">Savollar bormi?</h4>
-              <p className="mb-4 text-sm text-blue-700">Menejer bilan bog'laning:</p>
-              <a href={`tel:${data.company.phone}`} className="flex items-center justify-center rounded-xl bg-white p-3 font-bold text-blue-600 shadow-sm">
+            <div className="rounded-2xl border border-brand-100 bg-brand-50 p-6">
+              <h4 className="mb-2 font-bold text-brand-900">Savollar bormi?</h4>
+              <p className="mb-4 text-sm text-brand-700">Menejer bilan bog'laning:</p>
+              <a href={`tel:${data.company.phone}`} className="flex items-center justify-center rounded-xl bg-white p-3 font-bold text-brand-600 shadow-sm">
                 {formatPhone(data.company.phone)}
               </a>
             </div>

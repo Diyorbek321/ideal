@@ -181,7 +181,7 @@ export function OrderFormModal({ open, onClose, initialItems, initialNeedsDesign
             </div>
           ))}
           <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => setItems((l) => [...l, blankItem()])}>
-            <Plus className="mr-2 h-4 w-4" /> Yana mahsulot
+            <Plus className="h-4 w-4" /> Yana mahsulot
           </Button>
         </div>
 

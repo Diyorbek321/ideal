@@ -159,17 +159,17 @@ export default function InventoryPage() {
         subtitle="Qoldiq ishlab chiqarishda avtomatik kamayadi"
         actions={(
           <>
-            <Button variant="outline" onClick={() => setOp({ kind: 'in' })}><ArrowDownLeft className="mr-2 h-4 w-4" />Kirim</Button>
-            <Button variant="outline" onClick={() => setOp({ kind: 'out' })}><ArrowUpRight className="mr-2 h-4 w-4" />Chiqim</Button>
-            {finance && <Button variant="outline" onClick={() => setOp({ kind: 'count' })}><ClipboardCheck className="mr-2 h-4 w-4" />Inventarizatsiya</Button>}
-            {finance && <Button onClick={() => setOp({ kind: 'new' })}><Plus className="mr-2 h-4 w-4" />Yangi material</Button>}
+            <Button variant="outline" onClick={() => setOp({ kind: 'in' })}><ArrowDownLeft className="h-4 w-4" />Kirim</Button>
+            <Button variant="outline" onClick={() => setOp({ kind: 'out' })}><ArrowUpRight className="h-4 w-4" />Chiqim</Button>
+            {finance && <Button variant="outline" onClick={() => setOp({ kind: 'count' })}><ClipboardCheck className="h-4 w-4" />Inventarizatsiya</Button>}
+            {finance && <Button onClick={() => setOp({ kind: 'new' })}><Plus className="h-4 w-4" />Yangi material</Button>}
           </>
         )}
       />
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card className="flex items-center space-x-4 p-4">
-          <div className="rounded-full bg-blue-50 p-3 text-blue-600"><Package className="h-6 w-6" /></div>
+          <div className="rounded-full bg-brand-50 p-3 text-brand-600"><Package className="h-6 w-6" /></div>
           <div><p className="text-sm font-medium text-gray-500">Jami turlar</p><p className="text-2xl font-bold text-gray-900">{materials?.length ?? 0}</p></div>
         </Card>
         <Card className="flex items-center space-x-4 border-red-100 p-4">
@@ -224,7 +224,7 @@ export default function InventoryPage() {
                     {finance && <td className="px-6 py-4 font-semibold text-gray-900">{formatCurrency(m.purchasePrice)}</td>}
                     <td className="space-x-3 px-6 py-4 text-right">
                       <button className="font-bold text-emerald-600 hover:underline" onClick={() => setOp({ kind: 'in', material: m })}>Kirim</button>
-                      {finance && <button className="font-bold text-blue-600 hover:underline" onClick={() => setOp({ kind: 'history', material: m })}>Tarix</button>}
+                      {finance && <button className="font-bold text-brand-600 hover:underline" onClick={() => setOp({ kind: 'history', material: m })}>Tarix</button>}
                     </td>
                   </tr>
                 ))}

@@ -49,7 +49,7 @@ export function InstallJobCard({ job }: { job: Installation }) {
 
   return (
     <Card className="overflow-hidden border-0 shadow-md">
-      <div className={cn('p-4 text-white', job.status === 'PROBLEM' ? 'bg-red-600' : job.status === 'DONE' ? 'bg-emerald-600' : 'bg-blue-600')}>
+      <div className={cn('p-4 text-white', job.status === 'PROBLEM' ? 'bg-red-600' : job.status === 'DONE' ? 'bg-emerald-600' : 'bg-gray-900')}>
         <div className="mb-2 flex items-start justify-between">
           <span className="text-xs font-black uppercase tracking-widest opacity-80">{job.order?.number}</span>
           <Badge className="border-0 bg-white/20 text-[10px] text-white">{INSTALL_STATUS_LABELS[job.status]}</Badge>
@@ -61,7 +61,7 @@ export function InstallJobCard({ job }: { job: Installation }) {
       <div className="space-y-5 p-5">
         <div className="space-y-3">
           <div className="flex items-start text-sm text-gray-600">
-            <MapPin className="mr-3 mt-1 h-4 w-4 shrink-0 text-blue-500" />
+            <MapPin className="mr-3 mt-1 h-4 w-4 shrink-0 text-brand-600" />
             <p className="font-medium leading-relaxed">{job.address}</p>
           </div>
           {phones.map((p) => (
@@ -82,7 +82,7 @@ export function InstallJobCard({ job }: { job: Installation }) {
         </div>
 
         <a href={mapLink(job)} target="_blank" rel="noreferrer" className="block">
-          <Button variant="outline" className="h-12 w-full border-gray-200 bg-gray-50"><Navigation className="mr-2 h-4 w-4 text-blue-600" />Xaritada ochish</Button>
+          <Button variant="outline" className="h-12 w-full border-gray-200 bg-gray-50"><Navigation className="h-4 w-4 text-brand-600" />Xaritada ochish</Button>
         </a>
 
         {job.status === 'PLANNED' && (
@@ -96,7 +96,7 @@ export function InstallJobCard({ job }: { job: Installation }) {
                   onClick={() => run(() => installationsApi.checklist(job.id, c.key, !c.done))}
                   className="flex w-full items-center space-x-3 py-1 text-left text-sm text-gray-700"
                 >
-                  {c.done ? <CheckSquare className="h-6 w-6 text-blue-600" /> : <Square className="h-6 w-6 text-gray-300" />}
+                  {c.done ? <CheckSquare className="h-6 w-6 text-brand-600" /> : <Square className="h-6 w-6 text-gray-300" />}
                   <span className={c.done ? 'text-gray-400 line-through' : ''}>{c.label}</span>
                 </button>
               ))}
@@ -150,7 +150,7 @@ export function InstallJobCard({ job }: { job: Installation }) {
 
         {job.status !== 'DONE' && (
           <Button variant="ghost" className="w-full py-2 text-xs font-bold text-red-600" onClick={() => setProblemOpen(true)}>
-            <AlertTriangle className="mr-2 h-3 w-3" />Muammo haqida xabar berish
+            <AlertTriangle className="h-3 w-3" />Muammo haqida xabar berish
           </Button>
         )}
       </div>
