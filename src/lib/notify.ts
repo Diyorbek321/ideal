@@ -6,9 +6,11 @@ export const NOTIFICATION_TEXT: Record<AppNotification['kind'], string> = {
   APPROVED: 'dizaynni tasdiqladi',
   CHANGES_REQUESTED: 'o\'zgartirish so\'radi',
   READY: 'Buyurtma tayyor',
+  NEW_LEAD: 'Saytdan yangi ariza',
 };
 
 export function notificationTitle(n: AppNotification): string {
+  if (n.kind === 'NEW_LEAD') return `${NOTIFICATION_TEXT.NEW_LEAD}: ${n.clientName}`;
   if (n.kind === 'READY' || n.kind === 'NEW_ORDER' || n.kind === 'ASSIGNED') return `${n.orderNumber}: ${NOTIFICATION_TEXT[n.kind]}`;
   return `${n.orderNumber}: ${n.byClient ? 'mijoz' : 'menejer'} ${NOTIFICATION_TEXT[n.kind]}`;
 }
@@ -59,6 +61,7 @@ const VOICE_FILES: Record<AppNotification['kind'], string> = {
   APPROVED: '/sounds/approved.mp3',
   CHANGES_REQUESTED: '/sounds/changes.mp3',
   READY: '/sounds/ready.mp3',
+  NEW_LEAD: '/sounds/new-lead.mp3',
 };
 const CHIME_MS = 550;
 const MAX_SPOKEN = 3;
@@ -113,3 +116,6 @@ export function showSystemNotification(n: AppNotification) {
     // ba'zi mobil brauzerlarda konstruktor yo'q
   }
 }
+
+/** Bildirishnoma bosilganda qayerga o'tiladi */
+export const notificationLink = (n: AppNotification) => (n.kind === 'NEW_LEAD' ? `/leads?open=${n.leadId}` : `/orders/${n.orderId}`);

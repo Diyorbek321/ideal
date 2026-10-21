@@ -5,7 +5,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { inventoryApi, ordersApi, settingsApi, usersApi, type OrderItemInput } from '@/api';
 import type { Client, OrderSource } from '@/types';
 import { SOURCE_LABELS, options } from '@/lib/labels';
-import { formatCurrency, parseDecimal, parseMoney } from '@/lib/utils';
+import { toDateInput, formatCurrency, parseDecimal, parseMoney } from '@/lib/utils';
 import { invalidateOrderViews } from '@/lib/queries';
 import { ClientPicker } from '@/components/clients/ClientPicker';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +22,10 @@ interface Props {
   initialItems?: OrderItemInput[];
   initialNeedsDesign?: boolean;
   initialNeedsInstallation?: boolean;
+  /** Saytdan kelgan arizadan ochilganda */
+  initialClient?: Client | null;
+  initialSource?: OrderSource;
+  initialNotes?: string;
 }
 
 interface ItemDraft {
@@ -45,12 +49,14 @@ const toDraft = (i: OrderItemInput): ItemDraft => ({
 
 
 // Tez buyurtma: 1 daqiqada to'ldiriladigan forma
-export function OrderFormModal({ open, onClose, initialItems, initialNeedsDesign = true, initialNeedsInstallation = false }: Props) {
+export function OrderFormModal({
+  open, onClose, initialItems, initialNeedsDesign = true, initialNeedsInstallation = false, initialClient = null, initialSource = 'WALK_IN', initialNotes = '',
+}: Props) {
   const toast = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [client, setClient] = React.useState<Client | null>(null);
-  const [source, setSource] = React.useState<OrderSource>('WALK_IN');
+  const [client, setClient] = React.useState<Client | null>(initialClient);
+  const [source, setSource] = React.useState<OrderSource>(initialSource);
   const [items, setItems] = React.useState<ItemDraft[]>(() => (initialItems?.length ? initialItems.map(toDraft) : [blankItem()]));
   const [deadline, setDeadline] = React.useState('');
   const [needsDesign, setNeedsDesign] = React.useState(initialNeedsDesign);
@@ -59,7 +65,7 @@ export function OrderFormModal({ open, onClose, initialItems, initialNeedsDesign
   const [address, setAddress] = React.useState('');
   const [discount, setDiscount] = React.useState('');
   const [dueDate, setDueDate] = React.useState('');
-  const [notes, setNotes] = React.useState('');
+  const [notes, setNotes] = React.useState(initialNotes);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   const { data: productTypes } = useQuery({ queryKey: ['product-types'], queryFn: settingsApi.productTypes, enabled: open });
@@ -85,6 +91,9 @@ export function OrderFormModal({ open, onClose, initialItems, initialNeedsDesign
       else if (!Number.isInteger(parseDecimal(i.quantity)) || (parseDecimal(i.quantity) ?? 0) < 1) e[`item${idx}`] = 'Soni butun son bo\'lishi kerak';
       else if (parseMoney(i.unitPrice) === null) e[`item${idx}`] = 'Narxni raqam bilan kiriting';
     });
+    // O'z vaqtida topshirish bonusi (KPI) muddatga qarab hisoblanadi
+    if (!deadline) e.deadline = 'Topshirish muddatini kiriting';
+    else if (deadline < toDateInput(new Date())) e.deadline = 'Muddat o\'tgan sana bo\'lishi mumkin emas';
     if (needsInstallation && !address.trim()) e.address = 'O\'rnatish manzilini kiriting';
     if (discount.trim() && parseMoney(discount) === null) e.discount = 'Chegirmani raqam bilan kiriting';
     setErrors(e);
@@ -186,7 +195,7 @@ export function OrderFormModal({ open, onClose, initialItems, initialNeedsDesign
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Input label="Topshirish muddati" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+          <Input label="Topshirish muddati *" type="date" min={toDateInput(new Date())} value={deadline} onChange={(e) => setDeadline(e.target.value)} error={errors.deadline} />
           <Input label="Chegirma (so'm)" inputMode="numeric" value={discount} onChange={(e) => setDiscount(e.target.value)} error={errors.discount} />
           <Input label="Nasiya: to'lov muddati" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </div>

@@ -1,5 +1,5 @@
 import {
-  Calculator, DollarSign, FileText, LayoutDashboard, Palette, Printer, Settings, ShoppingBag, Truck, UserCheck, Users,
+  Calculator, DollarSign, FileText, Globe, LayoutDashboard, Palette, Printer, Settings, ShoppingBag, Target, Truck, UserCheck, Users,
   Warehouse,
 } from 'lucide-react';
 import type { UserRole } from '@/types';
@@ -11,6 +11,8 @@ export interface NavItem {
   short: string;
   icon: typeof LayoutDashboard;
   roles: UserRole[];
+  /** Menyuda son ko'rsatiladi (masalan, yangi arizalar) */
+  badge?: 'leads';
 }
 
 export const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
@@ -19,6 +21,7 @@ export const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
     items: [
       { path: '/', label: 'Bosh sahifa', short: 'Asosiy', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
       { path: '/orders', label: 'Buyurtmalar', short: 'Buyurtma', icon: ShoppingBag, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/leads', label: 'Saytdan arizalar', short: 'Ariza', icon: Globe, roles: ['ADMIN', 'MANAGER'], badge: 'leads' },
       { path: '/calculator', label: 'Narx kalkulyatori', short: 'Narx', icon: Calculator, roles: ['ADMIN', 'MANAGER'] },
       { path: '/design', label: 'Dizayn', short: 'Dizayn', icon: Palette, roles: ['ADMIN', 'MANAGER', 'DESIGNER'] },
       { path: '/production', label: 'Ishlab chiqarish', short: 'Pechat', icon: Printer, roles: ['ADMIN', 'MANAGER', 'PRINTER'] },
@@ -35,6 +38,7 @@ export const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
   {
     title: 'Boshqaruv',
     items: [
+      { path: '/kpi', label: 'KPI va bonus', short: 'KPI', icon: Target, roles: ['ADMIN', 'MANAGER', 'DESIGNER', 'PRINTER', 'INSTALLER'] },
       { path: '/finance', label: 'Moliya', short: 'Moliya', icon: DollarSign, roles: ['ADMIN', 'MANAGER'] },
       { path: '/employees', label: 'Xodimlar va oylik', short: 'Xodim', icon: UserCheck, roles: ['ADMIN'] },
       { path: '/documents', label: 'Hujjatlar', short: 'Hujjat', icon: FileText, roles: ['ADMIN', 'MANAGER'] },

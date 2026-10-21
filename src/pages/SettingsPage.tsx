@@ -1,6 +1,7 @@
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, DollarSign, MessageSquare, Plus, Timer } from 'lucide-react';
+import { Building2, DollarSign, MessageSquare, Plus, Target, Timer } from 'lucide-react';
 import { settingsApi } from '@/api';
 import type { CompanySettings, OrderStatus, PriceKind, PriceListItem, PriceUnit } from '@/types';
 import { PRICE_KIND_LABELS, PRICE_UNIT_LABELS, STATUS_LABELS, options } from '@/lib/labels';
@@ -14,7 +15,7 @@ import { ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
 
 const SLA_STATUSES: OrderStatus[] = ['YANGI', 'NARX_HISOBLANDI', 'DIZAYNDA', 'TASDIQDA', 'ISHLAB_CHIQARISHDA', 'TAYYOR', 'ORNATISHDA', 'YETKAZISHDA'];
-type Tab = 'company' | 'prices' | 'sla' | 'sms';
+type Tab = 'company' | 'prices' | 'sla' | 'kpi' | 'sms';
 
 function CompanyTab({ s }: { s: CompanySettings }) {
   const toast = useToast();
@@ -57,8 +58,14 @@ function SlaTab({ s }: { s: CompanySettings }) {
     setSla(Object.fromEntries(SLA_STATUSES.map((st) => [st, String(s.slaHours[st] ?? '')])));
     setParams({ urgency: String(s.urgencyMultiplier), margin: String(s.defaultMarginPercent), capacity: String(s.installationCapacity) });
   }, [s]);
+  // "abc" kabi qiymat jimgina tashlab yuborilmasin — foydalanuvchiga aytiladi
+  const invalid = [
+    ...SLA_STATUSES.filter((st) => (sla[st] ?? '').trim() && !((parseDecimal(sla[st]) ?? 0) > 0)).map((st) => STATUS_LABELS[st]),
+    ...([['urgency', 'Shoshilinchlik koeffitsiyenti'], ['margin', 'Minimal marja'], ['capacity', 'Kunlik o\'rnatish sig\'imi']] as const)
+      .filter(([k]) => params[k].trim() && parseDecimal(params[k]) === null).map(([, l]) => l),
+  ];
   const save = useMutation({
-    mutationFn: () => settingsApi.updateCompany({
+    mutationFn: () => invalid.length ? Promise.reject(new Error(`Noto'g'ri qiymat: ${invalid.join(', ')}`)) : settingsApi.updateCompany({
       slaHours: Object.fromEntries(Object.entries(sla).filter(([, v]) => (parseDecimal(v) ?? 0) > 0).map(([k, v]) => [k, parseDecimal(v)!])),
       urgencyMultiplier: parseDecimal(params.urgency) ?? s.urgencyMultiplier,
       defaultMarginPercent: parseDecimal(params.margin) ?? s.defaultMarginPercent,
@@ -84,6 +91,43 @@ function SlaTab({ s }: { s: CompanySettings }) {
           <Input label="Kunlik o'rnatish sig'imi" inputMode="numeric" value={params.capacity} onChange={(e) => setParams({ ...params, capacity: e.target.value })} />
         </div>
         <div className="mt-6 flex justify-end"><Button isLoading={save.isPending} onClick={() => save.mutate()}>Saqlash</Button></div>
+      </Card>
+    </div>
+  );
+}
+
+function KpiTab({ s }: { s: CompanySettings }) {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [f, setF] = React.useState({ plan: '', over: '', onTime: '' });
+  React.useEffect(() => {
+    setF({ plan: String(s.kpiMonthlyPlan), over: String(s.kpiOverPlanBonus), onTime: String(s.kpiOnTimeBonus) });
+  }, [s]);
+  const plan = parseMoney(f.plan);
+  const over = parseMoney(f.over);
+  const onTime = parseMoney(f.onTime);
+  const valid = plan !== null && over !== null && onTime !== null;
+  const save = useMutation({
+    mutationFn: () => settingsApi.updateCompany({ kpiMonthlyPlan: plan!, kpiOverPlanBonus: over!, kpiOnTimeBonus: onTime! }),
+    onSuccess: () => { toast.success('Saqlandi'); qc.invalidateQueries({ queryKey: ['company'] }); qc.invalidateQueries({ queryKey: ['kpi'] }); },
+    onError: toast.error,
+  });
+  // Misol: reja 30 taga oshdi, 11 xodim, montajchi 40 ta buyurtmani o'z vaqtida topshirdi
+  const fund = 30 * (over ?? 0);
+  return (
+    <div className="space-y-6">
+      <Card title="KPI va bonus" description="Ko'proq buyurtma va o'z vaqtida topshirish uchun avtomatik bonus. Oylik hisoblanganda qo'shiladi">
+        <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <Input label="Oylik reja (yopilgan buyurtma, ta)" inputMode="numeric" value={f.plan} onChange={(e) => setF({ ...f, plan: e.target.value })} />
+          <Input label="Rejadan oshgan har buyurtma uchun fondga (so'm)" inputMode="numeric" value={f.over} onChange={(e) => setF({ ...f, over: e.target.value })} />
+          <Input label="O'z vaqtida topshirilgan buyurtma uchun har ishtirokchiga (so'm)" inputMode="numeric" value={f.onTime} onChange={(e) => setF({ ...f, onTime: e.target.value })} />
+        </div>
+        <div className="mt-5 rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
+          <p className="font-semibold text-gray-900">Misol</p>
+          <p className="mt-1">Oyda {(plan ?? 0) + 30} ta buyurtma yopildi — reja 30 taga oshdi: fond {formatCurrency(fund)}, 11 xodimga {formatCurrency(Math.floor(fund / 11))} dan.</p>
+          <p>Montajchi 40 ta buyurtmani o'z vaqtida topshirdi: {formatCurrency(40 * (onTime ?? 0))}.</p>
+        </div>
+        <div className="mt-6 flex justify-end"><Button disabled={!valid} isLoading={save.isPending} onClick={() => save.mutate()}>Saqlash</Button></div>
       </Card>
     </div>
   );
@@ -180,12 +224,14 @@ function PricesTab() {
 }
 
 export default function SettingsPage() {
-  const [tab, setTab] = React.useState<Tab>('company');
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = React.useState<Tab>(() => (searchParams.get('tab') as Tab | null) ?? 'company');
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['company'], queryFn: settingsApi.company });
   const tabs: Array<{ id: Tab; label: string; icon: typeof Building2 }> = [
     { id: 'company', label: 'Kompaniya', icon: Building2 },
     { id: 'prices', label: 'Narxlar', icon: DollarSign },
     { id: 'sla', label: 'SLA va parametrlar', icon: Timer },
+    { id: 'kpi', label: 'KPI va bonus', icon: Target },
     { id: 'sms', label: 'SMS xizmati', icon: MessageSquare },
   ];
 
@@ -198,7 +244,7 @@ export default function SettingsPage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={cn('flex w-full items-center space-x-3 rounded-lg px-4 py-2 text-left text-sm', tab === t.id ? 'bg-brand-50 font-bold text-brand-600' : 'font-medium text-gray-600 hover:bg-gray-50')}
+              className={cn('flex w-full items-center space-x-3 rounded-xl px-4 py-2.5 text-left text-sm', tab === t.id ? 'bg-brand-400 font-semibold text-gray-900' : 'font-medium text-gray-600 hover:bg-gray-100')}
             >
               <t.icon className="h-4 w-4" /><span>{t.label}</span>
             </button>
@@ -206,7 +252,7 @@ export default function SettingsPage() {
         </div>
         <div className="md:col-span-3">
           {error ? <ErrorState error={error} onRetry={refetch} /> : isLoading || !data ? <Loading /> : (
-            tab === 'company' ? <CompanyTab s={data} /> : tab === 'sla' ? <SlaTab s={data} /> : tab === 'sms' ? <SmsSettings /> : <PricesTab />
+            tab === 'company' ? <CompanyTab s={data} /> : tab === 'sla' ? <SlaTab s={data} /> : tab === 'kpi' ? <KpiTab s={data} /> : tab === 'sms' ? <SmsSettings /> : <PricesTab />
           )}
         </div>
       </div>

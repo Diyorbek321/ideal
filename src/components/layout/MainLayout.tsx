@@ -7,14 +7,15 @@ import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
 export default function MainLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, reconnecting } = useAuth();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const location = useLocation();
 
   if (loading) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-gray-50">
+      <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-gray-50 px-6 text-center">
         <Logo className="animate-pulse" />
+        {reconnecting && <p className="text-sm text-gray-500">Server bilan aloqa tiklanmoqda… Sahifani yopmang.</p>}
       </div>
     );
   }

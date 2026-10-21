@@ -3,7 +3,7 @@ import type {
   Expense, FileAsset, Installation, InstallProblem, InstallProblemType, Material, Order, OrderDetail,
   OrderEvent, OrderSource, OrderStatus, Payment, PaymentKind, PaymentMethod, PayrollEntry, PriceListItem,
   PriceResult, ProductType, PublicApproval, QueueTask, ReportSummary, ShareInfo, SmsMessage, SmsStatusInfo, StockMovement,
-  AppNotification, ClientImportResult, TrackInfo, User,
+  AppNotification, ClientImportResult, TrackInfo, User, MyKpi, TeamKpi, Lead, LeadStatus, ClientType,
 } from '@/types';
 import { api } from './client';
 
@@ -242,4 +242,19 @@ export const smsApi = {
   send: (orderId: string, text: string) => api.post<SmsMessage>('/sms/send', { orderId, text }),
   test: (phone: string) => api.post<SmsMessage>('/sms/test', { phone }),
   retry: (id: string) => api.post<SmsMessage>(`/sms/messages/${id}/retry`),
+};
+
+export const kpiApi = {
+  me: (period?: string) => api.get<MyKpi>('/kpi/me', period ? { period } : {}),
+  team: (period?: string) => api.get<TeamKpi>('/kpi', period ? { period } : {}),
+};
+
+export const leadsApi = {
+  list: (q: { status?: LeadStatus; search?: string; page?: number; limit?: number } = {}) => api.page<Lead[]>('/leads', { ...q }),
+  count: () => api.get<{ new: number }>('/leads/count'),
+  get: (id: string) => api.get<Lead>(`/leads/${id}`),
+  update: (id: string, body: { status?: Exclude<LeadStatus, 'CONVERTED'>; note?: string | null; assignedToId?: string | null }) =>
+    api.patch<Lead>(`/leads/${id}`, body),
+  convert: (id: string, body: { type: ClientType; name?: string }) =>
+    api.post<{ lead: Lead; clientId: string; clientCreated: boolean }>(`/leads/${id}/convert`, body),
 };

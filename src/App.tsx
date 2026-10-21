@@ -9,6 +9,8 @@ import Dashboard from './pages/Dashboard';
 import OrdersPage from './pages/orders/OrdersPage';
 import OrderDetailPage from './pages/orders/OrderDetailPage';
 import ClientsPage from './pages/clients/ClientsPage';
+import LeadsPage from './pages/leads/LeadsPage';
+import KpiPage from './pages/kpi/KpiPage';
 import ClientDetailPage from './pages/clients/ClientDetailPage';
 import InventoryPage from './pages/inventory/InventoryPage';
 import FinancePage from './pages/finance/FinancePage';
@@ -60,6 +62,8 @@ export default function App() {
                 <Route path="production" element={<RequireRole roles={[...staff, 'PRINTER']}><ProductionPage /></RequireRole>} />
                 <Route path="installation" element={<RequireRole roles={[...staff, 'INSTALLER']}><InstallationPage /></RequireRole>} />
                 <Route path="clients" element={<RequireRole roles={[...staff]}><ClientsPage /></RequireRole>} />
+                <Route path="leads" element={<RequireRole roles={[...staff]}><LeadsPage /></RequireRole>} />
+                <Route path="kpi" element={<KpiPage />} />
                 <Route path="clients/:id" element={<RequireRole roles={[...staff]}><ClientDetailPage /></RequireRole>} />
                 <Route path="inventory" element={<RequireRole roles={[...staff, 'PRINTER']}><InventoryPage /></RequireRole>} />
                 <Route path="finance" element={<RequireRole roles={[...staff]}><FinancePage /></RequireRole>} />

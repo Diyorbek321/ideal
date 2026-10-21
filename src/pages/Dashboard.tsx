@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, AlertTriangle, ArrowUpRight, ChevronRight, Clock, PackageX, ShoppingBag, TrendingUp, Wallet } from 'lucide-react';
 import { reportsApi } from '@/api';
 import { RevenueChart } from '@/components/finance/RevenueChart';
+import { MyKpiCard } from '@/components/kpi/MyKpiCard';
 import { Card } from '@/components/ui/Card';
 import { Empty, ErrorState, Loading } from '@/components/ui/States';
 import { StatusBadge } from '@/components/orders/StatusBadge';
@@ -88,6 +89,7 @@ export default function Dashboard() {
         <p className="text-sm text-gray-500">{formatLongDate(new Date())}</p>
         <h1 className="mt-1 font-display text-xl font-bold text-gray-900 sm:text-2xl">{greeting()}, {firstName}</h1>
       </div>
+      <MyKpiCard />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Muddati o'tgan" value={kpi.overdue} icon={AlertTriangle} to="/orders?overdueOnly=true" alert={kpi.overdue > 0} />

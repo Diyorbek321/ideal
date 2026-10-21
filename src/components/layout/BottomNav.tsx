@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import { useUser } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { NAV_ITEMS } from './navigation';
+import { useNavBadge } from './useNavBadge';
 
 const MAX_TABS = 4;
 
@@ -12,6 +13,9 @@ export default function BottomNav({ onMore }: { onMore: () => void }) {
   const items = NAV_ITEMS.filter((i) => i.roles.includes(user.role));
   const tabs = items.slice(0, MAX_TABS);
   const hasMore = items.length > MAX_TABS;
+  const badgeOf = useNavBadge();
+  // Telefonda menyuda yashiringan arizalar ham ko'rinsin
+  const hiddenBadges = items.slice(MAX_TABS).reduce((s, i) => s + badgeOf(i), 0);
 
   const cell = 'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium';
 
@@ -25,8 +29,9 @@ export default function BottomNav({ onMore }: { onMore: () => void }) {
           className={({ isActive }) => cn(cell, isActive ? 'text-gray-900' : 'text-gray-500')}>
           {({ isActive }) => (
             <>
-              <span className={cn('flex h-7 w-12 items-center justify-center rounded-full transition-colors', isActive && 'bg-brand-400')}>
+              <span className={cn('relative flex h-7 w-12 items-center justify-center rounded-full transition-colors', isActive && 'bg-brand-400')}>
                 <item.icon className="h-5 w-5" />
+                {badgeOf(item) > 0 && <span className="absolute -right-0.5 -top-1 rounded-full bg-red-600 px-1 text-[10px] font-bold leading-4 text-white">{badgeOf(item)}</span>}
               </span>
               <span className={cn('truncate', isActive && 'font-semibold')}>{item.short}</span>
             </>
@@ -35,7 +40,10 @@ export default function BottomNav({ onMore }: { onMore: () => void }) {
       ))}
       {hasMore && (
         <button onClick={onMore} className={cn(cell, 'text-gray-500')}>
-          <span className="flex h-7 w-12 items-center justify-center"><Menu className="h-5 w-5" /></span>
+          <span className="relative flex h-7 w-12 items-center justify-center">
+            <Menu className="h-5 w-5" />
+            {hiddenBadges > 0 && <span className="absolute -right-0.5 -top-1 rounded-full bg-red-600 px-1 text-[10px] font-bold leading-4 text-white">{hiddenBadges}</span>}
+          </span>
           <span>Menyu</span>
         </button>
       )}

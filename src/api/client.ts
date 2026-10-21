@@ -132,12 +132,29 @@ export const api = {
   },
 };
 
+// Backend xatosidagi maydon nomi -> foydalanuvchiga tushunarli nom
+const FIELD_LABELS: Record<string, string> = {
+  name: 'Nomi', fullName: 'F.I.Sh.', phone: 'Telefon', phones: 'Telefon', password: 'Parol', newPassword: 'Yangi parol',
+  currentPassword: 'Joriy parol', quantity: 'Miqdor', amount: 'Summa', price: 'Narx', costPrice: 'Tannarx', inn: 'STIR',
+  address: 'Manzil', deadline: 'Muddat', items: 'Mahsulotlar', widthCm: 'Eni', heightCm: 'Bo\'yi', unitPrice: 'Narx',
+  salary: 'Oylik', ratePerM2: 'm² stavkasi', role: 'Lavozim', type: 'Turi', code: 'Kod', unit: 'O\'lchov birligi',
+  minStock: 'Minimal qoldiq', purchasePrice: 'Xarid narxi', category: 'Toifa', comment: 'Izoh', notes: 'Izoh',
+  materialUsed: 'Sarflangan material', areaM2: 'Maydon (m²)', scheduledAt: 'Sana', clientId: 'Mijoz',
+};
+
+const fieldLabel = (path: string) => {
+  const key = path.split('.').find((p) => p && Number.isNaN(Number(p))) ?? path;
+  return FIELD_LABELS[key] ?? '';
+};
+
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
     const details = Array.isArray(err.details)
-      ? (err.details as Array<{ message?: string }>).map((d) => d.message).filter(Boolean)
+      ? (err.details as Array<{ path?: string; message?: string }>)
+        .filter((d) => d.message)
+        .map((d) => { const l = fieldLabel(d.path ?? ''); return l ? `${l} — ${d.message}` : d.message!; })
       : [];
-    return details.length ? `${err.message}: ${details.join('; ')}` : err.message;
+    return details.length ? `${err.message}: ${[...new Set(details)].join('; ')}` : err.message;
   }
   return err instanceof Error ? err.message : 'Kutilmagan xatolik';
 }

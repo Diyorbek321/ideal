@@ -7,6 +7,8 @@ import type { User, UserRole } from '@/types';
 interface AuthState {
   user: User | null;
   loading: boolean;
+  /** Sessiya bor, lekin server javob bermayapti — qayta urinilmoqda */
+  reconnecting: boolean;
   login: (phone: string, password: string) => Promise<User>;
   logout: () => void;
 }
@@ -16,6 +18,7 @@ const AuthContext = React.createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(() => !!tokenStore.get());
+  const [reconnecting, setReconnecting] = React.useState(false);
   const queryClient = useQueryClient();
 
   const logout = React.useCallback(() => {
@@ -27,11 +30,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     setUnauthorizedHandler(logout);
     if (!tokenStore.get()) return;
-    authApi.me()
-      .then(setUser)
-      // Tarmoq yoki server xatosida token o'chirilmaydi — faqat yaroqsiz bo'lsa
-      .catch((err) => { if (err instanceof ApiError && err.status === 401) logout(); })
-      .finally(() => setLoading(false));
+    // Tarmoq yoki server xatosida (masalan, yangilanish paytida) token o'chirilmaydi va login sahifasiga
+    // otilmaydi — server qaytguncha qayta urinamiz. Faqat yaroqsiz token (401) chiqaradi.
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const attempt = () => {
+      authApi.me()
+        .then((u) => { if (!cancelled) { setUser(u); setReconnecting(false); setLoading(false); } })
+        .catch((err) => {
+          if (cancelled) return;
+          if (err instanceof ApiError && err.status === 401) { logout(); setReconnecting(false); setLoading(false); return; }
+          setReconnecting(true);
+          timer = setTimeout(attempt, 3000);
+        });
+    };
+    attempt();
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [logout]);
 
   const login = React.useCallback(async (phone: string, password: string) => {
@@ -41,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return u;
   }, []);
 
-  const value = React.useMemo(() => ({ user, loading, login, logout }), [user, loading, login, logout]);
+  const value = React.useMemo(() => ({ user, loading, reconnecting, login, logout }), [user, loading, reconnecting, login, logout]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

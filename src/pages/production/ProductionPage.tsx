@@ -9,6 +9,7 @@ import { cn, deadlineText, fileUrl, formatNumber, parseDecimal } from '@/lib/uti
 import { invalidateOrderViews } from '@/lib/queries';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { MyKpiCard } from '@/components/kpi/MyKpiCard';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -121,6 +122,7 @@ export default function ProductionPage() {
   return (
     <div className="space-y-8">
       <PageHeader title="Ishlab chiqarish navbati" subtitle="Printer, lazer va frezer navbati" />
+      <MyKpiCard />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {equipment?.map((eq) => (

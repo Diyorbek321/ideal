@@ -13,6 +13,7 @@ import { ShareModal } from '@/components/design/ShareModal';
 import { DESIGN_VARIANT } from '@/components/orders/detail/DesignsCard';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { MyKpiCard } from '@/components/kpi/MyKpiCard';
 import { Card } from '@/components/ui/Card';
 import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
@@ -113,6 +114,7 @@ export default function DesignPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Dizayn" subtitle={finance ? 'Barcha dizayn vazifalari' : 'Sizga biriktirilgan vazifalar'} />
+      <MyKpiCard />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card className="p-4"><p className="mb-1 text-sm text-gray-500">Dizayndagi ishlar</p><p className="text-2xl font-black text-amber-600">{inDesign.length}</p></Card>

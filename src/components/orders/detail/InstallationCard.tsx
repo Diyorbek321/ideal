@@ -77,7 +77,7 @@ export function InstallationCard({ order }: { order: OrderDetail }) {
           <div key={i.id} className="rounded-lg border border-gray-100 p-3 text-sm">
             <div className="flex items-center justify-between">
               <span className="flex items-center font-medium"><Calendar className="mr-2 h-4 w-4 text-gray-400" />{formatDateTime(i.scheduledAt)}</span>
-              <Badge variant={i.status === 'DONE' ? 'success' : i.status === 'PROBLEM' ? 'error' : 'info'}>{INSTALL_STATUS_LABELS[i.status]}</Badge>
+              <Badge variant={i.status === 'DONE' ? 'success' : i.status === 'PROBLEM' ? 'error' : i.status === 'CANCELLED' ? 'default' : 'info'}>{INSTALL_STATUS_LABELS[i.status]}</Badge>
             </div>
             <p className="mt-1 text-xs text-gray-500">{i.team.map((t) => t.fullName).join(', ')}</p>
             {i.problems.map((p) => (

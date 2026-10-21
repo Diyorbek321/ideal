@@ -40,6 +40,19 @@ export function ClientFormModal({ open, onClose, client, initialName, onSaved }:
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (form.name.trim().length < 2) e.name = 'Nomini kiriting (kamida 2 belgi)';
+    const phones = form.phones.split(',').map((p) => p.replace(/\D/g, '')).filter(Boolean);
+    if (phones.length === 0) e.phones = 'Kamida bitta telefon kiriting';
+    else if (phones.some((p) => p.length !== 9 && !(p.length === 12 && p.startsWith('998')))) e.phones = 'Telefon 9 raqam bo\'lsin: 90 123 45 67';
+    if (form.inn.trim() && !/^\d{9}$|^\d{14}$/.test(form.inn.trim())) e.inn = 'STIR 9 yoki JSHSHIR 14 raqam';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+  const submit = () => validate() && save.mutate();
+
   const save = useMutation({
     mutationFn: () => {
       const body = {
@@ -78,18 +91,18 @@ export function ClientFormModal({ open, onClose, client, initialName, onSaved }:
       footer={(
         <>
           <Button variant="outline" onClick={onClose}>Bekor qilish</Button>
-          <Button isLoading={save.isPending} onClick={() => save.mutate()}>Saqlash</Button>
+          <Button isLoading={save.isPending} onClick={submit}>Saqlash</Button>
         </>
       )}
     >
-      <form className="grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
-        <div className="md:col-span-2"><Input label="Nomi / F.I.Sh. *" value={form.name} onChange={set('name')} autoFocus /></div>
+      <form className="grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+        <div className="md:col-span-2"><Input label="Nomi / F.I.Sh. *" value={form.name} onChange={set('name')} autoFocus error={errors.name} /></div>
         <Select label="Turi" value={form.type} onChange={set('type')} options={options(CLIENT_TYPE_LABELS)} />
         <Select label="Qayerdan keldi" value={form.source} onChange={set('source')} options={options(SOURCE_LABELS)} />
-        <Input label="Telefon(lar) * — vergul bilan" value={form.phones} onChange={set('phones')} placeholder="90 123 45 67, 91 ..." inputMode="tel" />
+        <Input label="Telefon(lar) * — vergul bilan" value={form.phones} onChange={set('phones')} placeholder="90 123 45 67, 91 ..." inputMode="tel" error={errors.phones} />
         <Input label="Telegram" value={form.telegram} onChange={set('telegram')} placeholder="@username" />
         {isOrg && <Input label="Mas'ul shaxs" value={form.contactPerson} onChange={set('contactPerson')} />}
-        {isOrg && <Input label="STIR (INN)" value={form.inn} onChange={set('inn')} inputMode="numeric" maxLength={14} />}
+        {isOrg && <Input label="STIR (INN)" value={form.inn} onChange={set('inn')} inputMode="numeric" maxLength={14} error={errors.inn} />}
         <div className="md:col-span-2"><Input label="Manzil" value={form.address} onChange={set('address')} /></div>
         {isOrg && <div className="md:col-span-2"><Textarea label="Bank rekvizitlari" value={form.bankDetails} onChange={set('bankDetails')} rows={2} /></div>}
         <div className="md:col-span-2"><Textarea label="Izoh" value={form.notes} onChange={set('notes')} rows={2} /></div>

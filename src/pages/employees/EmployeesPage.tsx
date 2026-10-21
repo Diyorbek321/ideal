@@ -93,6 +93,12 @@ function PayrollRow({ e }: { e: PayrollEntry }) {
           </button>
         </td>
         <td className="px-4 py-3 font-medium">{formatCurrency(e.baseAmount)}</td>
+        <td className="whitespace-nowrap px-4 py-3" title="Reja fondidan ulush + o'z vaqtida topshirilgan buyurtmalar">
+          <p className="font-medium">{formatCurrency(e.planBonus + e.onTimeBonus)}</p>
+          {(e.planBonus > 0 || e.onTimeBonus > 0) && (
+            <p className="text-[11px] text-gray-500">reja {formatCurrency(e.planBonus)} · vaqtida {e.kpiDetails?.onTimeOrders?.length ?? 0} ta</p>
+          )}
+        </td>
         <td className="px-4 py-3">{field('bonus')}</td>
         <td className="px-4 py-3">{field('fine')}</td>
         <td className="px-4 py-3">{field('advance')}</td>
@@ -108,7 +114,7 @@ function PayrollRow({ e }: { e: PayrollEntry }) {
       </tr>
       {open && e.details.length > 0 && (
         <tr className="bg-gray-50/50">
-          <td colSpan={7} className="px-4 py-2 text-xs text-gray-600">
+          <td colSpan={8} className="px-4 py-2 text-xs text-gray-600">
             {e.details.map((d) => `${d.orderNumber}: ${d.areaM2} m² = ${formatCurrency(d.amount)}`).join(' · ')}
           </td>
         </tr>
@@ -193,7 +199,7 @@ export default function EmployeesPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-gray-500">
-                  <th className="px-4 py-2">Xodim</th><th className="px-4 py-2">Asosiy</th><th className="px-4 py-2">Bonus</th>
+                  <th className="px-4 py-2">Xodim</th><th className="px-4 py-2">Asosiy</th><th className="px-4 py-2">KPI</th><th className="px-4 py-2">Qo'shimcha bonus</th>
                   <th className="px-4 py-2">Jarima</th><th className="px-4 py-2">Avans</th><th className="px-4 py-2">Jami</th><th className="px-4 py-2" />
                 </tr>
               </thead>

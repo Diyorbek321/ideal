@@ -1,6 +1,6 @@
 import type {
   ClientType, DesignStatus, EquipmentStatus, EquipmentType, InstallationStatus, InstallProblemType, MaterialUnit,
-  OrderSource, OrderStatus, PaymentKind, PaymentMethod, PriceKind, PriceUnit, SmsEvent, SmsStatus, TaskStatus, UserRole,
+  OrderSource, OrderStatus, PaymentKind, PaymentMethod, PriceKind, PriceUnit, SmsEvent, SmsStatus, TaskStatus, UserRole, LeadStatus,
 } from '@/types';
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -29,6 +29,7 @@ export const SOURCE_LABELS: Record<OrderSource, string> = {
   TELEGRAM: 'Telegram',
   INSTAGRAM: 'Instagram',
   TENDER: 'Tender',
+  WEBSITE: 'Sayt',
 };
 
 export const CLIENT_TYPE_LABELS: Record<ClientType, string> = {
@@ -102,6 +103,7 @@ export const INSTALL_STATUS_LABELS: Record<InstallationStatus, string> = {
   IN_PROGRESS: 'Jarayonda',
   DONE: 'Bajarildi',
   PROBLEM: 'Muammo',
+  CANCELLED: 'Bekor qilindi',
 };
 
 export const PROBLEM_LABELS: Record<InstallProblemType, string> = {
@@ -127,6 +129,13 @@ export const SMS_EVENT_LABELS: Record<SmsEvent, string> = {
 
 export const SMS_STATUS_LABELS: Record<SmsStatus, string> = {
   QUEUED: 'Navbatda', SENT: 'Yuborildi', FAILED: 'Xato', SKIPPED: 'O\'tkazildi',
+};
+
+export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  NEW: 'Yangi',
+  CONTACTED: 'Bog\'lanildi',
+  CONVERTED: 'Mijozga aylandi',
+  REJECTED: 'Rad etildi',
 };
 
 export const options = <K extends string>(labels: Record<K, string>) =>

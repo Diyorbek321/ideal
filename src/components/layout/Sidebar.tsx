@@ -4,11 +4,13 @@ import { useAuth, useUser } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { Logo } from './Logo';
 import { navForRole } from './navigation';
+import { useNavBadge } from './useNavBadge';
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const user = useUser();
   const { logout } = useAuth();
   const groups = navForRole(user.role);
+  const badgeOf = useNavBadge();
 
   return (
     <>
@@ -50,6 +52,9 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                       <>
                         <item.icon className={cn('h-[18px] w-[18px] shrink-0', isActive ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-700')} />
                         <span className="truncate">{item.label}</span>
+                        {badgeOf(item) > 0 && (
+                          <span className="ml-auto rounded-full bg-red-600 px-1.5 text-[11px] font-bold leading-5 text-white">{badgeOf(item)}</span>
+                        )}
                       </>
                     )}
                   </NavLink>

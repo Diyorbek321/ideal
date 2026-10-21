@@ -16,7 +16,7 @@ export interface User {
 }
 
 export type ClientType = 'BUDGET' | 'MILITARY' | 'SCHOOL' | 'COMPANY' | 'INDIVIDUAL';
-export type OrderSource = 'WALK_IN' | 'TELEGRAM' | 'INSTAGRAM' | 'TENDER';
+export type OrderSource = 'WALK_IN' | 'TELEGRAM' | 'INSTAGRAM' | 'TENDER' | 'WEBSITE';
 
 export interface Client {
   id: string;
@@ -219,7 +219,7 @@ export interface Equipment {
   openTasks: number;
 }
 
-export type InstallationStatus = 'PLANNED' | 'ON_THE_WAY' | 'IN_PROGRESS' | 'DONE' | 'PROBLEM';
+export type InstallationStatus = 'PLANNED' | 'ON_THE_WAY' | 'IN_PROGRESS' | 'DONE' | 'PROBLEM' | 'CANCELLED';
 export type InstallProblemType =
   | 'WRONG_SIZE' | 'WALL_UNSUITABLE' | 'MISSING_PART' | 'WRONG_ADDRESS' | 'CLIENT_ABSENT' | 'OTHER';
 
@@ -346,6 +346,9 @@ export interface PayrollEntry {
   baseAmount: number;
   m2Total: number;
   bonus: number;
+  planBonus: number;
+  onTimeBonus: number;
+  kpiDetails: { plan?: number; closedCount?: number; overPlan?: number; fund?: number; onTimeOrders?: KpiOrderRef[] };
   fine: number;
   advance: number;
   total: number;
@@ -424,6 +427,9 @@ export interface CompanySettings {
   installationCapacity: number;
   smsEnabled: boolean;
   smsEvents: Partial<Record<SmsEvent, boolean>>;
+  kpiMonthlyPlan: number;
+  kpiOverPlanBonus: number;
+  kpiOnTimeBonus: number;
 }
 
 export interface Dashboard {
@@ -537,11 +543,13 @@ export interface TrackInfo {
   company: { name: string; phone: string | null; logoUrl: string | null } | null;
 }
 
-export type NotificationKind = 'NEW_ORDER' | 'ASSIGNED' | 'APPROVED' | 'CHANGES_REQUESTED' | 'READY';
+export type NotificationKind = 'NEW_ORDER' | 'ASSIGNED' | 'APPROVED' | 'CHANGES_REQUESTED' | 'READY' | 'NEW_LEAD';
 
 export interface AppNotification {
   id: string;
+  /** NEW_LEAD uchun bo'sh */
   orderId: string;
+  leadId?: string;
   orderNumber: string;
   clientName: string;
   kind: NotificationKind;
@@ -569,4 +577,52 @@ export interface ClientImportResult {
   committed: boolean;
   summary: { total: number; toCreate: number; existing: number; errors: number; debtRows: number; debtTotal: number };
   rows: ClientImportRow[];
+}
+
+// ───────────── KPI ─────────────
+
+export interface KpiOrderRef { orderId: string; orderNumber: string }
+
+export interface KpiSummary {
+  period: string;
+  plan: number;
+  closedCount: number;
+  overPlan: number;
+  fund: number;
+  planShare: number;
+  onTimeCount: number;
+  progress: number;
+}
+
+export interface MyKpi extends KpiSummary {
+  eligible: boolean;
+  planBonus: number;
+  onTimeBonus: number;
+  onTimeOrders: KpiOrderRef[];
+  total: number;
+}
+
+export interface TeamKpi extends KpiSummary {
+  users: Array<UserRef & { role: UserRole; planBonus: number; onTimeBonus: number; onTimeOrders: KpiOrderRef[]; total: number }>;
+}
+
+// ───────────── Saytdan arizalar ─────────────
+
+export type LeadStatus = 'NEW' | 'CONTACTED' | 'CONVERTED' | 'REJECTED';
+
+export interface Lead {
+  id: string;
+  name: string;
+  phone: string;
+  service: string | null;
+  message: string | null;
+  details: string | null;
+  source: string;
+  status: LeadStatus;
+  note: string | null;
+  assignedTo: UserRef | null;
+  client: { id: string; name: string } | null;
+  contactedAt: string | null;
+  createdAt: string;
+  existingClient?: { id: string; name: string } | null;
 }

@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCircle2, ClipboardPlus, PackageCheck, PencilLine, UserCheck, Volume2, VolumeX } from 'lucide-react';
+import { Bell, CheckCircle2, ClipboardPlus, Globe, PackageCheck, PencilLine, UserCheck, Volume2, VolumeX } from 'lucide-react';
 import { notificationsApi } from '@/api';
 import { useToast } from '@/components/ui/Toast';
 import { useUser } from '@/lib/auth';
-import { announce, notificationTitle, seenStore, showSystemNotification, voiceStore } from '@/lib/notify';
+import { announce, notificationLink, notificationTitle, seenStore, showSystemNotification, voiceStore } from '@/lib/notify';
 import { cn, formatDateTime } from '@/lib/utils';
 import type { AppNotification } from '@/types';
 
@@ -17,6 +17,7 @@ const ICONS = {
   APPROVED: { icon: CheckCircle2, cls: 'bg-emerald-50 text-emerald-600' },
   CHANGES_REQUESTED: { icon: PencilLine, cls: 'bg-amber-50 text-amber-600' },
   READY: { icon: PackageCheck, cls: 'bg-brand-50 text-brand-600' },
+  NEW_LEAD: { icon: Globe, cls: 'bg-sky-50 text-sky-700' },
 } as const;
 
 // Yangi buyurtma, tayinlash, mijoz qarori, "tayyor": 30 soniyada tekshiriladi, yangisida o'zbekcha ovozli xabar
@@ -60,6 +61,7 @@ export default function NotificationBell() {
     void queryClient.invalidateQueries({ queryKey: ['orders'] });
     void queryClient.invalidateQueries({ queryKey: ['order'] });
     void queryClient.invalidateQueries({ queryKey: ['design-tasks'] });
+    void queryClient.invalidateQueries({ queryKey: ['leads'] });
   }, [data, isFetched, toast, queryClient]);
 
   React.useEffect(() => {
@@ -94,7 +96,7 @@ export default function NotificationBell() {
 
   const go = (n: AppNotification) => {
     setOpen(false);
-    navigate(`/orders/${n.orderId}`);
+    navigate(notificationLink(n));
   };
 
   return (
