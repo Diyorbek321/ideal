@@ -5,7 +5,7 @@ import type {
   PriceResult, ProductType, PublicApproval, QueueTask, ReportSummary, ShareInfo, SmsMessage, SmsStatusInfo, StockMovement,
   AppNotification, ClientImportResult, TrackInfo, User, MyKpi, TeamKpi, Lead, LeadStatus, ClientType,
   FinanceAnalytics, ClientsAnalytics, InventoryAnalytics, OverdueReport, MyOverdue, AttendanceMonth, AttendanceRecord,
-  Feedback, FeedbackInput, FeedbackStats,
+  Feedback, FeedbackInput, FeedbackStats, AdScreen, AdScreensOverview, AdCampaign, AdCampaignView, AdOccupancy,
 } from '@/types';
 import { api } from './client';
 
@@ -296,4 +296,36 @@ export const feedbackApi = {
   list: (q: { from?: string; to?: string; maxRating?: number; page?: number; limit?: number } = {}) =>
     api.page<{ items: Feedback[]; stats: FeedbackStats }>('/feedback', q),
   createForOrder: (orderId: string, body: FeedbackInput) => api.post<Feedback>(`/feedback/orders/${orderId}`, body),
+};
+
+export type AdScreenInput = Omit<AdScreen, 'id' | 'usedToday' | 'freeToday' | 'freeNext30'>;
+
+export interface AdCampaignInput {
+  screenId: string;
+  clientId: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  slots: number;
+  pricePerDay?: number;
+  discount?: number;
+  status?: 'BRON' | 'TASDIQLANDI';
+  creativeUrl?: string | null;
+  notes?: string | null;
+}
+
+export const adScreensApi = {
+  overview: () => api.get<AdScreensOverview>('/ad-screens'),
+  create: (body: AdScreenInput) => api.post<AdScreen>('/ad-screens', body),
+  update: (id: string, body: Partial<AdScreenInput>) => api.patch<AdScreen>(`/ad-screens/${id}`, body),
+  remove: (id: string) => api.del(`/ad-screens/${id}`),
+  occupancy: (id: string, q: { from?: string; days?: number } = {}) => api.get<AdOccupancy>(`/ad-screens/${id}/occupancy`, q),
+  campaigns: (q: { view?: AdCampaignView; screenId?: string; clientId?: string; search?: string; page?: number; limit?: number } = {}) =>
+    api.page<AdCampaign[]>('/ad-screens/campaigns', q),
+  campaign: (id: string) => api.get<AdCampaign>(`/ad-screens/campaigns/${id}`),
+  createCampaign: (body: AdCampaignInput) => api.post<AdCampaign>('/ad-screens/campaigns', body),
+  updateCampaign: (id: string, body: Partial<Omit<AdCampaignInput, 'screenId' | 'clientId' | 'status'>> & { status?: AdCampaign['status'] }) =>
+    api.patch<AdCampaign>(`/ad-screens/campaigns/${id}`, body),
+  pay: (id: string, body: { amount: number; method: PaymentMethod; note?: string }) =>
+    api.post<Payment>(`/ad-screens/campaigns/${id}/payments`, body),
 };

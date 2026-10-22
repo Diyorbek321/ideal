@@ -1,6 +1,6 @@
 import type {
   ClientType, DesignStatus, EquipmentStatus, EquipmentType, InstallationStatus, InstallProblemType, MaterialUnit,
-  OrderSource, OrderStatus, PaymentKind, PaymentMethod, PriceKind, PriceUnit, SmsEvent, SmsStatus, TaskStatus, UserRole, LeadStatus, HeardFrom, BonusUnit, OverdueKind,
+  OrderSource, OrderStatus, PaymentKind, PaymentMethod, PriceKind, PriceUnit, SmsEvent, SmsStatus, TaskStatus, UserRole, LeadStatus, HeardFrom, BonusUnit, OverdueKind, AdCampaignPhase,
 } from '@/types';
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -154,6 +154,14 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   CONTACTED: 'Bog\'lanildi',
   CONVERTED: 'Mijozga aylandi',
   REJECTED: 'Rad etildi',
+};
+
+export const AD_PHASE_LABELS: Record<AdCampaignPhase, string> = {
+  BRON: 'Bron',
+  KUTILMOQDA: 'Kutilmoqda',
+  EFIRDA: 'Efirda',
+  TUGADI: 'Tugadi',
+  BEKOR: 'Bekor',
 };
 
 export const options = <K extends string>(labels: Record<K, string>) =>

@@ -126,10 +126,10 @@ export default function FinancePage() {
           {recent.data?.data.items.length ? (
             <div className="space-y-3">
               {recent.data.data.items.map((p) => (
-                <Link key={p.id} to={`/orders/${p.orderId}`} className="flex items-center justify-between rounded-xl border border-gray-50 p-3 hover:bg-gray-50">
+                <Link key={p.id} to={p.orderId ? `/orders/${p.orderId}` : `/ad-screens?tab=campaigns&open=${p.campaignId}`} className="flex items-center justify-between rounded-xl border border-gray-50 p-3 hover:bg-gray-50">
                   <div>
                     <p className="text-sm font-bold text-gray-900">{formatCurrency(p.amount)}</p>
-                    <p className="text-[11px] text-gray-500">{p.client?.name} · {p.order?.number}</p>
+                    <p className="text-[11px] text-gray-500">{p.client?.name} · {p.order?.number ?? p.campaign?.number}</p>
                   </div>
                   <span className="text-[11px] uppercase text-gray-400">{METHOD_LABELS[p.method]}<br />{formatDate(p.createdAt)}</span>
                 </Link>

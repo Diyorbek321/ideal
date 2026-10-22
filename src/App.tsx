@@ -27,6 +27,7 @@ import TrackPage from './pages/public/TrackPage';
 import ClientsAnalyticsPage from './pages/analytics/ClientsAnalyticsPage';
 import AttendancePage from './pages/analytics/AttendancePage';
 import OverduePage from './pages/analytics/OverduePage';
+import AdScreensPage from './pages/adscreens/AdScreensPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +66,7 @@ export default function App() {
                 <Route path="design" element={<RequireRole roles={[...staff, 'DESIGNER']}><DesignPage /></RequireRole>} />
                 <Route path="production" element={<RequireRole roles={[...staff, 'PRINTER']}><ProductionPage /></RequireRole>} />
                 <Route path="installation" element={<RequireRole roles={[...staff, 'INSTALLER']}><InstallationPage /></RequireRole>} />
+                <Route path="ad-screens" element={<RequireRole roles={[...staff]}><AdScreensPage /></RequireRole>} />
                 <Route path="clients" element={<RequireRole roles={[...staff]}><ClientsPage /></RequireRole>} />
                 <Route path="leads" element={<RequireRole roles={[...staff]}><LeadsPage /></RequireRole>} />
                 <Route path="kpi" element={<KpiPage />} />

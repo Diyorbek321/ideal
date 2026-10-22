@@ -313,14 +313,16 @@ export type PaymentKind = 'ADVANCE' | 'PARTIAL' | 'FULL';
 
 export interface Payment {
   id: string;
-  orderId: string;
+  orderId: string | null;
+  campaignId?: string | null;
   clientId: string;
   amount: number;
   method: PaymentMethod;
   kind: PaymentKind;
   note: string | null;
   createdAt: string;
-  order?: { id: string; number: string };
+  order?: { id: string; number: string } | null;
+  campaign?: { id: string; number: string; title: string } | null;
   client?: { id: string; name: string };
   user?: UserRef;
 }
@@ -809,4 +811,70 @@ export interface AttendanceMonth {
   workDays: string[];
   users: Array<UserRef & { role: UserRole; present: number; late: number; lateMinutes: number; absent: number }>;
   records: AttendanceRecord[];
+}
+
+// ───────────── LED ekranlar (tashqi reklama) ─────────────
+
+export interface AdScreen {
+  id: string;
+  name: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+  widthM: number;
+  heightM: number;
+  resolution: string | null;
+  photoUrl: string | null;
+  slotSeconds: number;
+  maxSlots: number;
+  workFrom: string;
+  workTo: string;
+  pricePerDay: number;
+  isActive: boolean;
+  showOnWebsite: boolean;
+  notes: string | null;
+  usedToday: number;
+  freeToday: number;
+  freeNext30: number;
+}
+
+export interface AdScreensOverview {
+  items: AdScreen[];
+  summary: { screens: number; activeCampaigns: number; occupancyPct: number; debt: number };
+}
+
+export type AdCampaignStatus = 'BRON' | 'TASDIQLANDI' | 'BEKOR';
+export type AdCampaignPhase = 'BRON' | 'KUTILMOQDA' | 'EFIRDA' | 'TUGADI' | 'BEKOR';
+export type AdCampaignView = 'active' | 'upcoming' | 'finished' | 'booked' | 'cancelled' | 'debt' | 'all';
+
+export interface AdCampaign {
+  id: string;
+  number: string;
+  screenId: string;
+  clientId: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  slots: number;
+  pricePerDay: number;
+  discount: number;
+  totalAmount: number;
+  paidAmount: number;
+  remaining: number;
+  status: AdCampaignStatus;
+  phase: AdCampaignPhase;
+  days: number;
+  daysLeft: number;
+  creativeUrl: string | null;
+  notes: string | null;
+  createdAt: string;
+  screen: { id: string; name: string; address: string; maxSlots: number; slotSeconds: number };
+  client: { id: string; name: string; phones: string[] };
+  manager: UserRef;
+  payments?: Array<Payment & { user?: UserRef }>;
+}
+
+export interface AdOccupancy {
+  maxSlots: number;
+  days: Array<{ day: string; used: number; free: number }>;
 }
