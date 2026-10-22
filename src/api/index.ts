@@ -4,6 +4,8 @@ import type {
   OrderEvent, OrderSource, OrderStatus, Payment, PaymentKind, PaymentMethod, PayrollEntry, PriceListItem,
   PriceResult, ProductType, PublicApproval, QueueTask, ReportSummary, ShareInfo, SmsMessage, SmsStatusInfo, StockMovement,
   AppNotification, ClientImportResult, TrackInfo, User, MyKpi, TeamKpi, Lead, LeadStatus, ClientType,
+  FinanceAnalytics, ClientsAnalytics, InventoryAnalytics, OverdueReport, MyOverdue, AttendanceMonth, AttendanceRecord,
+  Feedback, FeedbackInput, FeedbackStats,
 } from '@/types';
 import { api } from './client';
 
@@ -124,6 +126,7 @@ export const publicApi = {
     api.post<{ status: string }>(`/public/approve/${token}`, { decision, comment, markupUrl }),
   track: (token: string) => api.get<TrackInfo>(`/public/track/${token}`),
   uploadMarkup: (token: string, file: File) => api.upload<{ url: string }>(`/public/approve/${token}/markup`, file),
+  feedback: (token: string, body: FeedbackInput) => api.post<{ rating: number; createdAt: string }>(`/public/track/${token}/feedback`, body),
 };
 
 export const productionApi = {
@@ -197,10 +200,25 @@ export const paymentsApi = {
     api.post<{ message: string; phones: string[]; telegram: string | null; smsStatus: string | null; smsError: string | null }>(`/payments/debts/${orderId}/remind`),
 };
 
+export interface ExpenseInput {
+  category: string;
+  amount: number;
+  method: PaymentMethod;
+  note?: string | null;
+  date?: string;
+}
+
 export const expensesApi = {
-  list: (q: { from?: string; to?: string; page?: number; limit?: number } = {}) =>
-    api.page<{ items: Expense[]; byCategory: Array<{ category: string; amount: number }> }>('/expenses', q),
-  create: (body: { category: string; amount: number; note?: string; date?: string }) => api.post<Expense>('/expenses', body),
+  list: (q: { from?: string; to?: string; category?: string; method?: PaymentMethod; q?: string; page?: number; limit?: number } = {}) =>
+    api.page<{
+      items: Expense[];
+      totalAmount: number;
+      byCategory: Array<{ category: string; amount: number }>;
+      byMethod: Array<{ method: PaymentMethod; amount: number }>;
+    }>('/expenses', q),
+  categories: () => api.get<string[]>('/expenses/categories'),
+  create: (body: ExpenseInput) => api.post<Expense>('/expenses', body),
+  update: (id: string, body: Partial<ExpenseInput>) => api.patch<Expense>(`/expenses/${id}`, body),
   remove: (id: string) => api.del(`/expenses/${id}`),
 };
 
@@ -257,4 +275,25 @@ export const leadsApi = {
     api.patch<Lead>(`/leads/${id}`, body),
   convert: (id: string, body: { type: ClientType; name?: string }) =>
     api.post<{ lead: Lead; clientId: string; clientCreated: boolean }>(`/leads/${id}/convert`, body),
+};
+
+export const analyticsApi = {
+  finance: (period: string) => api.get<FinanceAnalytics>('/analytics/finance', { period }),
+  clients: (period: string) => api.get<ClientsAnalytics>('/analytics/clients', { period }),
+  inventory: (period: string) => api.get<InventoryAnalytics>('/analytics/inventory', { period }),
+  overdue: (period: string) => api.get<OverdueReport>('/analytics/overdue', { period }),
+  myOverdue: (period: string) => api.get<MyOverdue>('/analytics/overdue/me', { period }),
+};
+
+export const attendanceApi = {
+  today: () => api.get<{ record: AttendanceRecord | null; workStartTime: string; geofence: boolean }>('/attendance/me/today'),
+  checkIn: (coords?: { lat: number; lng: number }) => api.post<AttendanceRecord>('/attendance/check-in', coords ?? {}),
+  checkOut: () => api.post<AttendanceRecord>('/attendance/check-out'),
+  month: (period: string) => api.get<AttendanceMonth>('/attendance', { period }),
+};
+
+export const feedbackApi = {
+  list: (q: { from?: string; to?: string; maxRating?: number; page?: number; limit?: number } = {}) =>
+    api.page<{ items: Feedback[]; stats: FeedbackStats }>('/feedback', q),
+  createForOrder: (orderId: string, body: FeedbackInput) => api.post<Feedback>(`/feedback/orders/${orderId}`, body),
 };

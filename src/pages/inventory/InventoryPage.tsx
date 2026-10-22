@@ -14,6 +14,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
+import { Tabs } from '@/components/reports/Tabs';
+import { InventoryAnalytics } from './InventoryAnalytics';
 
 type Op = { kind: 'in' | 'out'; material?: Material } | { kind: 'new' } | { kind: 'count' } | { kind: 'history'; material: Material };
 const dec = (s: string) => parseDecimal(s) ?? NaN;
@@ -139,6 +141,12 @@ function OpModal({ op, materials, onClose }: { op: Op | null; materials: Materia
 }
 
 export default function InventoryPage() {
+  const [tab, setTab] = React.useState<'stock' | 'analytics'>('stock');
+  const tabs = <Tabs value={tab} onChange={setTab} items={[{ value: 'stock', label: 'Qoldiqlar' }, { value: 'analytics', label: 'Oylik tahlil' }]} />;
+  return tab === 'analytics' ? <InventoryAnalytics tabs={tabs} /> : <StockView tabs={tabs} />;
+}
+
+function StockView({ tabs }: { tabs: React.ReactNode }) {
   const user = useUser();
   const finance = isFinance(user.role);
   const [search, setSearch] = React.useState('');
@@ -159,6 +167,7 @@ export default function InventoryPage() {
         subtitle="Qoldiq ishlab chiqarishda avtomatik kamayadi"
         actions={(
           <>
+            {tabs}
             <Button variant="outline" onClick={() => setOp({ kind: 'in' })}><ArrowDownLeft className="h-4 w-4" />Kirim</Button>
             <Button variant="outline" onClick={() => setOp({ kind: 'out' })}><ArrowUpRight className="h-4 w-4" />Chiqim</Button>
             {finance && <Button variant="outline" onClick={() => setOp({ kind: 'count' })}><ClipboardCheck className="h-4 w-4" />Inventarizatsiya</Button>}

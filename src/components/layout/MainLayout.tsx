@@ -5,6 +5,7 @@ import BottomNav from './BottomNav';
 import { Logo } from './Logo';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import { CheckInBar } from '@/components/attendance/CheckInBar';
 
 export default function MainLayout() {
   const { user, loading, reconnecting } = useAuth();
@@ -28,6 +29,7 @@ export default function MainLayout() {
         <Topbar onMenu={() => setMenuOpen(true)} />
         <main className="flex-1 overflow-y-auto px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8">
           <div className="mx-auto w-full max-w-[1400px]">
+            <CheckInBar />
             <Outlet />
           </div>
         </main>

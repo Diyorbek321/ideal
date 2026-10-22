@@ -1,7 +1,9 @@
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Calendar, Check, Circle, Phone, Truck } from 'lucide-react';
-import { publicApi } from '@/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Calendar, Check, Circle, Heart, Phone, Truck } from 'lucide-react';
+import { errorMessage, publicApi } from '@/api';
+import { FeedbackForm } from '@/components/feedback/FeedbackForm';
+import { Stars } from '@/components/feedback/Stars';
 import type { OrderStatus, TrackInfo } from '@/types';
 import { STATUS_LABELS } from '@/lib/labels';
 import { cn, fileUrl, formatCurrency, formatDate, formatDateTime, formatPhone } from '@/lib/utils';
@@ -27,6 +29,32 @@ const CLIENT_TEXT: Partial<Record<OrderStatus, string>> = {
   YAKUNLANDI: 'Topshirildi',
   BEKOR_QILINDI: 'Bekor qilingan',
 };
+
+function FeedbackCard({ token, t }: { token: string; t: TrackInfo }) {
+  const qc = useQueryClient();
+  const send = useMutation({
+    mutationFn: (body: Parameters<typeof publicApi.feedback>[1]) => publicApi.feedback(token, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['track', token] }),
+  });
+  if (t.feedback) {
+    return (
+      <Card className="p-6 text-center">
+        <Heart className="mx-auto h-8 w-8 fill-red-500 text-red-500" />
+        <p className="mt-2 font-bold text-gray-900">Bahoingiz uchun rahmat!</p>
+        <div className="mt-1"><Stars value={t.feedback.rating} size="md" /></div>
+      </Card>
+    );
+  }
+  if (!t.canFeedback) return null;
+  return (
+    <Card className="p-6">
+      <h2 className="text-lg font-black text-gray-900">Xizmatimizni baholang</h2>
+      <p className="mb-5 mt-1 text-sm text-gray-500">1 daqiqa vaqtingizni oladi — fikringiz biz uchun juda muhim</p>
+      <FeedbackForm isLoading={send.isPending} onSubmit={(b) => send.mutate(b)} />
+      {send.error && <p className="mt-3 text-sm text-red-600">{errorMessage(send.error)}</p>}
+    </Card>
+  );
+}
 
 export default function TrackPage() {
   const { token = '' } = useParams<{ token: string }>();
@@ -64,6 +92,8 @@ export default function TrackPage() {
             </p>
           )}
         </Card>
+
+        <FeedbackCard token={token} t={t} />
 
         {t.status !== 'BEKOR_QILINDI' && (
           <Card className="p-6">

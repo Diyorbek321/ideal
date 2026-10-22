@@ -16,7 +16,7 @@ import { Empty, Loading } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
 
 const AUTO_EVENTS: SmsEvent[] = [
-  'ORDER_CREATED', 'DESIGN_SENT', 'DESIGN_REMINDER', 'ORDER_READY', 'INSTALLATION_SCHEDULED', 'PAYMENT_RECEIVED', 'DEBT_REMINDER',
+  'ORDER_CREATED', 'DESIGN_SENT', 'DESIGN_REMINDER', 'ORDER_READY', 'INSTALLATION_SCHEDULED', 'PAYMENT_RECEIVED', 'DEBT_REMINDER', 'FEEDBACK_REQUEST',
 ];
 
 export function SmsSettings() {

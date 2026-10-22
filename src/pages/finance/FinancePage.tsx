@@ -6,19 +6,20 @@ import { expensesApi, paymentsApi, reportsApi } from '@/api';
 import type { PaymentMethod } from '@/types';
 import { CLIENT_TYPE_LABELS, METHOD_LABELS } from '@/lib/labels';
 import { useUser } from '@/lib/auth';
-import { cn, copyText, formatCurrency, formatDate, parseMoney, telegramShareUrl } from '@/lib/utils';
+import { cn, copyText, formatCurrency, formatDate, telegramShareUrl } from '@/lib/utils';
 import { AccountingExportModal } from '@/components/finance/AccountingExportModal';
+import { ExpenseFormModal } from '@/components/finance/ExpenseFormModal';
+import { FinanceCharts } from '@/components/finance/FinanceCharts';
+import { MonthInput, periodLabel, usePdfExport } from '@/components/reports/ReportToolbar';
 import { Button } from '@/components/ui/Button';
 import { RevenueChart } from '@/components/finance/RevenueChart';
 import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
 
 const METHODS: PaymentMethod[] = ['CASH', 'CARD', 'TRANSFER', 'TENDER'];
 const METHOD_ICONS = { CASH: Banknote, CARD: CreditCard, TRANSFER: Landmark, TENDER: Landmark };
-const EXPENSE_CATEGORIES = ['Material xaridi', 'Ijara', 'Kommunal', 'Transport', 'Uskuna ta\'miri', 'Soliq', 'Boshqa'];
 
 function monthBounds(ym: string) {
   const [y, m] = ym.split('-').map(Number) as [number, number];
@@ -35,7 +36,7 @@ export default function FinancePage() {
   const [reminder, setReminder] = React.useState<{ message: string; phones: string[]; smsStatus: string | null; smsError: string | null } | null>(null);
   const [expenseOpen, setExpenseOpen] = React.useState(false);
   const [exportOpen, setExportOpen] = React.useState(false);
-  const [exp, setExp] = React.useState({ category: EXPENSE_CATEGORIES[0]!, amount: '', note: '' });
+  const pdf = usePdfExport(`moliya_${month}`);
 
   const summary = useQuery({ queryKey: ['summary', month], queryFn: () => reportsApi.summary(range.from, range.to) });
   const debts = useQuery({ queryKey: ['debts'], queryFn: paymentsApi.debts });
@@ -49,15 +50,6 @@ export default function FinancePage() {
   });
 
   const remind = useMutation({ mutationFn: paymentsApi.remind, onSuccess: setReminder, onError: toast.error });
-  const addExpense = useMutation({
-    mutationFn: () => {
-      const sum = parseMoney(exp.amount);
-      if (!sum) return Promise.reject(new Error('Summani raqam bilan kiriting'));
-      return expensesApi.create({ category: exp.category.trim(), amount: sum, note: exp.note || undefined });
-    },
-    onSuccess: () => { toast.success('Xarajat qo\'shildi'); setExpenseOpen(false); qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['summary'] }); },
-    onError: toast.error,
-  });
   const delExpense = useMutation({
     mutationFn: expensesApi.remove,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['summary'] }); },
@@ -70,18 +62,19 @@ export default function FinancePage() {
   const chart = s.revenueByDay.map((r) => ({ day: `${r.day.slice(8, 10)}.${r.day.slice(5, 7)}`, amount: r.amount }));
 
   return (
-    <div className="space-y-8">
+    <div ref={pdf.ref} className="space-y-8 bg-gray-50">
       <PageHeader
         title="Moliya va to'lovlar"
-        subtitle="Tushum, xarajat va qarzlar"
+        subtitle={`Tushum, xarajat va qarzlar · ${periodLabel(month)}`}
         actions={(
-          <>
-            <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} className="h-10 rounded-md border border-gray-300 px-3 text-sm" aria-label="Oy" />
-            <Button variant="outline" onClick={() => { setExp({ category: EXPENSE_CATEGORIES[0]!, amount: '', note: '' }); setExpenseOpen(true); }}>
+          <div className="flex flex-wrap gap-2 sm:gap-3" data-pdf-hide>
+            <MonthInput value={month} onChange={setMonth} />
+            {pdf.button}
+            <Button variant="outline" onClick={() => setExpenseOpen(true)}>
               <Plus className="h-4 w-4" />Xarajat
             </Button>
             <Button variant="outline" onClick={() => setExportOpen(true)}><FileSpreadsheet className="h-4 w-4" />Buxgalter uchun Excel</Button>
-          </>
+          </div>
         )}
       />
 
@@ -119,6 +112,8 @@ export default function FinancePage() {
           );
         })}
       </div>
+
+      <FinanceCharts period={month} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
         <Card title="Kunlik tushum" className="lg:col-span-2">
@@ -176,7 +171,7 @@ export default function FinancePage() {
         )}
       </Card>
 
-      <Card title="Xarajatlar">
+      <Card title="Xarajatlar" actions={<Link to="/expenses" className="text-sm font-semibold text-gray-900 underline-offset-4 hover:underline">Hammasi →</Link>}>
         {expenses.data?.data.byCategory.length ? (
           <div className="mb-4 flex flex-wrap gap-3">
             {expenses.data.data.byCategory.map((c) => (
@@ -218,22 +213,7 @@ export default function FinancePage() {
         )}
       </Modal>
 
-      <Modal
-        open={expenseOpen}
-        onClose={() => setExpenseOpen(false)}
-        title="Yangi xarajat"
-        footer={<><Button variant="outline" onClick={() => setExpenseOpen(false)}>Bekor qilish</Button><Button isLoading={addExpense.isPending} onClick={() => addExpense.mutate()}>Saqlash</Button></>}
-      >
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-gray-700">Kategoriya</label>
-            <input list="exp-cats" value={exp.category} onChange={(e) => setExp({ ...exp, category: e.target.value })} className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm" />
-            <datalist id="exp-cats">{EXPENSE_CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
-          </div>
-          <Input label="Summa (so'm)" inputMode="numeric" value={exp.amount} onChange={(e) => setExp({ ...exp, amount: e.target.value })} autoFocus />
-          <Input label="Izoh" value={exp.note} onChange={(e) => setExp({ ...exp, note: e.target.value })} />
-        </div>
-      </Modal>
+      <ExpenseFormModal open={expenseOpen} onClose={() => setExpenseOpen(false)} />
       <AccountingExportModal open={exportOpen} onClose={() => setExportOpen(false)} month={month} />
     </div>
   );

@@ -11,9 +11,16 @@ export interface User {
   payType: PayType;
   salary: number | null;
   ratePerM2: number | null;
+  bonusUnit: BonusUnit;
+  bonusThreshold: number;
+  bonusRate: number;
+  bonusRateOver: number;
   isActive: boolean;
   createdAt: string;
 }
+
+/** Ish hajmi bonusi birligi: m² yoki buyurtma (o'rnatish) soni */
+export type BonusUnit = 'NONE' | 'M2' | 'ORDER';
 
 export type ClientType = 'BUDGET' | 'MILITARY' | 'SCHOOL' | 'COMPANY' | 'INDIVIDUAL';
 export type OrderSource = 'WALK_IN' | 'TELEGRAM' | 'INSTAGRAM' | 'TENDER' | 'WEBSITE';
@@ -147,6 +154,7 @@ export interface OrderDetail extends Omit<Order, 'client'> {
   payments?: Payment[];
   files: FileAsset[];
   allowedNextStatuses: OrderStatus[];
+  feedback: Omit<Feedback, 'client' | 'order'> | null;
 }
 
 export type DesignStatus = 'DRAFT' | 'SENT' | 'APPROVED' | 'CHANGES_REQUESTED' | 'SUPERSEDED';
@@ -334,6 +342,7 @@ export interface Expense {
   id: string;
   category: string;
   amount: number;
+  method: PaymentMethod;
   note: string | null;
   date: string;
   user?: UserRef;
@@ -353,9 +362,11 @@ export interface PayrollEntry {
   advance: number;
   total: number;
   details: Array<{ orderId: string; orderNumber: string; areaM2: number; amount: number }>;
+  workBonus: number;
+  workDetails: Partial<WorkBonusDetails>;
   isPaid: boolean;
   paidAt: string | null;
-  user: UserRef & { role: UserRole; payType: PayType };
+  user: UserRef & { role: UserRole; payType: PayType; bonusUnit: BonusUnit };
 }
 
 export type PriceKind = 'MATERIAL' | 'PRINT' | 'FINISHING' | 'DESIGN' | 'INSTALLATION' | 'OTHER';
@@ -430,6 +441,10 @@ export interface CompanySettings {
   kpiMonthlyPlan: number;
   kpiOverPlanBonus: number;
   kpiOnTimeBonus: number;
+  workStartTime: string;
+  officeLat: number | null;
+  officeLng: number | null;
+  officeRadiusM: number;
 }
 
 export interface Dashboard {
@@ -499,7 +514,7 @@ export interface PageMeta {
 
 export type SmsEvent =
   | 'ORDER_CREATED' | 'DESIGN_SENT' | 'DESIGN_REMINDER' | 'ORDER_READY' | 'INSTALLATION_SCHEDULED'
-  | 'PAYMENT_RECEIVED' | 'DEBT_REMINDER' | 'MANUAL' | 'TEST';
+  | 'PAYMENT_RECEIVED' | 'DEBT_REMINDER' | 'MANUAL' | 'TEST' | 'FEEDBACK_REQUEST';
 export type SmsStatus = 'QUEUED' | 'SENT' | 'FAILED' | 'SKIPPED';
 
 export interface SmsMessage {
@@ -540,6 +555,8 @@ export interface TrackInfo {
   remainingAmount: number;
   approvalUrl: string | null;
   installation: { scheduledAt: string; status: InstallationStatus } | null;
+  feedback: { rating: number; createdAt: string } | null;
+  canFeedback: boolean;
   company: { name: string; phone: string | null; logoUrl: string | null } | null;
 }
 
@@ -625,4 +642,171 @@ export interface Lead {
   contactedAt: string | null;
   createdAt: string;
   existingClient?: { id: string; name: string } | null;
+}
+
+// ───────────── Ish hajmi bonusi ─────────────
+
+export interface WorkBonusDetails {
+  unit: BonusUnit;
+  quantity: number;
+  threshold: number;
+  baseUnits: number;
+  overUnits: number;
+  rate: number;
+  rateOver: number;
+  amount: number;
+  items: Array<{ orderId: string; orderNumber: string; areaM2: number }>;
+}
+
+// ───────────── Tahlil (oylik) ─────────────
+
+export interface MonthPoint {
+  period: string;
+  revenue: number;
+  expenses: number;
+  profit: number;
+  orders: number;
+  newClients: number;
+  expenseRatio: number | null;
+}
+
+export interface FinanceAnalytics {
+  period: string;
+  current: MonthPoint;
+  previous: MonthPoint | null;
+  trend: MonthPoint[];
+  expensesByCategory: Array<{ category: string; amount: number; count: number; share: number; ofRevenue: number | null; prevAmount: number }>;
+  expensesByDay: Array<{ day: string; amount: number }>;
+}
+
+export type HeardFrom = 'INSTAGRAM' | 'TELEGRAM' | 'WEBSITE' | 'FRIENDS' | 'SIGNBOARD' | 'TENDER' | 'REPEAT' | 'OTHER';
+
+export interface FeedbackStats {
+  count: number;
+  avgRating: number | null;
+  avgQuality: number | null;
+  avgSpeed: number | null;
+  avgService: number | null;
+  recommendPercent: number | null;
+  distribution: Array<{ score: number; count: number }>;
+  heardFrom: Array<{ source: HeardFrom; count: number }>;
+}
+
+export interface Feedback {
+  id: string;
+  orderId: string;
+  rating: number;
+  quality: number | null;
+  speed: number | null;
+  service: number | null;
+  recommend: boolean | null;
+  heardFrom: HeardFrom | null;
+  comment: string | null;
+  byStaffId: string | null;
+  createdAt: string;
+  client: { id: string; name: string };
+  order: { id: string; number: string };
+}
+
+export interface FeedbackInput {
+  rating: number;
+  quality?: number;
+  speed?: number;
+  service?: number;
+  recommend?: boolean;
+  heardFrom?: HeardFrom;
+  comment?: string;
+}
+
+export interface Insight { tone: 'good' | 'warn' | 'info'; text: string }
+
+export interface ClientsAnalytics {
+  period: string;
+  newClients: number;
+  prevNewClients: number;
+  newClientsBySource: Array<{ source: OrderSource; count: number }>;
+  activeClients: number;
+  returningClients: number;
+  ordersCount: number;
+  ordersAmount: number;
+  avgCheck: number;
+  ordersBySource: Array<{ source: OrderSource; count: number; amount: number }>;
+  byClientType: Array<{ type: ClientType; count: number; amount: number }>;
+  leads: { total: number; converted: number };
+  completedOrders: number;
+  feedback: FeedbackStats;
+  trend: Array<{ period: string; newClients: number; orders: number; avgRating: number | null }>;
+  insights: Insight[];
+}
+
+export interface InventoryAnalytics {
+  period: string;
+  totals: { consumedCost: number; purchasedCost: number; wasteCost: number; lowStock: number };
+  materials: Array<{
+    id: string; name: string; category: string; unit: MaterialUnit; stock: number; minStock: number;
+    consumed: number; received: number; waste: number; wastePercent: number; consumedCost: number; purchasedCost: number;
+    daysLeft: number | null; isLow: boolean;
+  }>;
+  byCategory: Array<{ category: string; cost: number }>;
+  byDay: Array<{ day: string; cost: number }>;
+  trend: Array<{ period: string; consumedCost: number; purchasedCost: number }>;
+}
+
+export type OverdueKind = 'DEADLINE' | 'SLA' | 'INSTALLATION';
+
+export interface OverdueItem {
+  kind: OverdueKind;
+  orderId: string;
+  orderNumber: string;
+  clientName: string;
+  status: OrderStatus;
+  since: string;
+  hoursLate: number;
+  responsibleIds: string[];
+  responsible?: UserRef[];
+}
+
+export interface LateCompleted {
+  orderId: string;
+  orderNumber: string;
+  clientName: string;
+  deadline: string;
+  completedAt: string;
+  responsible?: UserRef[];
+}
+
+export interface OverdueReport {
+  period: string;
+  items: OverdueItem[];
+  lateCompleted: LateCompleted[];
+  completedCount: number;
+  lateCount: number;
+  users: Array<UserRef & { role: UserRole; open: number; lateDone: number; onTimeDone: number; onTimePercent: number | null }>;
+}
+
+export interface MyOverdue {
+  period: string;
+  items: OverdueItem[];
+  lateCompleted: LateCompleted[];
+  completedCount: number;
+}
+
+// ───────────── Davomat ─────────────
+
+export interface AttendanceRecord {
+  id: string;
+  userId: string;
+  day: string;
+  checkInAt: string;
+  checkOutAt: string | null;
+  lateMinutes: number;
+  distanceM: number | null;
+}
+
+export interface AttendanceMonth {
+  period: string;
+  workStartTime: string;
+  workDays: string[];
+  users: Array<UserRef & { role: UserRole; present: number; late: number; lateMinutes: number; absent: number }>;
+  records: AttendanceRecord[];
 }

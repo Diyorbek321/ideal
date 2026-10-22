@@ -1,6 +1,6 @@
 import type {
   ClientType, DesignStatus, EquipmentStatus, EquipmentType, InstallationStatus, InstallProblemType, MaterialUnit,
-  OrderSource, OrderStatus, PaymentKind, PaymentMethod, PriceKind, PriceUnit, SmsEvent, SmsStatus, TaskStatus, UserRole, LeadStatus,
+  OrderSource, OrderStatus, PaymentKind, PaymentMethod, PriceKind, PriceUnit, SmsEvent, SmsStatus, TaskStatus, UserRole, LeadStatus, HeardFrom, BonusUnit, OverdueKind,
 } from '@/types';
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -125,6 +125,24 @@ export const SMS_EVENT_LABELS: Record<SmsEvent, string> = {
   DEBT_REMINDER: 'Nasiya eslatmasi (haftada 1)',
   MANUAL: 'Qo\'lda yozilgan',
   TEST: 'Test',
+  FEEDBACK_REQUEST: 'Buyurtma yakunlandi — baholash so\'rovi',
+};
+
+export const HEARD_FROM_LABELS: Record<HeardFrom, string> = {
+  INSTAGRAM: 'Instagram', TELEGRAM: 'Telegram', WEBSITE: 'Sayt', FRIENDS: 'Tanishlar tavsiyasi',
+  SIGNBOARD: 'Reklama / peshlavha', TENDER: 'Tender', REPEAT: 'Avval ham buyurtma berganman', OTHER: 'Boshqa',
+};
+
+export const BONUS_UNIT_LABELS: Record<BonusUnit, string> = {
+  NONE: 'Bonussiz (faqat oylik)',
+  M2: 'Har kv.m uchun',
+  ORDER: 'Har buyurtma / o\'rnatish uchun',
+};
+
+export const OVERDUE_KIND_LABELS: Record<OverdueKind, string> = {
+  DEADLINE: 'Muddat o\'tdi',
+  SLA: 'Bosqichda uzoq turib qoldi',
+  INSTALLATION: 'O\'rnatish kuni o\'tdi',
 };
 
 export const SMS_STATUS_LABELS: Record<SmsStatus, string> = {

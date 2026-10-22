@@ -14,6 +14,7 @@ import KpiPage from './pages/kpi/KpiPage';
 import ClientDetailPage from './pages/clients/ClientDetailPage';
 import InventoryPage from './pages/inventory/InventoryPage';
 import FinancePage from './pages/finance/FinancePage';
+import ExpensesPage from './pages/expenses/ExpensesPage';
 import DesignPage from './pages/design/DesignPage';
 import ProductionPage from './pages/production/ProductionPage';
 import InstallationPage from './pages/installation/InstallationPage';
@@ -23,6 +24,9 @@ import DocumentsPage from './pages/documents/DocumentsPage';
 import SettingsPage from './pages/SettingsPage';
 import PublicApprovalPage from './pages/public/PublicApprovalPage';
 import TrackPage from './pages/public/TrackPage';
+import ClientsAnalyticsPage from './pages/analytics/ClientsAnalyticsPage';
+import AttendancePage from './pages/analytics/AttendancePage';
+import OverduePage from './pages/analytics/OverduePage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,6 +71,10 @@ export default function App() {
                 <Route path="clients/:id" element={<RequireRole roles={[...staff]}><ClientDetailPage /></RequireRole>} />
                 <Route path="inventory" element={<RequireRole roles={[...staff, 'PRINTER']}><InventoryPage /></RequireRole>} />
                 <Route path="finance" element={<RequireRole roles={[...staff]}><FinancePage /></RequireRole>} />
+                <Route path="analytics/clients" element={<RequireRole roles={[...staff]}><ClientsAnalyticsPage /></RequireRole>} />
+                <Route path="attendance" element={<RequireRole roles={[...staff]}><AttendancePage /></RequireRole>} />
+                <Route path="overdue" element={<RequireRole roles={[...staff]}><OverduePage /></RequireRole>} />
+                <Route path="expenses" element={<RequireRole roles={[...staff]}><ExpensesPage /></RequireRole>} />
                 <Route path="employees" element={<RequireRole roles={['ADMIN']}><EmployeesPage /></RequireRole>} />
                 <Route path="documents" element={<RequireRole roles={[...staff]}><DocumentsPage /></RequireRole>} />
                 <Route path="settings" element={<RequireRole roles={['ADMIN']}><SettingsPage /></RequireRole>} />

@@ -1,6 +1,6 @@
 import {
-  Calculator, DollarSign, FileText, Globe, LayoutDashboard, Palette, Printer, Settings, ShoppingBag, Target, Truck, UserCheck, Users,
-  Warehouse,
+  AlarmClock, BarChart3, CalendarCheck, Calculator, DollarSign, FileText, Globe, LayoutDashboard, Palette, Printer, Receipt, Settings, ShoppingBag,
+  Target, Truck, UserCheck, Users, Warehouse,
 } from 'lucide-react';
 import type { UserRole } from '@/types';
 
@@ -32,6 +32,7 @@ export const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
     title: 'Resurslar',
     items: [
       { path: '/clients', label: 'Mijozlar', short: 'Mijoz', icon: Users, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/analytics/clients', label: 'Mijozlar statistikasi', short: 'Statistika', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
       { path: '/inventory', label: 'Ombor', short: 'Ombor', icon: Warehouse, roles: ['ADMIN', 'MANAGER', 'PRINTER'] },
     ],
   },
@@ -40,7 +41,10 @@ export const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
     items: [
       { path: '/kpi', label: 'KPI va bonus', short: 'KPI', icon: Target, roles: ['ADMIN', 'MANAGER', 'DESIGNER', 'PRINTER', 'INSTALLER'] },
       { path: '/finance', label: 'Moliya', short: 'Moliya', icon: DollarSign, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/expenses', label: 'Xarajatlar', short: 'Xarajat', icon: Receipt, roles: ['ADMIN', 'MANAGER'] },
       { path: '/employees', label: 'Xodimlar va oylik', short: 'Xodim', icon: UserCheck, roles: ['ADMIN'] },
+      { path: '/attendance', label: 'Davomat', short: 'Davomat', icon: CalendarCheck, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/overdue', label: 'Kechikkan ishlar', short: 'Kechikish', icon: AlarmClock, roles: ['ADMIN', 'MANAGER'] },
       { path: '/documents', label: 'Hujjatlar', short: 'Hujjat', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
       { path: '/settings', label: 'Sozlamalar', short: 'Sozlama', icon: Settings, roles: ['ADMIN'] },
     ],

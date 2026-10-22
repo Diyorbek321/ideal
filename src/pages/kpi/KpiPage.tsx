@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, Settings, Target, TrendingUp, Users } from 'lucide-react';
-import { kpiApi } from '@/api';
+import { analyticsApi, kpiApi } from '@/api';
+import { OverdueList } from '@/components/reports/OverdueList';
 import type { KpiSummary } from '@/types';
 import { useUser } from '@/lib/auth';
 import { ROLE_LABELS } from '@/lib/labels';
@@ -48,6 +49,17 @@ function Rules() {
   );
 }
 
+function MyOverdue({ period }: { period: string }) {
+  const { data } = useQuery({ queryKey: ['analytics', 'overdue', 'me', period], queryFn: () => analyticsApi.myOverdue(period) });
+  if (!data) return null;
+  const late = data.lateCompleted.length;
+  return (
+    <Card title="Kechikkan ishlarim" description={data.completedCount ? `Bu oy ${data.completedCount} ta buyurtmadan ${late} tasi kech topshirildi` : undefined}>
+      <OverdueList items={data.items} showPeople={false} />
+    </Card>
+  );
+}
+
 function MyView({ period }: { period: string }) {
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['kpi', 'me', period], queryFn: () => kpiApi.me(period) });
   if (isLoading) return <Loading rows={4} />;
@@ -55,6 +67,7 @@ function MyView({ period }: { period: string }) {
   return (
     <div className="space-y-6">
       <PlanBar s={data} />
+      <MyOverdue period={period} />
       {data.eligible ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[['Reja bonusi', data.planBonus], ['O\'z vaqtida bonusi', data.onTimeBonus], ['Jami bonusim', data.total]].map(([l, v], i) => (

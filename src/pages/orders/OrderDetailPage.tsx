@@ -7,6 +7,7 @@ import { isFinance, useUser } from '@/lib/auth';
 import { fileUrl, formatCurrency, formatDate, formatPhone } from '@/lib/utils';
 import { DesignsCard } from '@/components/orders/detail/DesignsCard';
 import { InstallationCard } from '@/components/orders/detail/InstallationCard';
+import { FeedbackCard } from '@/components/orders/detail/FeedbackCard';
 import { PaymentsCard } from '@/components/orders/detail/PaymentsCard';
 import { SmsCard } from '@/components/orders/detail/SmsCard';
 import { StatusPanel } from '@/components/orders/detail/StatusPanel';
@@ -159,6 +160,8 @@ export default function OrderDetailPage() {
           {finance && <PaymentsCard order={order} />}
 
           {finance && <SmsCard order={order} />}
+
+          {finance && <FeedbackCard order={order} />}
 
           <InstallationCard order={order} />
 
