@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/States';
+import { formatSize } from '@/lib/size';
 
 // Mijoz uchun ochiq sahifa — login talab qilinmaydi
 export default function PublicApprovalPage() {
@@ -128,7 +129,7 @@ export default function PublicApprovalPage() {
                 {data.order.items.map((it, i) => (
                   <div key={i}>
                     <p className="text-sm font-bold text-gray-900">{it.productType}</p>
-                    <p className="text-xs text-gray-500">{it.widthCm}×{it.heightCm} sm × {it.quantity}{it.finishing.length ? ` · ${it.finishing.join(', ')}` : ''}</p>
+                    <p className="text-xs text-gray-500">{formatSize(it.widthCm, it.heightCm)} × {it.quantity}{it.finishing.length ? ` · ${it.finishing.join(', ')}` : ''}</p>
                   </div>
                 ))}
               </div>

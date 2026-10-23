@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Empty, PageHeader } from '@/components/ui/States';
+import { formatSize } from '@/lib/size';
 
 type Template = 'contract' | 'invoice' | 'act' | 'offer';
 const TEMPLATES: Array<{ id: Template; name: string; icon: typeof FileText; color: string }> = [
@@ -40,7 +41,7 @@ function ItemsTable({ order }: { order: OrderDetail }) {
           <tr key={it.id}>
             <td className="border border-gray-400 px-2 py-1">{i + 1}</td>
             <td className="border border-gray-400 px-2 py-1">{it.productType}{it.material ? ` (${it.material.name})` : ''}{it.finishing.length ? `, ${it.finishing.join(', ')}` : ''}</td>
-            <td className="border border-gray-400 px-2 py-1">{it.widthCm}×{it.heightCm} sm</td>
+            <td className="border border-gray-400 px-2 py-1">{formatSize(it.widthCm, it.heightCm)}</td>
             <td className="border border-gray-400 px-2 py-1">{it.quantity}</td>
             <td className="border border-gray-400 px-2 py-1">{formatNumber(it.unitPrice ?? 0)}</td>
             <td className="border border-gray-400 px-2 py-1">{formatNumber(it.total ?? 0)}</td>

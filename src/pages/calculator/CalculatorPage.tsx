@@ -6,6 +6,7 @@ import type { PriceListItem, PriceResult } from '@/types';
 import { errorMessage } from '@/api';
 import { PRICE_UNIT_LABELS } from '@/lib/labels';
 import { formatCurrency, formatNumber, parseDecimal } from '@/lib/utils';
+import { areaFromMeters, formatArea, metersToCm } from '@/lib/size';
 import { useDebounced } from '@/components/clients/ClientPicker';
 import { OrderFormModal } from '@/components/orders/OrderFormModal';
 import { Button } from '@/components/ui/Button';
@@ -18,14 +19,15 @@ interface Row {
   productType: string;
   materialCode: string;
   printCode: string;
-  widthCm: string;
-  heightCm: string;
+  // metrda: "1,20"
+  width: string;
+  height: string;
   quantity: string;
   finishingCodes: string[];
 }
 
 const newRow = (materialCode = '', printCode = ''): Row => ({
-  productType: 'Banner', materialCode, printCode, widthCm: '100', heightCm: '100', quantity: '1', finishingCodes: [],
+  productType: 'Banner', materialCode, printCode, width: '1', height: '1', quantity: '1', finishingCodes: [],
 });
 
 const byKind = (items: PriceListItem[], kind: PriceListItem['kind']) => items.filter((i) => i.kind === kind && i.isActive);
@@ -46,8 +48,8 @@ export default function CalculatorPage() {
   }, [prices, rows.length]);
 
   const inputs: Array<PriceInput | null> = rows.map((r, idx) => {
-    const w = parseDecimal(r.widthCm) ?? 0, h = parseDecimal(r.heightCm) ?? 0, q = parseDecimal(r.quantity) ?? 0;
-    if (!r.materialCode || !(w > 0 && h > 0 && Number.isInteger(q) && q >= 1)) return null;
+    const w = metersToCm(r.width), h = metersToCm(r.height), q = parseDecimal(r.quantity) ?? 0;
+    if (!r.materialCode || w === null || h === null || !(Number.isInteger(q) && q >= 1)) return null;
     return {
       materialCode: r.materialCode,
       printCode: r.printCode || undefined,
@@ -89,7 +91,7 @@ export default function CalculatorPage() {
     return [{
       productType: r.productType || 'Mahsulot',
       materialId: mat?.materialId ?? null,
-      widthCm: parseDecimal(r.widthCm)!, heightCm: parseDecimal(r.heightCm)!, quantity: parseDecimal(r.quantity)!,
+      widthCm: metersToCm(r.width)!, heightCm: metersToCm(r.height)!, quantity: parseDecimal(r.quantity)!,
       finishing: r.finishingCodes.map((c) => prices.find((p) => p.code === c)?.name ?? c),
       unitPrice: res.unitPrice,
     }];
@@ -128,8 +130,8 @@ export default function CalculatorPage() {
                       <Input label="Nomi" value={r.productType} onChange={(e) => update(idx, { productType: e.target.value })} />
                       <Select label="Material" value={r.materialCode} onChange={(e) => update(idx, { materialCode: e.target.value })} options={materials.map((m) => ({ value: m.code, label: label(m) }))} />
                       <Select label="Bosma" value={r.printCode} onChange={(e) => update(idx, { printCode: e.target.value })} placeholder="Bosmasiz" options={byKind(prices, 'PRINT').map((m) => ({ value: m.code, label: label(m) }))} />
-                      <Input label="Eni, sm" inputMode="decimal" value={r.widthCm} onChange={(e) => update(idx, { widthCm: e.target.value })} />
-                      <Input label="Bo'yi, sm" inputMode="decimal" value={r.heightCm} onChange={(e) => update(idx, { heightCm: e.target.value })} />
+                      <Input label="Eni, m" inputMode="decimal" placeholder="1,40" value={r.width} onChange={(e) => update(idx, { width: e.target.value })} />
+                      <Input label="Bo'yi, m" inputMode="decimal" placeholder="1,20" value={r.height} onChange={(e) => update(idx, { height: e.target.value })} />
                       <Input label="Soni" inputMode="numeric" value={r.quantity} onChange={(e) => update(idx, { quantity: e.target.value })} />
                     </div>
                     {finishing.length > 0 && (
@@ -148,6 +150,12 @@ export default function CalculatorPage() {
                           );
                         })}
                       </div>
+                    )}
+                    {areaFromMeters(r.width, r.height) > 0 && (
+                      <p className="text-sm text-gray-600">
+                        {r.width} × {r.height} = <b className="text-gray-900">{formatArea(areaFromMeters(r.width, r.height))}</b>
+                        {(parseDecimal(r.quantity) ?? 0) > 1 && <> · {r.quantity} dona = {formatArea(areaFromMeters(r.width, r.height) * (parseDecimal(r.quantity) ?? 0))}</>}
+                      </p>
                     )}
                     {typeof res === 'string' && <p className="text-xs text-red-600">{res}</p>}
                     {res && typeof res !== 'string' && (

@@ -21,6 +21,14 @@ export interface OrderItemInput {
   unitPrice: number;
 }
 
+export interface ProductTypeInput {
+  name: string;
+  defaultMaterialId?: string | null;
+  pricePerM2?: number;
+  costPerM2?: number;
+  isActive?: boolean;
+}
+
 export interface OrderInput {
   clientId: string;
   source: OrderSource;
@@ -245,7 +253,8 @@ export const settingsApi = {
     api.post<PriceListItem>('/settings/prices', body),
   updatePrice: (id: string, body: Partial<PriceListItem>) => api.patch<PriceListItem>(`/settings/prices/${id}`, body),
   productTypes: () => api.get<ProductType[]>('/settings/product-types'),
-  createProductType: (name: string) => api.post<ProductType>('/settings/product-types', { name }),
+  createProductType: (body: ProductTypeInput) => api.post<ProductType>('/settings/product-types', body),
+  updateProductType: (id: string, body: Partial<ProductTypeInput>) => api.patch<ProductType>(`/settings/product-types/${id}`, body),
 };
 
 export const filesApi = {

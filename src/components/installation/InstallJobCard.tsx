@@ -15,6 +15,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
+import { formatSize } from '@/lib/size';
 
 const mapLink = (i: Installation) => i.mapUrl ?? `https://yandex.uz/maps/?text=${encodeURIComponent(i.address)}`;
 
@@ -73,7 +74,7 @@ export function InstallJobCard({ job }: { job: Installation }) {
 
         <div className="rounded-xl bg-gray-50 p-3 text-sm">
           {job.order?.items.map((it, i) => (
-            <p key={i} className="font-medium text-gray-900">{it.productType}: {it.widthCm}×{it.heightCm} sm × {it.quantity}</p>
+            <p key={i} className="font-medium text-gray-900">{it.productType}: {formatSize(it.widthCm, it.heightCm)} × {it.quantity}</p>
           ))}
           {job.sizesNote && <p className="mt-1 text-gray-600">O'lcham: {job.sizesNote}</p>}
           {job.mountingType && <p className="text-gray-600">Mahkamlash: {job.mountingType}</p>}

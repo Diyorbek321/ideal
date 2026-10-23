@@ -10,6 +10,7 @@ import { cn, fileUrl, formatCurrency, formatDate, formatDateTime, formatPhone } 
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/States';
+import { formatSize } from '@/lib/size';
 
 // Mijoz ko'radigan bosqichlar: kerak bo'lmagan bosqichlar (dizayn, o'rnatish) chiqarilmaydi
 function stepsFor(t: TrackInfo): OrderStatus[] {
@@ -121,7 +122,7 @@ export default function TrackPage() {
 
         <Card className="p-6">
           {t.items.map((it, i) => (
-            <p key={i} className="text-sm text-gray-900">{it.productType} — {it.widthCm}×{it.heightCm} sm × {it.quantity}</p>
+            <p key={i} className="text-sm text-gray-900">{it.productType} — {formatSize(it.widthCm, it.heightCm)} × {it.quantity}</p>
           ))}
           <div className="mt-4 space-y-1 border-t border-gray-100 pt-4 text-sm">
             <div className="flex justify-between"><span className="text-gray-500">Jami</span><b>{formatCurrency(t.totalAmount)}</b></div>

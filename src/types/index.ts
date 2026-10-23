@@ -421,6 +421,9 @@ export interface ProductType {
   id: string;
   name: string;
   defaultMaterialId: string | null;
+  /** 0 — narx qo'lda kiritiladi */
+  pricePerM2: number;
+  costPerM2: number;
   isActive: boolean;
 }
 

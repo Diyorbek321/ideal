@@ -20,6 +20,7 @@ import { FileButton } from '@/components/ui/FileButton';
 import { Select } from '@/components/ui/Select';
 import { ErrorState, Loading } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
+import { formatSize } from '@/lib/size';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -82,7 +83,7 @@ export default function OrderDetailPage() {
                 <div key={item.id} className="flex justify-between gap-4 py-4 first:pt-0 last:pb-0">
                   <div>
                     <p className="font-bold text-gray-900">{item.productType}</p>
-                    <p className="text-sm text-gray-500">{item.widthCm}×{item.heightCm} sm · {item.areaM2} m² · {item.quantity} dona</p>
+                    <p className="text-sm text-gray-500">{formatSize(item.widthCm, item.heightCm)} · {item.areaM2} m² · {item.quantity} dona</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {item.material && <Badge variant="outline">{item.material.name}</Badge>}
                       {item.finishing.map((f) => <Badge key={f}>{f}</Badge>)}

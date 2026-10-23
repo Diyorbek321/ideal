@@ -16,6 +16,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
+import { formatSize } from '@/lib/size';
 
 const EQ_VARIANT: Record<EquipmentStatus, 'success' | 'default' | 'error'> = { WORKING: 'success', IDLE: 'default', REPAIR: 'error' };
 
@@ -174,7 +175,7 @@ export default function ProductionPage() {
                       <p className="text-sm text-gray-600">{t.order.client.name}</p>
                       {t.orderItem && (
                         <p className="text-sm font-medium text-gray-900">
-                          {t.orderItem.productType} · {t.orderItem.widthCm}×{t.orderItem.heightCm} sm × {t.orderItem.quantity}
+                          {t.orderItem.productType} · {formatSize(t.orderItem.widthCm, t.orderItem.heightCm)} × {t.orderItem.quantity}
                           <span className="text-gray-400"> · {t.material?.name ?? 'material ko\'rsatilmagan'}</span>
                         </p>
                       )}

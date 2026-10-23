@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, CalendarCheck, DollarSign, MessageSquare, Plus, Target, Timer } from 'lucide-react';
 import { settingsApi } from '@/api';
@@ -166,9 +166,7 @@ function PricesTab() {
   const toast = useToast();
   const qc = useQueryClient();
   const { data: prices, isLoading } = useQuery({ queryKey: ['prices'], queryFn: settingsApi.prices });
-  const { data: types } = useQuery({ queryKey: ['product-types'], queryFn: settingsApi.productTypes });
   const [f, setF] = React.useState({ code: '', name: '', kind: 'MATERIAL' as PriceKind, unit: 'M2' as PriceUnit, price: '', costPrice: '' });
-  const [typeName, setTypeName] = React.useState('');
 
   const create = useMutation({
     mutationFn: () => {
@@ -178,11 +176,6 @@ function PricesTab() {
       return settingsApi.createPrice({ code: f.code.toUpperCase(), name: f.name, kind: f.kind, unit: f.unit, price, costPrice });
     },
     onSuccess: () => { toast.success('Qo\'shildi'); setF({ ...f, code: '', name: '', price: '', costPrice: '' }); qc.invalidateQueries({ queryKey: ['prices'] }); },
-    onError: toast.error,
-  });
-  const addType = useMutation({
-    mutationFn: () => settingsApi.createProductType(typeName.trim()),
-    onSuccess: () => { setTypeName(''); qc.invalidateQueries({ queryKey: ['product-types'] }); },
     onError: toast.error,
   });
 
@@ -211,14 +204,8 @@ function PricesTab() {
         <p className="mt-2 text-xs text-gray-500">Dizayn narxi kodi albatta <b>DESIGN_M2</b> bo'lishi kerak. Hozir: {formatCurrency(prices?.find((p) => p.code === 'DESIGN_M2')?.price)} / m².</p>
       </Card>
 
-      <Card title="Mahsulot turlari" description="Buyurtma formasida tanlash uchun">
-        <div className="mb-4 flex flex-wrap gap-2">
-          {types?.map((t) => <span key={t.id} className="rounded-full bg-gray-100 px-3 py-1 text-sm">{t.name}</span>)}
-        </div>
-        <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (typeName.trim()) addType.mutate(); }}>
-          <Input value={typeName} onChange={(e) => setTypeName(e.target.value)} placeholder="Yangi tur" />
-          <Button type="submit" isLoading={addType.isPending}>Qo'shish</Button>
-        </form>
+      <Card title="Mahsulot turlari" description="Turlar va ularning 1 m² narxlari alohida sahifada">
+        <Link to="/product-types" className="text-sm font-semibold text-brand-700 hover:underline">Mahsulot turlari sahifasiga o'tish →</Link>
       </Card>
     </div>
   );

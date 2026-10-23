@@ -6,6 +6,7 @@ import { inventoryApi, ordersApi, settingsApi, usersApi, type OrderItemInput } f
 import type { Client, OrderSource } from '@/types';
 import { SOURCE_LABELS, options } from '@/lib/labels';
 import { toDateInput, formatCurrency, parseDecimal, parseMoney } from '@/lib/utils';
+import { areaFromMeters, cmToMeters, formatArea, metersToCm } from '@/lib/size';
 import { invalidateOrderViews } from '@/lib/queries';
 import { ClientPicker } from '@/components/clients/ClientPicker';
 import { Button } from '@/components/ui/Button';
@@ -28,24 +29,33 @@ interface Props {
   initialNotes?: string;
 }
 
+// O'lcham metrda kiritiladi; 1 m² narxi bo'lsa dona narxi = maydon × 1 m² narxi
 interface ItemDraft {
   productType: string;
   materialId: string;
-  widthCm: string;
-  heightCm: string;
+  width: string;
+  height: string;
   quantity: string;
   finishing: string;
+  pricePerM2: string;
   unitPrice: string;
 }
 
 const blankItem = (): ItemDraft => ({
-  productType: '', materialId: '', widthCm: '', heightCm: '', quantity: '1', finishing: '', unitPrice: '',
+  productType: '', materialId: '', width: '', height: '', quantity: '1', finishing: '', pricePerM2: '', unitPrice: '',
 });
 
 const toDraft = (i: OrderItemInput): ItemDraft => ({
-  productType: i.productType, materialId: i.materialId ?? '', widthCm: String(i.widthCm), heightCm: String(i.heightCm),
-  quantity: String(i.quantity), finishing: i.finishing.join(', '), unitPrice: String(i.unitPrice),
+  productType: i.productType, materialId: i.materialId ?? '', width: cmToMeters(i.widthCm), height: cmToMeters(i.heightCm),
+  quantity: String(i.quantity), finishing: i.finishing.join(', '), pricePerM2: '', unitPrice: String(i.unitPrice),
 });
+
+// 1 m² narxi kiritilgan bo'lsa dona narxini qayta hisoblaydi
+function withUnitPrice(it: ItemDraft): ItemDraft {
+  const perM2 = parseMoney(it.pricePerM2);
+  if (!perM2) return it;
+  return { ...it, unitPrice: String(Math.round(areaFromMeters(it.width, it.height) * perM2)) };
+}
 
 
 // Tez buyurtma: 1 daqiqada to'ldiriladigan forma
@@ -77,17 +87,39 @@ export function OrderFormModal({
   const lineTotal = (i: ItemDraft) => (parseMoney(i.unitPrice) ?? 0) * (parseDecimal(i.quantity) ?? 0);
   const subtotal = items.reduce((s, i) => s + lineTotal(i), 0);
   const total = Math.max(0, subtotal - (parseMoney(discount) ?? 0));
-  const area = (i: ItemDraft) => ((parseDecimal(i.widthCm) ?? 0) * (parseDecimal(i.heightCm) ?? 0)) / 10_000;
+  const knownType = (name: string) => productTypes?.find((p) => p.name.toLowerCase() === name.trim().toLowerCase());
 
-  const updateItem = (idx: number, k: keyof ItemDraft, v: string) =>
-    setItems((list) => list.map((it, i) => (i === idx ? { ...it, [k]: v } : it)));
+  const patchItem = (idx: number, patch: Partial<ItemDraft>) =>
+    setItems((list) => list.map((it, i) => (i === idx ? withUnitPrice({ ...it, ...patch }) : it)));
+  const updateItem = (idx: number, k: keyof ItemDraft, v: string) => patchItem(idx, { [k]: v });
+
+  // Ro'yxatdagi tur tanlansa — uning 1 m² narxi va materiali qo'yiladi
+  const changeType = (idx: number, name: string) => {
+    const t = knownType(name);
+    const it = items[idx]!;
+    patchItem(idx, {
+      productType: name,
+      ...(t && t.pricePerM2 > 0 && { pricePerM2: String(t.pricePerM2) }),
+      ...(t?.defaultMaterialId && !it.materialId && { materialId: t.defaultMaterialId }),
+    });
+  };
+
+  const addType = useMutation({
+    mutationFn: (it: ItemDraft) => settingsApi.createProductType({
+      name: it.productType.trim(),
+      pricePerM2: parseMoney(it.pricePerM2) ?? 0,
+      defaultMaterialId: it.materialId || null,
+    }),
+    onSuccess: (t) => { toast.success(`"${t.name}" ro'yxatga qo'shildi`); qc.invalidateQueries({ queryKey: ['product-types'] }); },
+    onError: toast.error,
+  });
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!client) e.client = 'Mijozni tanlang';
     items.forEach((i, idx) => {
       if (!i.productType.trim()) e[`item${idx}`] = 'Mahsulot turini kiriting';
-      else if (!((parseDecimal(i.widthCm) ?? 0) > 0 && (parseDecimal(i.heightCm) ?? 0) > 0)) e[`item${idx}`] = 'O\'lchamni to\'g\'ri kiriting (sm)';
+      else if (metersToCm(i.width) === null || metersToCm(i.height) === null) e[`item${idx}`] = 'O\'lchamni metrda kiriting, masalan 1,20';
       else if (!Number.isInteger(parseDecimal(i.quantity)) || (parseDecimal(i.quantity) ?? 0) < 1) e[`item${idx}`] = 'Soni butun son bo\'lishi kerak';
       else if (parseMoney(i.unitPrice) === null) e[`item${idx}`] = 'Narxni raqam bilan kiriting';
     });
@@ -107,8 +139,8 @@ export function OrderFormModal({
       items: items.map((i) => ({
         productType: i.productType.trim(),
         materialId: i.materialId || null,
-        widthCm: parseDecimal(i.widthCm)!,
-        heightCm: parseDecimal(i.heightCm)!,
+        widthCm: metersToCm(i.width)!,
+        heightCm: metersToCm(i.height)!,
         quantity: parseDecimal(i.quantity)!,
         finishing: i.finishing.split(',').map((f) => f.trim()).filter(Boolean),
         unitPrice: parseMoney(i.unitPrice)!,
@@ -159,7 +191,19 @@ export function OrderFormModal({
           {items.map((it, idx) => (
             <div key={idx} className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-8">
-                <div className="col-span-2"><Input label="Turi" list="product-types" value={it.productType} onChange={(e) => updateItem(idx, 'productType', e.target.value)} /></div>
+                <div className="col-span-2">
+                  <Input label="Turi" list="product-types" value={it.productType} onChange={(e) => changeType(idx, e.target.value)} />
+                  {it.productType.trim() && productTypes && !knownType(it.productType) && (
+                    <button
+                      type="button"
+                      disabled={addType.isPending}
+                      onClick={() => addType.mutate(it)}
+                      className="mt-1 text-xs font-semibold text-brand-700 hover:underline"
+                    >
+                      + Ro'yxatga qo'shish
+                    </button>
+                  )}
+                </div>
                 <div className="col-span-2">
                   <Select
                     label="Material"
@@ -169,16 +213,21 @@ export function OrderFormModal({
                     options={(materials ?? []).map((m) => ({ value: m.id, label: m.name }))}
                   />
                 </div>
-                <Input label="Eni, sm" inputMode="decimal" value={it.widthCm} onChange={(e) => updateItem(idx, 'widthCm', e.target.value)} />
-                <Input label="Bo'yi, sm" inputMode="decimal" value={it.heightCm} onChange={(e) => updateItem(idx, 'heightCm', e.target.value)} />
+                <Input label="Eni, m" inputMode="decimal" placeholder="1,40" value={it.width} onChange={(e) => updateItem(idx, 'width', e.target.value)} />
+                <Input label="Bo'yi, m" inputMode="decimal" placeholder="1,20" value={it.height} onChange={(e) => updateItem(idx, 'height', e.target.value)} />
                 <Input label="Soni" inputMode="numeric" value={it.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)} />
-                <Input label="Dona narxi" inputMode="numeric" value={it.unitPrice} onChange={(e) => updateItem(idx, 'unitPrice', e.target.value)} />
-                <div className="col-span-2 md:col-span-6"><Input label="Pardozlash (vergul bilan)" value={it.finishing} onChange={(e) => updateItem(idx, 'finishing', e.target.value)} placeholder="Luvers, Laminatsiya" /></div>
-                <div className="col-span-2 flex items-end justify-between gap-2 pb-2">
-                  <span className="text-sm text-gray-500">
-                    {area(it) > 0 ? `${area(it).toFixed(2)} m² · ` : ''}
-                    <b className="text-gray-900">{formatCurrency(lineTotal(it))}</b>
-                  </span>
+                <Input label="1 m² narxi" inputMode="numeric" value={it.pricePerM2} onChange={(e) => updateItem(idx, 'pricePerM2', e.target.value)} />
+                <div className="col-span-2 md:col-span-4"><Input label="Pardozlash (vergul bilan)" value={it.finishing} onChange={(e) => updateItem(idx, 'finishing', e.target.value)} placeholder="Luvers, Laminatsiya" /></div>
+                <div className="col-span-2">
+                  <Input
+                    label="Dona narxi"
+                    inputMode="numeric"
+                    value={it.unitPrice}
+                    // Qo'lda yozilsa 1 m² narxidan uziladi
+                    onChange={(e) => patchItem(idx, { unitPrice: e.target.value, pricePerM2: '' })}
+                  />
+                </div>
+                <div className="col-span-2 flex items-end justify-end pb-2">
                   {items.length > 1 && (
                     <button type="button" onClick={() => setItems((l) => l.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700" aria-label="O'chirish">
                       <Trash2 className="h-4 w-4" />
@@ -186,6 +235,7 @@ export function OrderFormModal({
                   )}
                 </div>
               </div>
+              <ItemSummary it={it} total={lineTotal(it)} />
               {errors[`item${idx}`] && <p className="mt-2 text-xs text-red-500">{errors[`item${idx}`]}</p>}
             </div>
           ))}
@@ -226,5 +276,21 @@ export function OrderFormModal({
         <Textarea label="Izoh" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
       </div>
     </Modal>
+  );
+}
+
+// "1,40 × 1,20 = 1,68 m² × 45 000 so'm = 75 600 so'm · 2 dona = 151 200 so'm"
+function ItemSummary({ it, total }: { it: ItemDraft; total: number }) {
+  const area = areaFromMeters(it.width, it.height);
+  if (area <= 0) return null;
+  const perM2 = parseMoney(it.pricePerM2);
+  const qty = parseDecimal(it.quantity) ?? 0;
+  return (
+    <p className="mt-2 text-sm text-gray-600">
+      {it.width} × {it.height} = <b className="text-gray-900">{formatArea(area)}</b>
+      {perM2 ? <> × {formatCurrency(perM2)} = {formatCurrency(Math.round(area * perM2))}</> : null}
+      {qty > 1 && <> · {qty} dona = {formatArea(area * qty)}</>}
+      {' · '}jami <b className="text-gray-900">{formatCurrency(total)}</b>
+    </p>
   );
 }

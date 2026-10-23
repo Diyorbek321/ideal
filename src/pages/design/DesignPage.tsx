@@ -17,6 +17,7 @@ import { MyKpiCard } from '@/components/kpi/MyKpiCard';
 import { Card } from '@/components/ui/Card';
 import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
+import { formatSize } from '@/lib/size';
 
 export default function DesignPage() {
   const user = useUser();
@@ -65,7 +66,7 @@ export default function DesignPage() {
             </div>
             <p className="font-bold text-gray-900">{t.client.name}</p>
             <p className="mt-1 text-xs text-gray-500">
-              {t.items.map((i) => `${i.productType} ${i.widthCm}×${i.heightCm}${i.quantity > 1 ? ` ×${i.quantity}` : ''}`).join(' · ')}
+              {t.items.map((i) => `${i.productType} ${formatSize(i.widthCm, i.heightCm)}${i.quantity > 1 ? ` ×${i.quantity}` : ''}`).join(' · ')}
             </p>
           </div>
           <Link to={`/orders/${t.id}`} aria-label="Buyurtmani ochish"><ExternalLink className="h-4 w-4 text-gray-400" /></Link>
