@@ -89,7 +89,7 @@ export default function TrackPage() {
           )}
           {t.installation && (
             <p className="mt-4 flex items-center justify-center rounded-lg bg-brand-50 p-3 text-sm font-medium text-brand-800">
-              <Truck className="mr-2 h-4 w-4" />O'rnatish: {formatDateTime(t.installation.scheduledAt)}
+              <Truck className="mr-2 h-4 w-4" />O'rnatish: {t.installation.scheduledAt ? formatDateTime(t.installation.scheduledAt) : 'sana tez orada kelishiladi'}
             </p>
           )}
         </Card>

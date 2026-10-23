@@ -250,7 +250,8 @@ export interface InstallProblem {
 export interface Installation {
   id: string;
   orderId: string;
-  scheduledAt: string;
+  /** null — sana hali kelishilmagan */
+  scheduledAt: string | null;
   address: string;
   mapUrl: string | null;
   contactPhone: string | null;
@@ -559,7 +560,7 @@ export interface TrackInfo {
   paidAmount: number;
   remainingAmount: number;
   approvalUrl: string | null;
-  installation: { scheduledAt: string; status: InstallationStatus } | null;
+  installation: { scheduledAt: string | null; status: InstallationStatus } | null;
   feedback: { rating: number; createdAt: string } | null;
   canFeedback: boolean;
   company: { name: string; phone: string | null; logoUrl: string | null } | null;

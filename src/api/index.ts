@@ -154,8 +154,10 @@ export const equipmentApi = {
 
 export interface InstallationInput {
   orderId: string;
-  scheduledAt: string;
-  teamIds: string[];
+  /** null — sana keyin kelishiladi */
+  scheduledAt?: string | null;
+  /** bo'sh — ustanovkachilar o'zlari qo'shiladi */
+  teamIds?: string[];
   address?: string;
   mapUrl?: string;
   contactPhone?: string;
@@ -169,7 +171,12 @@ export const installationsApi = {
   list: (q: { from?: string; to?: string; status?: string; orderId?: string } = {}) =>
     api.get<Installation[]>('/installations', q),
   myToday: () => api.get<Installation[]>('/installations/my-today'),
+  /** Hali yo'lga chiqilmagan, men qo'shilmagan ishlar */
+  open: () => api.get<Installation[]>('/installations/open'),
   create: (body: InstallationInput) => api.post<Installation>('/installations', body),
+  update: (id: string, body: Partial<Omit<InstallationInput, 'orderId'>>) => api.patch<Installation>(`/installations/${id}`, body),
+  join: (id: string) => api.post<Installation>(`/installations/${id}/join`),
+  leave: (id: string) => api.post<Installation>(`/installations/${id}/leave`),
   checklist: (id: string, key: string, done: boolean) => api.patch(`/installations/${id}/checklist`, { key, done }),
   depart: (id: string) => api.post(`/installations/${id}/depart`),
   start: (id: string) => api.post(`/installations/${id}/start`),

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, Camera, CheckSquare, ChevronRight, MapPin, Navigation, Phone, Square } from 'lucide-react';
+import { AlertTriangle, Camera, CheckSquare, ChevronRight, MapPin, Navigation, Phone, Square, Users } from 'lucide-react';
 import { installationsApi } from '@/api';
 import type { Installation, InstallProblemType } from '@/types';
 import { INSTALL_STATUS_LABELS, PROBLEM_LABELS, options } from '@/lib/labels';
@@ -19,7 +19,13 @@ import { formatSize } from '@/lib/size';
 
 const mapLink = (i: Installation) => i.mapUrl ?? `https://yandex.uz/maps/?text=${encodeURIComponent(i.address)}`;
 
-export function InstallJobCard({ job }: { job: Installation }) {
+interface Props {
+  job: Installation;
+  /** open — ochiq ish: faqat ma'lumot va "Men boraman" */
+  variant?: 'mine' | 'open';
+}
+
+export function InstallJobCard({ job, variant = 'mine' }: Props) {
   const toast = useToast();
   const qc = useQueryClient();
   const [problemOpen, setProblemOpen] = React.useState(false);
@@ -56,7 +62,7 @@ export function InstallJobCard({ job }: { job: Installation }) {
           <Badge className="border-0 bg-white/20 text-[10px] text-white">{INSTALL_STATUS_LABELS[job.status]}</Badge>
         </div>
         <h3 className="text-lg font-bold">{job.order?.client.name}</h3>
-        <p className="text-sm opacity-80">{formatDateTime(job.scheduledAt)}</p>
+        <p className="text-sm opacity-80">{job.scheduledAt ? formatDateTime(job.scheduledAt) : 'Sana menejer bilan kelishiladi'}</p>
       </div>
 
       <div className="space-y-5 p-5">
@@ -82,11 +88,22 @@ export function InstallJobCard({ job }: { job: Installation }) {
           {preview && <a href={fileUrl(preview)} target="_blank" rel="noreferrer"><img src={fileUrl(preview)} alt="Dizayn" className="mt-2 max-h-40 rounded-lg" /></a>}
         </div>
 
+        <div className="flex items-start text-sm text-gray-600">
+          <Users className="mr-3 mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
+          <p>{job.team.length ? `Jamoa: ${job.team.map((t) => t.fullName).join(', ')}` : 'Hali hech kim qo\'shilmagan'}</p>
+        </div>
+
+        {variant === 'open' && (
+          <Button className="h-12 w-full" isLoading={act.isPending} onClick={() => run(() => installationsApi.join(job.id), 'Siz jamoaga qo\'shildingiz')}>
+            Men boraman
+          </Button>
+        )}
+
         <a href={mapLink(job)} target="_blank" rel="noreferrer" className="block">
           <Button variant="outline" className="h-12 w-full border-gray-200 bg-gray-50"><Navigation className="h-4 w-4 text-brand-600" />Xaritada ochish</Button>
         </a>
 
-        {job.status === 'PLANNED' && (
+        {variant === 'mine' && job.status === 'PLANNED' && (
           <div className="border-t border-gray-100 pt-4">
             <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-gray-400">Chiqishdan oldin tekshiring</p>
             <div className="space-y-2">
@@ -104,6 +121,10 @@ export function InstallJobCard({ job }: { job: Installation }) {
             </div>
             <Button className="mt-4 h-12 w-full" disabled={!allChecked} isLoading={act.isPending} onClick={() => run(() => installationsApi.depart(job.id), 'Yo\'lga chiqdingiz')}>
               Yo'lga chiqdim <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+            <p className="mt-2 text-center text-xs text-gray-500">"Yo'lga chiqdim" bosilgach jamoa yopiladi — kim qo'shilgan bo'lsa, o'shalarga yoziladi</p>
+            <Button variant="ghost" className="mt-1 w-full text-xs text-gray-500" disabled={act.isPending} onClick={() => run(() => installationsApi.leave(job.id), 'Jamoadan chiqdingiz')}>
+              Bormayman
             </Button>
           </div>
         )}
@@ -149,7 +170,7 @@ export function InstallJobCard({ job }: { job: Installation }) {
           </div>
         ))}
 
-        {job.status !== 'DONE' && (
+        {variant === 'mine' && job.status !== 'DONE' && (
           <Button variant="ghost" className="w-full py-2 text-xs font-bold text-red-600" onClick={() => setProblemOpen(true)}>
             <AlertTriangle className="h-3 w-3" />Muammo haqida xabar berish
           </Button>

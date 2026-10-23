@@ -14,39 +14,61 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 
+const pad = (n: number) => String(n).padStart(2, '0');
+
 export function InstallationCard({ order }: { order: OrderDetail }) {
   const user = useUser();
   const toast = useToast();
   const qc = useQueryClient();
+  // Mahsulot tayyor bo'lganda o'rnatish o'zi yaratiladi — bor bo'lsa uni tahrirlaymiz
+  const current = order.installations.find((i) => i.status !== 'DONE' && i.status !== 'CANCELLED');
+  const at = current?.scheduledAt ? new Date(current.scheduledAt) : null;
   const [open, setOpen] = React.useState(false);
-  const [date, setDate] = React.useState(toDateInput(new Date(Date.now() + 86_400_000)));
-  const [time, setTime] = React.useState('10:00');
-  const [team, setTeam] = React.useState<string[]>([]);
-  const [address, setAddress] = React.useState(order.installationAddress ?? '');
-  const [mapUrl, setMapUrl] = React.useState('');
-  const [contactPhone, setContactPhone] = React.useState('');
-  const [mountingType, setMountingType] = React.useState('');
-  const [sizesNote, setSizesNote] = React.useState('');
-  const [requiredItems, setRequiredItems] = React.useState('');
+  const [date, setDate] = React.useState(at ? toDateInput(at) : '');
+  const [time, setTime] = React.useState(at ? `${pad(at.getHours())}:${pad(at.getMinutes())}` : '10:00');
+  const [team, setTeam] = React.useState<string[]>(current?.team.map((t) => t.id) ?? []);
+  const [address, setAddress] = React.useState(current?.address ?? order.installationAddress ?? '');
+  const [mapUrl, setMapUrl] = React.useState(current?.mapUrl ?? '');
+  const [contactPhone, setContactPhone] = React.useState(current?.contactPhone ?? '');
+  const [mountingType, setMountingType] = React.useState(current?.mountingType ?? '');
+  const [sizesNote, setSizesNote] = React.useState(current?.sizesNote ?? '');
+  const [requiredItems, setRequiredItems] = React.useState(current?.requiredItems.join(', ') ?? '');
+
+  // Har ochilishda joriy holatdan to'ldiramiz — oradan ustanovkachilar qo'shilgan bo'lishi mumkin
+  const openEditor = () => {
+    setDate(at ? toDateInput(at) : '');
+    setTime(at ? `${pad(at.getHours())}:${pad(at.getMinutes())}` : '10:00');
+    setTeam(current?.team.map((t) => t.id) ?? []);
+    setAddress(current?.address ?? order.installationAddress ?? '');
+    setMapUrl(current?.mapUrl ?? '');
+    setContactPhone(current?.contactPhone ?? '');
+    setMountingType(current?.mountingType ?? '');
+    setSizesNote(current?.sizesNote ?? '');
+    setRequiredItems(current?.requiredItems.join(', ') ?? '');
+    setOpen(true);
+  };
 
   const { data: installers } = useQuery({
     queryKey: ['users', 'INSTALLER'], queryFn: () => usersApi.list({ role: 'INSTALLER', active: true }), enabled: open,
   });
 
   const create = useMutation({
-    mutationFn: (force: boolean) => installationsApi.create({
-      orderId: order.id,
-      scheduledAt: new Date(`${date}T${time}:00`).toISOString(),
-      teamIds: team,
-      address: address.trim() || undefined,
-      mapUrl: mapUrl.trim() || undefined,
-      contactPhone: contactPhone.trim() || undefined,
-      mountingType: mountingType.trim() || undefined,
-      sizesNote: sizesNote.trim() || undefined,
-      requiredItems: requiredItems.split(',').map((s) => s.trim()).filter(Boolean),
-      force,
-    }),
-    onSuccess: () => { toast.success('O\'rnatish rejalashtirildi'); setOpen(false); invalidateOrderViews(qc); },
+    mutationFn: (force: boolean) => {
+      const body = {
+        // Sana bo'sh — keyin kelishiladi; jamoa bo'sh — ustanovkachilar o'zlari qo'shiladi
+        scheduledAt: date ? new Date(`${date}T${time}:00`).toISOString() : null,
+        teamIds: team,
+        address: address.trim() || undefined,
+        mapUrl: mapUrl.trim() || undefined,
+        contactPhone: contactPhone.trim() || undefined,
+        mountingType: mountingType.trim() || undefined,
+        sizesNote: sizesNote.trim() || undefined,
+        requiredItems: requiredItems.split(',').map((s) => s.trim()).filter(Boolean),
+        force,
+      };
+      return current ? installationsApi.update(current.id, body) : installationsApi.create({ orderId: order.id, ...body });
+    },
+    onSuccess: () => { toast.success('O\'rnatish saqlandi'); setOpen(false); invalidateOrderViews(qc); },
     onError: (err) => {
       // Kun to'la bo'lsa — foydalanuvchidan tasdiq so'rab qayta yuboramiz
       if (err instanceof ApiError && err.status === 409 && window.confirm(`${err.message}\n\nBaribir rejalashtirasizmi?`)) create.mutate(true);
@@ -65,7 +87,7 @@ export function InstallationCard({ order }: { order: OrderDetail }) {
   }
 
   return (
-    <Card title="O'rnatish" actions={isFinance(user.role) && !closed ? <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Rejalashtirish</Button> : undefined}>
+    <Card title="O'rnatish" actions={isFinance(user.role) && !closed ? <Button size="sm" variant="outline" onClick={openEditor}>{current ? 'Tahrirlash' : 'Rejalashtirish'}</Button> : undefined}>
       {order.installationAddress && (
         <div className="mb-4 flex items-start space-x-3 rounded-lg border border-brand-100 bg-brand-50 p-3 text-brand-800">
           <MapPin className="mt-0.5 h-5 w-5 shrink-0" />
@@ -76,10 +98,10 @@ export function InstallationCard({ order }: { order: OrderDetail }) {
         {order.installations.map((i) => (
           <div key={i.id} className="rounded-lg border border-gray-100 p-3 text-sm">
             <div className="flex items-center justify-between">
-              <span className="flex items-center font-medium"><Calendar className="mr-2 h-4 w-4 text-gray-400" />{formatDateTime(i.scheduledAt)}</span>
+              <span className="flex items-center font-medium"><Calendar className="mr-2 h-4 w-4 text-gray-400" />{i.scheduledAt ? formatDateTime(i.scheduledAt) : 'Sana kelishilmagan'}</span>
               <Badge variant={i.status === 'DONE' ? 'success' : i.status === 'PROBLEM' ? 'error' : i.status === 'CANCELLED' ? 'default' : 'info'}>{INSTALL_STATUS_LABELS[i.status]}</Badge>
             </div>
-            <p className="mt-1 text-xs text-gray-500">{i.team.map((t) => t.fullName).join(', ')}</p>
+            <p className="mt-1 text-xs text-gray-500">{i.team.length ? i.team.map((t) => t.fullName).join(', ') : 'Ustanovkachilar hali qo\'shilmagan — ular "Ochiq ishlar"dan o\'zlari qo\'shiladi'}</p>
             {i.problems.map((p) => (
               <div key={p.id} className="mt-2 flex items-center justify-between rounded bg-red-50 p-2 text-xs text-red-800">
                 <span><b>{PROBLEM_LABELS[p.type]}:</b> {p.description}</span>
@@ -101,17 +123,17 @@ export function InstallationCard({ order }: { order: OrderDetail }) {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="O'rnatishni rejalashtirish"
+        title={current ? 'O\'rnatishni tahrirlash' : 'O\'rnatishni rejalashtirish'}
         size="lg"
         footer={(
           <>
             <Button variant="outline" onClick={() => setOpen(false)}>Bekor qilish</Button>
-            <Button disabled={!team.length || !date || !time} isLoading={create.isPending} onClick={() => create.mutate(false)}>Saqlash</Button>
+            <Button disabled={!!date && !time} isLoading={create.isPending} onClick={() => create.mutate(false)}>Saqlash</Button>
           </>
         )}
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input label="Sana" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Input label="Sana (bo'sh — keyin kelishiladi)" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <Input label="Vaqt" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           <div className="md:col-span-2"><Input label="Manzil" value={address} onChange={(e) => setAddress(e.target.value)} /></div>
           <Input label="Xarita havolasi (Google/Yandex)" value={mapUrl} onChange={(e) => setMapUrl(e.target.value)} placeholder="https://" />
@@ -120,7 +142,8 @@ export function InstallationCard({ order }: { order: OrderDetail }) {
           <Input label="Aniq o'lchamlar" value={sizesNote} onChange={(e) => setSizesNote(e.target.value)} />
           <div className="md:col-span-2"><Input label="Olib ketiladigan narsalar (vergul bilan)" value={requiredItems} onChange={(e) => setRequiredItems(e.target.value)} placeholder="Narvon, perforator, silikon" /></div>
           <div className="md:col-span-2">
-            <p className="mb-2 text-sm font-medium text-gray-700">Jamoa *</p>
+            <p className="mb-1 text-sm font-medium text-gray-700">Jamoa</p>
+            <p className="mb-2 text-xs text-gray-500">Bo'sh qoldirsangiz, ustanovkachilar o'zlari "Men boraman" bilan qo'shiladi</p>
             <div className="flex flex-wrap gap-2">
               {installers?.map((u) => {
                 const on = team.includes(u.id);
