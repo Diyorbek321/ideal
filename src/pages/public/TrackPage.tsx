@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/States';
 import { formatSize } from '@/lib/size';
+import { TelegramOptIn } from '@/components/public/TelegramOptIn';
 
 // Mijoz ko'radigan bosqichlar: kerak bo'lmagan bosqichlar (dizayn, o'rnatish) chiqarilmaydi
 function stepsFor(t: TrackInfo): OrderStatus[] {
@@ -93,6 +94,8 @@ export default function TrackPage() {
             </p>
           )}
         </Card>
+
+        {t.status !== 'YAKUNLANDI' && t.status !== 'BEKOR_QILINDI' && <TelegramOptIn kind="track" token={token} />}
 
         <FeedbackCard token={token} t={t} />
 

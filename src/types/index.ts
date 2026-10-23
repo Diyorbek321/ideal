@@ -16,6 +16,7 @@ export interface User {
   bonusRate: number;
   bonusRateOver: number;
   isActive: boolean;
+  telegramLinked?: boolean;
   createdAt: string;
 }
 
@@ -451,6 +452,9 @@ export interface CompanySettings {
   officeLat: number | null;
   officeLng: number | null;
   officeRadiusM: number;
+  /** Direktorga Telegram orqali kunlik hisobot (Toshkent vaqti, "20:00") */
+  dailyReportEnabled: boolean;
+  dailyReportTime: string;
 }
 
 export interface Dashboard {

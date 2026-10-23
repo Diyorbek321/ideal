@@ -135,6 +135,16 @@ export const publicApi = {
   track: (token: string) => api.get<TrackInfo>(`/public/track/${token}`),
   uploadMarkup: (token: string, file: File) => api.upload<{ url: string }>(`/public/approve/${token}/markup`, file),
   feedback: (token: string, body: FeedbackInput) => api.post<{ rating: number; createdAt: string }>(`/public/track/${token}/feedback`, body),
+  /** Bot sozlanmagan bo'lsa url=null */
+  telegramByTrack: (token: string) => api.get<{ url: string | null }>(`/public/telegram/${token}`),
+  telegramByApproval: (token: string) => api.get<{ url: string | null }>(`/public/telegram/approve/${token}`),
+};
+
+export const telegramApi = {
+  status: () => api.get<{ enabled: boolean; username: string | null; linked: boolean }>('/telegram/status'),
+  link: () => api.post<{ url: string; expiresAt: string }>('/telegram/link'),
+  unlink: () => api.del<{ linked: boolean }>('/telegram/link'),
+  testReport: () => api.post<{ sent: boolean }>('/telegram/report/test'),
 };
 
 export const productionApi = {

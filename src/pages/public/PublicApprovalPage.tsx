@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/States';
 import { formatSize } from '@/lib/size';
+import { TelegramOptIn } from '@/components/public/TelegramOptIn';
 
 // Mijoz uchun ochiq sahifa — login talab qilinmaydi
 export default function PublicApprovalPage() {
@@ -160,6 +161,8 @@ export default function PublicApprovalPage() {
               </p>
             </Card>
           )}
+
+          <TelegramOptIn kind="approve" token={token} />
 
           {data.company?.phone && (
             <div className="rounded-2xl border border-brand-100 bg-brand-50 p-6">

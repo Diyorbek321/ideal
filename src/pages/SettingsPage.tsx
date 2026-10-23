@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, CalendarCheck, DollarSign, MessageSquare, Plus, Target, Timer } from 'lucide-react';
+import { Building2, CalendarCheck, DollarSign, MessageSquare, Plus, Send, Target, Timer } from 'lucide-react';
 import { settingsApi } from '@/api';
 import type { CompanySettings, OrderStatus, PriceKind, PriceListItem, PriceUnit } from '@/types';
 import { PRICE_KIND_LABELS, PRICE_UNIT_LABELS, STATUS_LABELS, options } from '@/lib/labels';
 import { cn, formatCurrency, parseDecimal, parseMoney } from '@/lib/utils';
 import { SmsSettings } from '@/components/settings/SmsSettings';
 import { AttendanceSettings } from '@/components/settings/AttendanceSettings';
+import { TelegramSettings } from '@/components/settings/TelegramSettings';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -16,7 +17,7 @@ import { ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
 
 const SLA_STATUSES: OrderStatus[] = ['YANGI', 'NARX_HISOBLANDI', 'DIZAYNDA', 'TASDIQDA', 'ISHLAB_CHIQARISHDA', 'TAYYOR', 'ORNATISHDA', 'YETKAZISHDA'];
-type Tab = 'company' | 'prices' | 'sla' | 'kpi' | 'attendance' | 'sms';
+type Tab = 'company' | 'prices' | 'sla' | 'kpi' | 'attendance' | 'sms' | 'telegram';
 
 function CompanyTab({ s }: { s: CompanySettings }) {
   const toast = useToast();
@@ -222,6 +223,7 @@ export default function SettingsPage() {
     { id: 'kpi', label: 'KPI va bonus', icon: Target },
     { id: 'attendance', label: 'Davomat', icon: CalendarCheck },
     { id: 'sms', label: 'SMS xizmati', icon: MessageSquare },
+    { id: 'telegram', label: 'Telegram bot', icon: Send },
   ];
 
   return (
@@ -241,7 +243,7 @@ export default function SettingsPage() {
         </div>
         <div className="md:col-span-3">
           {error ? <ErrorState error={error} onRetry={refetch} /> : isLoading || !data ? <Loading /> : (
-            tab === 'company' ? <CompanyTab s={data} /> : tab === 'sla' ? <SlaTab s={data} /> : tab === 'kpi' ? <KpiTab s={data} /> : tab === 'attendance' ? <AttendanceSettings s={data} /> : tab === 'sms' ? <SmsSettings /> : <PricesTab />
+            tab === 'company' ? <CompanyTab s={data} /> : tab === 'sla' ? <SlaTab s={data} /> : tab === 'kpi' ? <KpiTab s={data} /> : tab === 'attendance' ? <AttendanceSettings s={data} /> : tab === 'sms' ? <SmsSettings /> : tab === 'telegram' ? <TelegramSettings s={data} /> : <PricesTab />
           )}
         </div>
       </div>
