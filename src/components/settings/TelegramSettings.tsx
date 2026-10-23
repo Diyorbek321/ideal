@@ -68,7 +68,10 @@ export function TelegramSettings({ s }: { s: CompanySettings }) {
           </label>
           <Input label="Yuborish vaqti" type="time" value={time} disabled={!enabled} onChange={(e) => setTime(e.target.value)} />
         </div>
-        <p className="mt-3 text-xs text-gray-500">Botda istalgan payt: /bugun — hisobot, /qarzlar — qarzlar, /kechikkan — kechikayotgan ishlar.</p>
+        <p className="mt-3 text-xs text-gray-500">
+          Har oyning 1-kuni soat 09:00 da o'tgan oy oyligi keladi: jami, avanslar, to'langan va kimga qancha qolgani.
+          Botda istalgan payt: /bugun — hisobot, /oylik — shu oy oyligi, /qarzlar — qarzlar, /kechikkan — kechikayotgan ishlar.
+        </p>
         <div className="mt-4 flex justify-end">
           <Button disabled={!/^\d{2}:\d{2}$/.test(time)} isLoading={save.isPending} onClick={() => save.mutate()}>Saqlash</Button>
         </div>
