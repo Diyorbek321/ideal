@@ -1,4 +1,4 @@
-import type { AppNotification } from '@/types';
+import type { AppNotification, UserRole } from '@/types';
 
 export const NOTIFICATION_TEXT: Record<AppNotification['kind'], string> = {
   NEW_ORDER: 'Yangi buyurtma',
@@ -118,4 +118,9 @@ export function showSystemNotification(n: AppNotification) {
 }
 
 /** Bildirishnoma bosilganda qayerga o'tiladi */
-export const notificationLink = (n: AppNotification) => (n.kind === 'NEW_LEAD' ? `/leads?open=${n.leadId}` : `/orders/${n.orderId}`);
+// Ustanovkachi buyurtma sahifasini faqat jamoaga qo'shilgach ko'radi — "tayyor" xabari uni ochiq ishlarga olib boradi
+export function notificationLink(n: AppNotification, role?: UserRole): string {
+  if (n.kind === 'NEW_LEAD') return `/leads?open=${n.leadId}`;
+  if (role === 'INSTALLER') return '/installation';
+  return `/orders/${n.orderId}`;
+}

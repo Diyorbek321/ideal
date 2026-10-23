@@ -96,7 +96,7 @@ export default function NotificationBell() {
 
   const go = (n: AppNotification) => {
     setOpen(false);
-    navigate(notificationLink(n));
+    navigate(notificationLink(n, user.role));
   };
 
   return (
