@@ -1,7 +1,7 @@
 import type {
   Client, ClientDetail, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
   Expense, FileAsset, Installation, InstallProblem, InstallProblemType, Material, Order, OrderDetail,
-  OrderEvent, OrderSource, OrderStatus, Payment, PaymentKind, PaymentMethod, PayrollEntry, PriceListItem,
+  OrderEvent, OrderSource, OrderStatus, Payment, PaymentKind, PaymentMethod, PayrollEntry, PayrollSheet, PayrollTxKind, AbsenceReason, PriceListItem,
   PriceResult, ProductType, PublicApproval, QueueTask, ReportSummary, ShareInfo, SmsMessage, SmsStatusInfo, StockMovement,
   AppNotification, ClientImportResult, TrackInfo, User, MyKpi, TeamKpi, Lead, LeadStatus, ClientType,
   FinanceAnalytics, ClientsAnalytics, InventoryAnalytics, OverdueReport, MyOverdue, AttendanceMonth, AttendanceRecord,
@@ -247,13 +247,30 @@ export const expensesApi = {
   remove: (id: string) => api.del(`/expenses/${id}`),
 };
 
+type PayrollList = { period: string; entries: PayrollEntry[]; total: number; paid: number; advances: number };
+
+export interface PayrollTxInput {
+  userId: string;
+  period: string;
+  kind: PayrollTxKind;
+  amount: number;
+  method?: PaymentMethod;
+  reason?: string;
+  date?: string;
+}
+
 export const payrollApi = {
-  list: (period: string) => api.get<{ period: string; entries: PayrollEntry[]; total: number }>('/payroll', { period }),
-  calculate: (period: string) =>
-    api.post<{ period: string; entries: PayrollEntry[]; total: number }>('/payroll/calculate', { period }),
-  adjust: (id: string, body: { bonus?: number; fine?: number; advance?: number }) =>
-    api.patch<PayrollEntry>(`/payroll/${id}`, body),
-  pay: (id: string) => api.post<PayrollEntry>(`/payroll/${id}/pay`),
+  list: (period: string) => api.get<PayrollList>('/payroll', { period }),
+  calculate: (period: string) => api.post<PayrollList>('/payroll/calculate', { period }),
+  sheet: (userId: string, period: string) => api.get<PayrollSheet>(`/payroll/sheet/${userId}`, { period }),
+  /** Xodimning o'z varag'i */
+  me: (period: string) => api.get<PayrollSheet>('/payroll/me', { period }),
+  addTx: (body: PayrollTxInput) => api.post<PayrollSheet>('/payroll/transactions', body),
+  deleteTx: (id: string) => api.del<PayrollSheet>(`/payroll/transactions/${id}`),
+  excuse: (body: { userId: string; day: string; reason: AbsenceReason; note?: string }) => api.post<PayrollSheet>('/payroll/absences', body),
+  removeExcuse: (id: string) => api.del<PayrollSheet>(`/payroll/absences/${id}`),
+  /** Qoldiqni to'liq to'lash */
+  pay: (id: string, method?: PaymentMethod) => api.post<PayrollEntry>(`/payroll/${id}/pay`, { method }),
 };
 
 export const reportsApi = {

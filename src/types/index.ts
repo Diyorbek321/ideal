@@ -364,13 +364,55 @@ export interface PayrollEntry {
   kpiDetails: { plan?: number; closedCount?: number; overPlan?: number; fund?: number; onTimeOrders?: KpiOrderRef[] };
   fine: number;
   advance: number;
+  /** Davomatdan: kelmagan kunlar ulushi va kechikish jarimasi */
+  absentDays: number;
+  absenceDeduction: number;
+  lateCount: number;
+  latePenalty: number;
+  /** Hisoblangan (avansdan oldin) */
+  gross: number;
+  /** Qo'lga: gross − avans */
   total: number;
+  paidAmount: number;
+  remaining: number;
   details: Array<{ orderId: string; orderNumber: string; areaM2: number; amount: number }>;
   workBonus: number;
   workDetails: Partial<WorkBonusDetails>;
   isPaid: boolean;
   paidAt: string | null;
   user: UserRef & { role: UserRole; payType: PayType; bonusUnit: BonusUnit };
+}
+
+export type PayrollTxKind = 'ADVANCE' | 'PAYMENT' | 'BONUS' | 'FINE';
+export type AbsenceReason = 'SICK' | 'VACATION' | 'DAY_OFF' | 'OTHER';
+
+export interface PayrollTransaction {
+  id: string;
+  kind: PayrollTxKind;
+  amount: number;
+  method: PaymentMethod | null;
+  reason: string | null;
+  date: string;
+}
+
+export interface AbsenceExcuse {
+  id: string;
+  day: string;
+  reason: AbsenceReason;
+  note: string | null;
+}
+
+/** Xodimning oylik varag'i */
+export interface PayrollSheet {
+  user: UserRef & { role: UserRole; payType: PayType };
+  period: string;
+  entry: Omit<PayrollEntry, 'user'>;
+  lines: Array<{ label: string; amount: number }>;
+  transactions: PayrollTransaction[];
+  absentDays: string[];
+  lateDays: Array<{ day: string; minutes: number }>;
+  excuses: AbsenceExcuse[];
+  rules: { latePenalty: number; lateGraceMin: number; absenceFrom: string | null; workDaysInMonth: number };
 }
 
 export type PriceKind = 'MATERIAL' | 'PRINT' | 'FINISHING' | 'DESIGN' | 'INSTALLATION' | 'OTHER';
@@ -452,6 +494,10 @@ export interface CompanySettings {
   officeLat: number | null;
   officeLng: number | null;
   officeRadiusM: number;
+  /** Oylik: kechikish jarimasi (0 — o'chiq), necha daqiqadan keyin; kelmagan kunlar qaysi sanadan sanaladi */
+  latePenalty: number;
+  lateGraceMin: number;
+  absenceFrom: string | null;
   /** Direktorga Telegram orqali kunlik hisobot (Toshkent vaqti, "20:00") */
   dailyReportEnabled: boolean;
   dailyReportTime: string;

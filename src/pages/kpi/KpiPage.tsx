@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, Settings, Target, TrendingUp, Users } from 'lucide-react';
-import { analyticsApi, kpiApi } from '@/api';
+import { analyticsApi, kpiApi, payrollApi } from '@/api';
+import { PayrollSheetView } from '@/components/payroll/PayrollSheetView';
 import { OverdueList } from '@/components/reports/OverdueList';
 import type { KpiSummary } from '@/types';
 import { useUser } from '@/lib/auth';
@@ -60,6 +61,17 @@ function MyOverdue({ period }: { period: string }) {
   );
 }
 
+// Xodim o'z oyligi qanday hisoblanganini ko'radi — har bir qo'shilgan va ayirilgan summa sababi bilan
+function MySalary({ period }: { period: string }) {
+  const { data } = useQuery({ queryKey: ['payroll', 'me', period], queryFn: () => payrollApi.me(period) });
+  if (!data) return null;
+  return (
+    <Card title="Mening oyligim" description="Oy davomida avtomatik hisoblanadi: davomat, bajarilgan ish, bonus va avanslar">
+      <PayrollSheetView sheet={data} />
+    </Card>
+  );
+}
+
 function MyView({ period }: { period: string }) {
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['kpi', 'me', period], queryFn: () => kpiApi.me(period) });
   if (isLoading) return <Loading rows={4} />;
@@ -67,6 +79,7 @@ function MyView({ period }: { period: string }) {
   return (
     <div className="space-y-6">
       <PlanBar s={data} />
+      <MySalary period={period} />
       <MyOverdue period={period} />
       {data.eligible ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

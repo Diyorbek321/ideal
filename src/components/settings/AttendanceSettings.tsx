@@ -1,6 +1,7 @@
 import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MapPin } from 'lucide-react';
+import { formatCurrency, parseMoney, toDateInput } from '@/lib/utils';
 import { settingsApi } from '@/api';
 import type { CompanySettings } from '@/types';
 import { Button } from '@/components/ui/Button';
@@ -14,20 +15,32 @@ const num = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.'))
 export function AttendanceSettings({ s }: { s: CompanySettings }) {
   const toast = useToast();
   const qc = useQueryClient();
-  const [f, setF] = React.useState({ start: '', lat: '', lng: '', radius: '' });
+  const [f, setF] = React.useState({ start: '', lat: '', lng: '', radius: '', penalty: '', grace: '', from: '' });
   const [locating, setLocating] = React.useState(false);
   React.useEffect(() => {
-    setF({ start: s.workStartTime, lat: s.officeLat == null ? '' : String(s.officeLat), lng: s.officeLng == null ? '' : String(s.officeLng), radius: String(s.officeRadiusM) });
+    setF({
+      start: s.workStartTime, lat: s.officeLat == null ? '' : String(s.officeLat), lng: s.officeLng == null ? '' : String(s.officeLng), radius: String(s.officeRadiusM),
+      penalty: String(s.latePenalty), grace: String(s.lateGraceMin), from: s.absenceFrom ?? '',
+    });
   }, [s]);
 
   const lat = num(f.lat);
   const lng = num(f.lng);
   const radius = Number(f.radius);
-  const valid = /^\d{2}:\d{2}$/.test(f.start) && (lat == null) === (lng == null) && !Number.isNaN(lat) && !Number.isNaN(lng) && radius >= 20;
+  const penalty = f.penalty.trim() ? parseMoney(f.penalty) : 0;
+  const grace = Number(f.grace);
+  const valid = /^\d{2}:\d{2}$/.test(f.start) && (lat == null) === (lng == null) && !Number.isNaN(lat) && !Number.isNaN(lng) && radius >= 20
+    && penalty !== null && Number.isInteger(grace) && grace >= 0;
 
   const save = useMutation({
-    mutationFn: () => settingsApi.updateCompany({ workStartTime: f.start, officeLat: lat, officeLng: lng, officeRadiusM: Math.round(radius) }),
-    onSuccess: () => { toast.success('Saqlandi'); qc.invalidateQueries({ queryKey: ['company'] }); qc.invalidateQueries({ queryKey: ['attendance'] }); },
+    mutationFn: () => settingsApi.updateCompany({
+      workStartTime: f.start, officeLat: lat, officeLng: lng, officeRadiusM: Math.round(radius),
+      latePenalty: penalty ?? 0, lateGraceMin: grace, absenceFrom: f.from || null,
+    }),
+    onSuccess: () => {
+      toast.success('Saqlandi');
+      for (const key of ['company', 'attendance', 'payroll', 'payroll-sheet']) qc.invalidateQueries({ queryKey: [key] });
+    },
     onError: toast.error,
   });
 
@@ -48,6 +61,24 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
         <Input label="Ruxsat etilgan masofa (metr)" inputMode="numeric" value={f.radius} onChange={(e) => setF({ ...f, radius: e.target.value })} />
         <Input label="Ofis kengligi (lat)" inputMode="decimal" placeholder="bo'sh — joylashuv tekshirilmaydi" value={f.lat} onChange={(e) => setF({ ...f, lat: e.target.value })} />
         <Input label="Ofis uzunligi (lng)" inputMode="decimal" value={f.lng} onChange={(e) => setF({ ...f, lng: e.target.value })} />
+      </div>
+      <div className="mt-6 border-t border-gray-100 pt-4">
+        <p className="mb-3 text-sm font-semibold text-gray-900">Oylikka ta'siri</p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <Input label="Kelmagan kunlar qaysi sanadan ayiriladi" type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />
+          <Input label="Kechikish jarimasi (so'm, har biriga)" inputMode="numeric" placeholder="0 — jarima yo'q" value={f.penalty} onChange={(e) => setF({ ...f, penalty: e.target.value })} />
+          <Input label="Necha daqiqadan keyin" inputMode="numeric" value={f.grace} onChange={(e) => setF({ ...f, grace: e.target.value })} />
+        </div>
+        <p className="mt-2 text-xs text-gray-500">
+          Fiks oylikdan har kelmagan ish kuni uchun oylik ÷ oydagi ish kunlari ayiriladi; sababli kunlar (kasal, ta'til) — oylik varag'ida belgilanadi va ayirilmaydi.
+          {f.from ? ` ${f.from.split('-').reverse().join('.')} dan oldingi kunlar hisobga olinmaydi.` : ' Sana bo\'sh — kelmagan kunlar hozircha ayirilmaydi.'}
+          {penalty ? ` Har ${f.grace || 0} daqiqadan ortiq kechikish — ${formatCurrency(penalty)}.` : ''}
+        </p>
+        {!f.from && (
+          <button type="button" className="mt-2 text-xs font-semibold text-brand-700 hover:underline" onClick={() => setF({ ...f, from: toDateInput(new Date()) })}>
+            Bugundan boshlash
+          </button>
+        )}
       </div>
       <p className="mt-3 text-sm text-gray-500">
         Ofis joylashuvi kiritilsa, check-in faqat ofisdan {f.radius || '…'} m ichida qabul qilinadi. Ofisda turib «Hozirgi joylashuv» ni bosing.

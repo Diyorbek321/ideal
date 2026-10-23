@@ -1,6 +1,7 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calculator, CheckCircle2, Pencil, Plus, XCircle } from 'lucide-react';
+import { PayrollSheetView } from '@/components/payroll/PayrollSheetView';
 import { payrollApi, usersApi } from '@/api';
 import type { BonusUnit, PayType, PayrollEntry, User, UserRole } from '@/types';
 import { BONUS_UNIT_LABELS, ROLE_LABELS, options } from '@/lib/labels';
@@ -118,72 +119,42 @@ function EmployeeModal({ user, open, onClose }: { user?: User; open: boolean; on
   );
 }
 
-function PayrollRow({ e }: { e: PayrollEntry }) {
-  const toast = useToast();
-  const qc = useQueryClient();
-  const [adj, setAdj] = React.useState({ bonus: String(e.bonus || ''), fine: String(e.fine || ''), advance: String(e.advance || '') });
-  const [open, setOpen] = React.useState(false);
-  const refresh = () => qc.invalidateQueries({ queryKey: ['payroll'] });
-  const save = useMutation({ mutationFn: () => [adj.bonus, adj.fine, adj.advance].some((v) => Number.isNaN(n(v))) ? Promise.reject(new Error('Summa noto\'g\'ri')) : payrollApi.adjust(e.id, { bonus: n(adj.bonus), fine: n(adj.fine), advance: n(adj.advance) }), onSuccess: refresh, onError: toast.error });
-  const pay = useMutation({ mutationFn: () => payrollApi.pay(e.id), onSuccess: () => { toast.success('To\'landi'); refresh(); }, onError: toast.error });
-  const dirty = n(adj.bonus) !== e.bonus || n(adj.fine) !== e.fine || n(adj.advance) !== e.advance;
-  const field = (k: keyof typeof adj) => (
-    <input value={adj[k]} disabled={e.isPaid} onChange={(ev) => setAdj({ ...adj, [k]: ev.target.value })} inputMode="numeric" className="h-8 w-28 rounded border border-gray-200 px-2 text-sm disabled:bg-gray-50" aria-label={k} />
-  );
-
+function PayrollRow({ e, onOpen }: { e: PayrollEntry; onOpen: () => void }) {
+  const minus = e.absenceDeduction + e.latePenalty;
+  const plus = e.workBonus + e.planBonus + e.onTimeBonus + e.bonus;
   return (
-    <>
-      <tr className="border-b border-gray-50">
-        <td className="px-4 py-3">
-          <button className="text-left" onClick={() => setOpen((o) => !o)}>
-            <p className="font-bold text-gray-900">{e.user.fullName}</p>
-            <p className="text-xs text-gray-500">{ROLE_LABELS[e.user.role]}{e.user.payType === 'PER_M2' ? ` · ${formatNumber(e.m2Total, 2)} m²` : ''}</p>
-          </button>
-        </td>
-        <td className="px-4 py-3 font-medium">{formatCurrency(e.baseAmount)}</td>
-        <td className="whitespace-nowrap px-4 py-3" title="Ish hajmi bonusi">
-          <p className="font-medium">{formatCurrency(e.workBonus)}</p>
-          {e.workDetails?.unit && e.workDetails.unit !== 'NONE' && (
-            <p className="text-[11px] text-gray-500">
-              {formatNumber(e.workDetails.quantity ?? 0, e.workDetails.unit === 'M2' ? 1 : 0)} {unitWord(e.workDetails.unit)}
-              {(e.workDetails.overUnits ?? 0) > 0 && ` · ${formatNumber(e.workDetails.overUnits ?? 0, e.workDetails.unit === 'M2' ? 1 : 0)} chegaradan keyin`}
-            </p>
-          )}
-        </td>
-        <td className="whitespace-nowrap px-4 py-3" title="Reja fondidan ulush + o'z vaqtida topshirilgan buyurtmalar">
-          <p className="font-medium">{formatCurrency(e.planBonus + e.onTimeBonus)}</p>
-          {(e.planBonus > 0 || e.onTimeBonus > 0) && (
-            <p className="text-[11px] text-gray-500">reja {formatCurrency(e.planBonus)} · vaqtida {e.kpiDetails?.onTimeOrders?.length ?? 0} ta</p>
-          )}
-        </td>
-        <td className="px-4 py-3">{field('bonus')}</td>
-        <td className="px-4 py-3">{field('fine')}</td>
-        <td className="px-4 py-3">{field('advance')}</td>
-        <td className="px-4 py-3 font-black text-brand-600">{formatCurrency(e.total)}</td>
-        <td className="space-x-2 whitespace-nowrap px-4 py-3 text-right">
-          {e.isPaid ? <Badge variant="success">To'langan</Badge> : (
-            <>
-              {dirty && <Button size="sm" variant="outline" isLoading={save.isPending} onClick={() => save.mutate()}>Saqlash</Button>}
-              <Button size="sm" disabled={dirty} isLoading={pay.isPending} onClick={() => window.confirm(`${e.user.fullName}: ${formatCurrency(e.total)} to'landimi?`) && pay.mutate()}>To'lash</Button>
-            </>
-          )}
-        </td>
-      </tr>
-      {open && (e.workDetails?.items?.length ?? 0) > 0 && (
-        <tr className="bg-gray-50/50">
-          <td colSpan={9} className="px-4 py-2 text-xs text-gray-600">
-            Bonus uchun ishlar: {e.workDetails.items!.map((d) => (e.workDetails.unit === 'M2' ? `${d.orderNumber} (${formatNumber(d.areaM2, 1)} m²)` : d.orderNumber)).join(', ')}
-          </td>
-        </tr>
-      )}
-      {open && e.details.length > 0 && (
-        <tr className="bg-gray-50/50">
-          <td colSpan={9} className="px-4 py-2 text-xs text-gray-600">
-            {e.details.map((d) => `${d.orderNumber}: ${d.areaM2} m² = ${formatCurrency(d.amount)}`).join(' · ')}
-          </td>
-        </tr>
-      )}
-    </>
+    <tr className="cursor-pointer border-b border-gray-50 hover:bg-gray-50/50" onClick={onOpen}>
+      <td className="px-4 py-3">
+        <p className="font-bold text-gray-900">{e.user.fullName}</p>
+        <p className="text-xs text-gray-500">{ROLE_LABELS[e.user.role]}{e.user.payType === 'PER_M2' ? ` · ${formatNumber(e.m2Total, 2)} m²` : ''}</p>
+      </td>
+      <td className="px-4 py-3 font-medium">{formatCurrency(e.baseAmount)}</td>
+      <td className="px-4 py-3 text-emerald-700" title="Ish hajmi + KPI + qo'shimcha bonus">{plus ? `+${formatCurrency(plus)}` : '—'}</td>
+      <td className="px-4 py-3 text-red-600" title="Kelmagan kunlar + kechikish">
+        {minus ? `−${formatCurrency(minus)}` : '—'}
+        {(e.absentDays > 0 || e.lateCount > 0) && <p className="text-[11px] text-gray-500">{e.absentDays} kun · {e.lateCount} kechikish</p>}
+      </td>
+      <td className="px-4 py-3 text-red-600">{e.fine ? `−${formatCurrency(e.fine)}` : '—'}</td>
+      <td className="px-4 py-3">{e.advance ? formatCurrency(e.advance) : '—'}</td>
+      <td className="px-4 py-3 font-black text-gray-900">{formatCurrency(e.total)}</td>
+      <td className="px-4 py-3">{e.paidAmount ? formatCurrency(e.paidAmount) : '—'}</td>
+      <td className="px-4 py-3 text-right">
+        {e.isPaid ? <Badge variant="success">To'langan</Badge> : <span className="font-bold text-brand-700">{formatCurrency(e.remaining)}</span>}
+      </td>
+    </tr>
+  );
+}
+
+function SheetModal({ userId, period, onClose }: { userId: string | null; period: string; onClose: () => void }) {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['payroll-sheet', userId, period],
+    queryFn: () => payrollApi.sheet(userId!, period),
+    enabled: !!userId,
+  });
+  return (
+    <Modal open={!!userId} onClose={onClose} size="lg" title={data ? `${data.user.fullName} — ${periodLabel(period)}` : 'Oylik varag\'i'}>
+      {error ? <ErrorState error={error} onRetry={refetch} /> : isLoading || !data ? <Loading /> : <PayrollSheetView sheet={data} editable />}
+    </Modal>
   );
 }
 
@@ -192,6 +163,7 @@ export default function EmployeesPage() {
   const qc = useQueryClient();
   const [period, setPeriod] = React.useState(currentPeriod());
   const [editing, setEditing] = React.useState<User | null | undefined>(undefined);
+  const [sheetUser, setSheetUser] = React.useState<string | null>(null);
   const users = useQuery({ queryKey: ['users', 'all'], queryFn: () => usersApi.list() });
   const pdf = usePdfExport(`oylik_${period}`);
   const payroll = useQuery({ queryKey: ['payroll', period], queryFn: () => payrollApi.list(period) });
@@ -202,7 +174,6 @@ export default function EmployeesPage() {
   });
 
   const entries = payroll.data?.entries ?? [];
-  const paid = entries.filter((e) => e.isPaid).reduce((s, e) => s + e.total, 0);
 
   return (
     <div className="space-y-6">
@@ -251,7 +222,7 @@ export default function EmployeesPage() {
       <div ref={pdf.ref}>
       <Card
         title={`Oylik hisobi · ${periodLabel(period)}`}
-        description="Asosiy (fiks yoki m² × stavka) + ish hajmi bonusi + KPI + qo'shimcha bonus − jarima − avans"
+        description="Fiks (yoki m² × stavka) − kelmagan kunlar − kechikish + bonuslar − jarima. Avans qo'lga beriladigandan ushlanadi. Xodimni bosing — varag'i ochiladi"
         actions={(
           <div className="flex flex-wrap gap-2" data-pdf-hide>
             <MonthInput value={period} onChange={setPeriod} />
@@ -260,26 +231,29 @@ export default function EmployeesPage() {
           </div>
         )}
       >
-        <div className="mb-4 grid grid-cols-2 gap-4">
-          <div className="rounded-lg bg-brand-50 p-3"><p className="text-xs text-brand-700">Jami</p><p className="text-xl font-black text-brand-700">{formatCurrency(payroll.data?.total)}</p></div>
-          <div className="rounded-lg bg-emerald-50 p-3"><p className="text-xs text-emerald-700">To'langan</p><p className="text-xl font-black text-emerald-700">{formatCurrency(paid)}</p></div>
+        <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="rounded-lg bg-brand-50 p-3"><p className="text-xs text-brand-700">Qo'lga (jami)</p><p className="text-xl font-black text-brand-700">{formatCurrency(payroll.data?.total)}</p></div>
+          <div className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-600">Berilgan avanslar</p><p className="text-xl font-black text-gray-900">{formatCurrency(payroll.data?.advances)}</p></div>
+          <div className="rounded-lg bg-emerald-50 p-3"><p className="text-xs text-emerald-700">To'langan</p><p className="text-xl font-black text-emerald-700">{formatCurrency(payroll.data?.paid)}</p></div>
+          <div className="rounded-lg bg-amber-50 p-3"><p className="text-xs text-amber-700">Berilishi kerak</p><p className="text-xl font-black text-amber-700">{formatCurrency((payroll.data?.total ?? 0) - (payroll.data?.paid ?? 0))}</p></div>
         </div>
         {payroll.isLoading ? <Loading /> : entries.length === 0 ? <Empty text={'Bu oy hali hisoblanmagan — "Hisoblash" tugmasini bosing'} /> : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1080px] whitespace-nowrap text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-gray-500">
-                  <th className="px-4 py-2">Xodim</th><th className="px-4 py-2">Asosiy</th><th className="px-4 py-2">Ish bonusi</th><th className="px-4 py-2">KPI</th><th className="px-4 py-2">Qo'shimcha bonus</th>
-                  <th className="px-4 py-2">Jarima</th><th className="px-4 py-2">Avans</th><th className="px-4 py-2">Jami</th><th className="px-4 py-2" />
+                  <th className="px-4 py-2">Xodim</th><th className="px-4 py-2">Asosiy</th><th className="px-4 py-2">Bonuslar</th><th className="px-4 py-2">Davomat</th>
+                  <th className="px-4 py-2">Jarima</th><th className="px-4 py-2">Avans</th><th className="px-4 py-2">Qo'lga</th><th className="px-4 py-2">To'langan</th><th className="px-4 py-2 text-right">Qoldiq</th>
                 </tr>
               </thead>
-              <tbody>{entries.map((e) => <PayrollRow key={`${e.id}-${e.total}`} e={e} />)}</tbody>
+              <tbody>{entries.map((e) => <PayrollRow key={e.id} e={e} onOpen={() => setSheetUser(e.userId)} />)}</tbody>
             </table>
           </div>
         )}
       </Card>
       </div>
 
+      <SheetModal userId={sheetUser} period={period} onClose={() => setSheetUser(null)} />
       <EmployeeModal open={editing !== undefined} user={editing ?? undefined} onClose={() => setEditing(undefined)} />
     </div>
   );
