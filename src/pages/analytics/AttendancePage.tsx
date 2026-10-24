@@ -4,20 +4,23 @@ import { CalendarCheck } from 'lucide-react';
 import { attendanceApi } from '@/api';
 import type { AttendanceRecord } from '@/types';
 import { ROLE_LABELS } from '@/lib/labels';
-import { cn, currentPeriod, formatDateTime } from '@/lib/utils';
+import { cn, currentPeriod, fileUrl, formatDateTime } from '@/lib/utils';
 import { Card } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
 import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { Stat } from '@/components/reports/charts';
 import { MonthInput, periodLabel, usePdfExport } from '@/components/reports/ReportToolbar';
 
 const hhmm = (iso: string) => formatDateTime(iso).slice(-5);
 
-function Cell({ r, isWorkDay }: { r?: AttendanceRecord; isWorkDay: boolean }) {
+function Cell({ r, isWorkDay, onSelfie }: { r?: AttendanceRecord; isWorkDay: boolean; onSelfie: (r: AttendanceRecord) => void }) {
   if (!r) return <td className={cn('border border-gray-100 p-0 text-center text-[10px]', isWorkDay ? 'bg-red-50 text-red-400' : 'bg-gray-50 text-gray-300')}>{isWorkDay ? '✕' : ''}</td>;
   return (
     <td className={cn('border border-gray-100 px-0.5 py-1 text-center text-[10px] tabular-nums', r.lateMinutes ? 'bg-amber-50 font-semibold text-amber-800' : 'bg-emerald-50 text-emerald-800')}
       title={`Keldi ${hhmm(r.checkInAt)}${r.checkOutAt ? `, ketdi ${hhmm(r.checkOutAt)}` : ''}${r.lateMinutes ? `, ${r.lateMinutes} daq kech` : ''}`}>
-      {hhmm(r.checkInAt)}
+      {r.selfieUrl ? (
+        <button type="button" className="underline decoration-dotted underline-offset-2" onClick={() => onSelfie(r)}>{hhmm(r.checkInAt)}</button>
+      ) : hhmm(r.checkInAt)}
     </td>
   );
 }
@@ -25,6 +28,7 @@ function Cell({ r, isWorkDay }: { r?: AttendanceRecord; isWorkDay: boolean }) {
 export default function AttendancePage() {
   const [period, setPeriod] = React.useState(currentPeriod());
   const pdf = usePdfExport(`davomat_${period}`);
+  const [selfie, setSelfie] = React.useState<AttendanceRecord | null>(null);
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['attendance', 'month', period], queryFn: () => attendanceApi.month(period) });
 
   const days = React.useMemo(() => {
@@ -80,7 +84,7 @@ export default function AttendancePage() {
             )}
           </Card>
 
-          <Card title="Kunlik jadval" description="Yashil — vaqtida, sariq — kechikkan, qizil — kelmagan">
+          <Card title="Kunlik jadval" description="Yashil — vaqtida, sariq — kechikkan, qizil — kelmagan. Tagiga chizilgan vaqt — selfi bor, bosib ko'ring">
             <div className="-mx-5 overflow-x-auto sm:-mx-6">
               <table className="w-full border-collapse text-xs">
                 <thead>
@@ -93,13 +97,17 @@ export default function AttendancePage() {
                   {data.users.map((u) => (
                     <tr key={u.id}>
                       <td className="sticky left-0 whitespace-nowrap bg-white px-3 py-1 font-medium">{u.fullName}</td>
-                      {days.map((d) => <Cell key={d} isWorkDay={data.workDays.includes(d)} r={data.records.find((r) => r.userId === u.id && r.day === d)} />)}
+                      {days.map((d) => <Cell key={d} isWorkDay={data.workDays.includes(d)} r={data.records.find((r) => r.userId === u.id && r.day === d)} onSelfie={setSelfie} />)}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </Card>
+          <Modal open={!!selfie} onClose={() => setSelfie(null)}
+            title={selfie ? `${data.users.find((u) => u.id === selfie.userId)?.fullName ?? ''} · ${selfie.day.split('-').reverse().join('.')} ${hhmm(selfie.checkInAt)}` : ''}>
+            {selfie?.selfieUrl && <img src={fileUrl(selfie.selfieUrl)} alt="Check-in selfisi" className="mx-auto max-h-[70dvh] rounded-2xl object-contain" />}
+          </Modal>
         </>
       )}
     </div>

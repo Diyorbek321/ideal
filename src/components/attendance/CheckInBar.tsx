@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Fingerprint, LogOut, MapPin } from 'lucide-react';
-import { attendanceApi } from '@/api';
+import { Camera, Fingerprint, LogOut, MapPin } from 'lucide-react';
+import React from 'react';
+import { attendanceApi, filesApi } from '@/api';
 import { useUser } from '@/lib/auth';
 import { formatDateTime } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { SelfieCamera } from './SelfieCamera';
 
 const hhmm = (iso: string) => formatDateTime(iso).slice(-5);
 
@@ -27,10 +29,17 @@ export function CheckInBar() {
   const enabled = user.role !== 'ADMIN';
   const { data } = useQuery({ queryKey: ['attendance', 'today'], queryFn: attendanceApi.today, enabled, staleTime: 60_000 });
 
+  const [camera, setCamera] = React.useState(false);
+
   const done = () => qc.invalidateQueries({ queryKey: ['attendance'] });
   const checkIn = useMutation({
-    mutationFn: async () => attendanceApi.checkIn(data?.geofence ? await currentPosition() : undefined),
-    onSuccess: (r) => { toast.success(r.lateMinutes ? `Belgilandi. ${r.lateMinutes} daqiqa kechikdingiz` : 'Belgilandi. Xayrli ish kuni!'); done(); },
+    // Avval GPS (rad etilsa — selfi behuda yuklanmaydi), keyin selfi
+    mutationFn: async (selfie?: File) => {
+      const coords = data?.geofence ? await currentPosition() : {};
+      const selfieUrl = selfie ? (await filesApi.upload(selfie, { kind: 'PHOTO' })).url : undefined;
+      return attendanceApi.checkIn({ ...coords, selfieUrl });
+    },
+    onSuccess: (r) => { setCamera(false); toast.success(r.lateMinutes ? `Belgilandi. ${r.lateMinutes} daqiqa kechikdingiz` : 'Belgilandi. Xayrli ish kuni!'); done(); },
     onError: toast.error,
   });
   const checkOut = useMutation({ mutationFn: attendanceApi.checkOut, onSuccess: () => { toast.success('Ketish vaqti belgilandi'); done(); }, onError: toast.error });
@@ -45,10 +54,14 @@ export function CheckInBar() {
           <Fingerprint className="h-6 w-6 shrink-0 text-gray-900" />
           <div>
             <p className="font-semibold text-gray-900">Ishga kelganingizni tasdiqlang</p>
-            <p className="text-sm text-gray-700">Ish {data.workStartTime} da boshlanadi{data.geofence && <> · <MapPin className="inline h-3.5 w-3.5" /> faqat ofisda</>}</p>
+            <p className="text-sm text-gray-700">Ish {data.workStartTime} da boshlanadi{data.geofence && <> · <MapPin className="inline h-3.5 w-3.5" /> faqat ofisda</>}{data.selfieRequired && <> · bugun selfi bilan</>}</p>
           </div>
         </div>
-        <Button variant="secondary" size="lg" isLoading={checkIn.isPending} onClick={() => checkIn.mutate()}>Ishga keldim</Button>
+        <Button variant="secondary" size="lg" isLoading={checkIn.isPending && !camera}
+          onClick={() => (data.selfieRequired ? setCamera(true) : checkIn.mutate(undefined))}>
+          {data.selfieRequired && <Camera className="h-4 w-4" />}Ishga keldim
+        </Button>
+        <SelfieCamera open={camera} onClose={() => setCamera(false)} isLoading={checkIn.isPending} onCapture={(f) => checkIn.mutate(f)} />
       </div>
     );
   }

@@ -15,12 +15,12 @@ const num = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.'))
 export function AttendanceSettings({ s }: { s: CompanySettings }) {
   const toast = useToast();
   const qc = useQueryClient();
-  const [f, setF] = React.useState({ start: '', lat: '', lng: '', radius: '', penalty: '', grace: '', from: '' });
+  const [f, setF] = React.useState({ start: '', lat: '', lng: '', radius: '', penalty: '', grace: '', from: '', selfie: '' });
   const [locating, setLocating] = React.useState(false);
   React.useEffect(() => {
     setF({
       start: s.workStartTime, lat: s.officeLat == null ? '' : String(s.officeLat), lng: s.officeLng == null ? '' : String(s.officeLng), radius: String(s.officeRadiusM),
-      penalty: String(s.latePenalty), grace: String(s.lateGraceMin), from: s.absenceFrom ?? '',
+      penalty: String(s.latePenalty), grace: String(s.lateGraceMin), from: s.absenceFrom ?? '', selfie: String(s.selfiePercent),
     });
   }, [s]);
 
@@ -29,13 +29,15 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
   const radius = Number(f.radius);
   const penalty = f.penalty.trim() ? parseMoney(f.penalty) : 0;
   const grace = Number(f.grace);
+  const selfie = f.selfie.trim() === '' ? 0 : Number(f.selfie);
   const valid = /^\d{2}:\d{2}$/.test(f.start) && (lat == null) === (lng == null) && !Number.isNaN(lat) && !Number.isNaN(lng) && radius >= 20
-    && penalty !== null && Number.isInteger(grace) && grace >= 0;
+    && penalty !== null && Number.isInteger(grace) && grace >= 0
+    && Number.isInteger(selfie) && selfie >= 0 && selfie <= 100;
 
   const save = useMutation({
     mutationFn: () => settingsApi.updateCompany({
       workStartTime: f.start, officeLat: lat, officeLng: lng, officeRadiusM: Math.round(radius),
-      latePenalty: penalty ?? 0, lateGraceMin: grace, absenceFrom: f.from || null,
+      latePenalty: penalty ?? 0, lateGraceMin: grace, absenceFrom: f.from || null, selfiePercent: selfie,
     }),
     onSuccess: () => {
       toast.success('Saqlandi');
@@ -61,6 +63,12 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
         <Input label="Ruxsat etilgan masofa (metr)" inputMode="numeric" value={f.radius} onChange={(e) => setF({ ...f, radius: e.target.value })} />
         <Input label="Ofis kengligi (lat)" inputMode="decimal" placeholder="bo'sh — joylashuv tekshirilmaydi" value={f.lat} onChange={(e) => setF({ ...f, lat: e.target.value })} />
         <Input label="Ofis uzunligi (lng)" inputMode="decimal" value={f.lng} onChange={(e) => setF({ ...f, lng: e.target.value })} />
+        <div>
+          <Input label="Selfi so'rash (%)" inputMode="numeric" placeholder="0 — so'ralmaydi" value={f.selfie} onChange={(e) => setF({ ...f, selfie: e.target.value })} />
+          <p className="mt-1 text-xs text-gray-500">
+            {!selfie ? 'Selfi so\'ralmaydi' : selfie >= 100 ? 'Har kuni selfi so\'raladi' : `Tasodifiy kunlarda — taxminan har ${Math.max(1, Math.round(100 / selfie))}-kunda. Xodim qaysi kun ekanini oldindan bilmaydi`}
+          </p>
+        </div>
       </div>
       <div className="mt-6 border-t border-gray-100 pt-4">
         <p className="mb-3 text-sm font-semibold text-gray-900">Oylikka ta'siri</p>

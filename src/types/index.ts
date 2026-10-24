@@ -494,6 +494,8 @@ export interface CompanySettings {
   officeLat: number | null;
   officeLng: number | null;
   officeRadiusM: number;
+  /** Check-in'da selfi so'rash ehtimoli, %: 0 — o'chiq, 100 — har kuni */
+  selfiePercent: number;
   /** Oylik: kechikish jarimasi (0 — o'chiq), necha daqiqadan keyin; kelmagan kunlar qaysi sanadan sanaladi */
   latePenalty: number;
   lateGraceMin: number;
@@ -857,6 +859,7 @@ export interface AttendanceRecord {
   checkOutAt: string | null;
   lateMinutes: number;
   distanceM: number | null;
+  selfieUrl: string | null;
 }
 
 export interface AttendanceMonth {

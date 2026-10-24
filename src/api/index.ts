@@ -329,8 +329,8 @@ export const analyticsApi = {
 };
 
 export const attendanceApi = {
-  today: () => api.get<{ record: AttendanceRecord | null; workStartTime: string; geofence: boolean }>('/attendance/me/today'),
-  checkIn: (coords?: { lat: number; lng: number }) => api.post<AttendanceRecord>('/attendance/check-in', coords ?? {}),
+  today: () => api.get<{ record: AttendanceRecord | null; workStartTime: string; geofence: boolean; selfieRequired: boolean }>('/attendance/me/today'),
+  checkIn: (body: { lat?: number; lng?: number; selfieUrl?: string } = {}) => api.post<AttendanceRecord>('/attendance/check-in', body),
   checkOut: () => api.post<AttendanceRecord>('/attendance/check-out'),
   month: (period: string) => api.get<AttendanceMonth>('/attendance', { period }),
 };
