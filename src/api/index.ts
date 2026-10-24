@@ -1,7 +1,7 @@
 import type {
   Client, ClientDetail, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
   Expense, FileAsset, Installation, InstallProblem, InstallProblemType, Material, Order, OrderDetail,
-  OrderEvent, OrderSource, OrderStatus, Payment, PaymentKind, PaymentMethod, PayrollEntry, PayrollSheet, PayrollTxKind, AbsenceReason, PriceListItem,
+  AuditLogEntry, OrderEvent, OrderSource, OrderStatus, Payment, PaymentKind, PaymentMethod, PayrollEntry, PayrollSheet, PayrollTxKind, AbsenceReason, PriceListItem,
   PriceResult, ProductType, PublicApproval, QueueTask, ReportSummary, ShareInfo, SmsMessage, SmsStatusInfo, StockMovement,
   AppNotification, ClientImportResult, TrackInfo, User, MyKpi, TeamKpi, Lead, LeadStatus, ClientType,
   FinanceAnalytics, ClientsAnalytics, InventoryAnalytics, OverdueReport, MyOverdue, AttendanceMonth, AttendanceRecord,
@@ -85,11 +85,12 @@ export const usersApi = {
 };
 
 export const clientsApi = {
-  list: (q: { search?: string; type?: string; withDebt?: boolean; page?: number; limit?: number } = {}) =>
+  list: (q: { search?: string; type?: string; withDebt?: boolean; archived?: boolean; page?: number; limit?: number } = {}) =>
     api.page<Client[]>('/clients', q),
   get: (id: string) => api.get<ClientDetail>(`/clients/${id}`),
   create: (body: Partial<Client>) => api.post<Client>('/clients', body),
   update: (id: string, body: Partial<Client>) => api.patch<Client>(`/clients/${id}`, body),
+  remove: (id: string) => api.del<{ deleted: boolean }>(`/clients/${id}`),
 };
 
 export const ordersApi = {
@@ -124,6 +125,7 @@ export const designsApi = {
     api.post<DesignVersion>('/designs', body),
   send: (id: string) => api.post<ShareInfo>(`/designs/${id}/send`),
   share: (id: string) => api.get<ShareInfo>(`/designs/${id}/share`),
+  remove: (id: string) => api.del<{ deleted: boolean }>(`/designs/${id}`),
   decide: (id: string, decision: 'APPROVE' | 'REQUEST_CHANGES', comment?: string) =>
     api.post<DesignVersion>(`/designs/${id}/decision`, { decision, comment }),
 };
@@ -160,6 +162,7 @@ export const equipmentApi = {
   list: () => api.get<Equipment[]>('/equipment'),
   create: (body: Partial<Equipment>) => api.post<Equipment>('/equipment', body),
   update: (id: string, body: Partial<Equipment>) => api.patch<Equipment>(`/equipment/${id}`, body),
+  remove: (id: string) => api.del<{ deleted: boolean }>(`/equipment/${id}`),
 };
 
 export interface InstallationInput {
@@ -196,10 +199,11 @@ export const installationsApi = {
   problem: (id: string, body: { type: InstallProblemType; description: string; photoUrl?: string }) =>
     api.post<InstallProblem>(`/installations/${id}/problems`, body),
   resolveProblem: (problemId: string) => api.post(`/installations/problems/${problemId}/resolve`),
+  cancel: (id: string, reason: string) => api.post<Installation>(`/installations/${id}/cancel`, { reason }),
 };
 
 export const inventoryApi = {
-  materials: (q: { search?: string; category?: string; lowStock?: boolean } = {}) =>
+  materials: (q: { search?: string; category?: string; lowStock?: boolean; active?: 'true' | 'false' | 'all' } = {}) =>
     api.get<Material[]>('/inventory/materials', q),
   createMaterial: (body: Partial<Material>) => api.post<Material>('/inventory/materials', body),
   updateMaterial: (id: string, body: Partial<Material>) => api.patch<Material>(`/inventory/materials/${id}`, body),
@@ -219,6 +223,7 @@ export const paymentsApi = {
     api.page<{ items: Payment[]; totalAmount: number }>('/payments', q),
   create: (body: { orderId: string; amount: number; method: PaymentMethod; kind?: PaymentKind; note?: string }) =>
     api.post<Payment>('/payments', body),
+  update: (id: string, body: { amount?: number; method?: PaymentMethod; note?: string | null }) => api.patch<Payment>(`/payments/${id}`, body),
   remove: (id: string) => api.del(`/payments/${id}`),
   debts: () => api.get<{ items: Debt[]; total: number }>('/payments/debts'),
   remind: (orderId: string) =>
@@ -294,6 +299,7 @@ export const settingsApi = {
 export const filesApi = {
   upload: (file: File, fields: { kind?: FileAsset['kind']; orderId?: string } = {}) =>
     api.upload<FileAsset>('/files', file, Object.fromEntries(Object.entries(fields).filter(([, v]) => v)) as Record<string, string>),
+  remove: (id: string) => api.del<{ deleted: boolean }>(`/files/${id}`),
 };
 
 export const smsApi = {
@@ -318,6 +324,7 @@ export const leadsApi = {
     api.patch<Lead>(`/leads/${id}`, body),
   convert: (id: string, body: { type: ClientType; name?: string }) =>
     api.post<{ lead: Lead; clientId: string; clientCreated: boolean }>(`/leads/${id}/convert`, body),
+  remove: (id: string) => api.del<{ deleted: boolean }>(`/leads/${id}`),
 };
 
 export const analyticsApi = {
@@ -371,4 +378,9 @@ export const adScreensApi = {
     api.patch<AdCampaign>(`/ad-screens/campaigns/${id}`, body),
   pay: (id: string, body: { amount: number; method: PaymentMethod; note?: string }) =>
     api.post<Payment>(`/ad-screens/campaigns/${id}/payments`, body),
+};
+
+export const auditApi = {
+  list: (q: { userId?: string; entity?: string; refId?: string; from?: string; to?: string; search?: string; page?: number; limit?: number } = {}) =>
+    api.page<AuditLogEntry[]>('/audit', q),
 };

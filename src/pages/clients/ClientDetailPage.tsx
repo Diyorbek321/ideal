@@ -1,21 +1,42 @@
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Archive, ArchiveRestore, ArrowLeft, History, Pencil, Trash2 } from 'lucide-react';
 import { clientsApi } from '@/api';
 import { CLIENT_TYPE_LABELS, KIND_LABELS, METHOD_LABELS, SOURCE_LABELS } from '@/lib/labels';
 import { formatCurrency, formatDate, formatPhone } from '@/lib/utils';
+import { useUser } from '@/lib/auth';
 import { ClientFormModal } from '@/components/clients/ClientFormModal';
 import { StatusBadge } from '@/components/orders/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import { Empty, ErrorState, Loading } from '@/components/ui/States';
+import { useToast } from '@/components/ui/Toast';
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [editing, setEditing] = React.useState(false);
   const { data: c, isLoading, error, refetch } = useQuery({ queryKey: ['client', id], queryFn: () => clientsApi.get(id!), enabled: !!id });
+  const user = useUser();
+  const toast = useToast();
+  const qc = useQueryClient();
+
+  const archive = useMutation({
+    mutationFn: (isArchived: boolean) => clientsApi.update(id!, { isArchived }),
+    onSuccess: (r) => {
+      toast.success(r.isArchived ? 'Mijoz arxivlandi' : 'Mijoz arxivdan chiqarildi');
+      qc.invalidateQueries({ queryKey: ['client', id] });
+      qc.invalidateQueries({ queryKey: ['clients'] });
+    },
+    onError: toast.error,
+  });
+  const remove = useMutation({
+    mutationFn: () => clientsApi.remove(id!),
+    onSuccess: () => { toast.success('Mijoz o\'chirildi'); qc.invalidateQueries({ queryKey: ['clients'] }); navigate('/clients'); },
+    onError: toast.error,
+  });
 
   if (isLoading) return <Loading rows={6} />;
   if (error || !c) return <ErrorState error={error} onRetry={refetch} />;
@@ -38,8 +59,22 @@ export default function ClientDetailPage() {
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => navigate(-1)} aria-label="Orqaga"><ArrowLeft className="h-4 w-4" /></Button>
           <h1 className="text-2xl font-bold text-gray-900">{c.name}</h1>
+          {c.isArchived && <Badge>Arxivda</Badge>}
         </div>
-        <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Tahrirlash</Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Tahrirlash</Button>
+          <Button variant="ghost" isLoading={archive.isPending} onClick={() => archive.mutate(!c.isArchived)}>
+            {c.isArchived ? <><ArchiveRestore className="h-4 w-4" />Arxivdan chiqarish</> : <><Archive className="h-4 w-4" />Arxivlash</>}
+          </Button>
+          {user.role === 'ADMIN' && <Link to={`/audit?ref=${c.id}`}><Button variant="ghost"><History className="h-4 w-4" />Tarix</Button></Link>}
+          {/* Tarixi yo'q (xato/takror kiritilgan) mijozni direktor butunlay o'chiradi */}
+          {user.role === 'ADMIN' && c.orders.length === 0 && (
+            <Button variant="ghost" className="text-red-600" isLoading={remove.isPending}
+              onClick={() => window.confirm(`«${c.name}» mijozini o'chirasizmi? Qaytarib bo'lmaydi`) && remove.mutate()}>
+              <Trash2 className="h-4 w-4" />O'chirish
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">

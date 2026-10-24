@@ -28,6 +28,7 @@ import ClientsAnalyticsPage from './pages/analytics/ClientsAnalyticsPage';
 import AttendancePage from './pages/analytics/AttendancePage';
 import OverduePage from './pages/analytics/OverduePage';
 import AdScreensPage from './pages/adscreens/AdScreensPage';
+import AuditPage from './pages/audit/AuditPage';
 import ProductTypesPage from './pages/products/ProductTypesPage';
 
 const queryClient = new QueryClient({
@@ -82,6 +83,7 @@ export default function App() {
                 <Route path="employees" element={<RequireRole roles={['ADMIN']}><EmployeesPage /></RequireRole>} />
                 <Route path="documents" element={<RequireRole roles={[...staff]}><DocumentsPage /></RequireRole>} />
                 <Route path="settings" element={<RequireRole roles={['ADMIN']}><SettingsPage /></RequireRole>} />
+                <Route path="audit" element={<RequireRole roles={['ADMIN']}><AuditPage /></RequireRole>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>

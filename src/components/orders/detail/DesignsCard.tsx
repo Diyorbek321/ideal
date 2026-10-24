@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, Download, Send, Share2, Upload, X } from 'lucide-react';
+import { Check, Download, Send, Share2, Trash2, Upload, X } from 'lucide-react';
 import { designsApi } from '@/api';
 import type { DesignStatus, OrderDetail, ShareInfo } from '@/types';
 import { DESIGN_STATUS_LABELS } from '@/lib/labels';
@@ -33,6 +33,11 @@ export function DesignsCard({ order }: { order: OrderDetail }) {
     onError: toast.error,
   });
   const getShare = useMutation({ mutationFn: designsApi.share, onSuccess: setShare, onError: toast.error });
+  const removeDraft = useMutation({
+    mutationFn: designsApi.remove,
+    onSuccess: () => { toast.success('Qoralama o\'chirildi'); refresh(); },
+    onError: toast.error,
+  });
   const decide = useMutation({
     mutationFn: ({ id, decision, comment }: { id: string; decision: 'APPROVE' | 'REQUEST_CHANGES'; comment?: string }) =>
       designsApi.decide(id, decision, comment),
@@ -75,6 +80,12 @@ export function DesignsCard({ order }: { order: OrderDetail }) {
                   <a href={fileUrl(v.fileUrl)} target="_blank" rel="noreferrer"><Button size="sm" variant="outline"><Download className="h-3 w-3" /></Button></a>
                   {v.status === 'DRAFT' && canUpload && (
                     <Button size="sm" isLoading={send.isPending} onClick={() => send.mutate(v.id)}><Send className="h-3 w-3" />Mijozga yuborish</Button>
+                  )}
+                  {v.status === 'DRAFT' && canUpload && (
+                    <Button size="sm" variant="ghost" className="text-red-600" isLoading={removeDraft.isPending && removeDraft.variables === v.id}
+                      onClick={() => window.confirm(`${v.version}-variant qoralamasini o'chirasizmi?`) && removeDraft.mutate(v.id)} aria-label="Qoralamani o'chirish">
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   )}
                   {v.status === 'SENT' && (
                     <Button size="sm" variant="outline" onClick={() => getShare.mutate(v.id)}><Share2 className="h-3 w-3" />Havola</Button>

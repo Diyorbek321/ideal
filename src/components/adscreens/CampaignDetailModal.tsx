@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Film, Phone } from 'lucide-react';
-import { adScreensApi } from '@/api';
-import type { AdCampaignPhase, PaymentMethod } from '@/types';
+import { Film, History, Pencil, Phone, Trash2 } from 'lucide-react';
+import { adScreensApi, paymentsApi } from '@/api';
+import { useUser } from '@/lib/auth';
+import type { AdCampaignPhase, Payment, PaymentMethod } from '@/types';
 import { AD_PHASE_LABELS, METHOD_LABELS, options } from '@/lib/labels';
 import { fileUrl, formatCurrency, formatDate, formatDateTime, formatPhone, parseMoney } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -35,6 +36,33 @@ export function CampaignDetailModal({ id, onClose }: { id: string; onClose: () =
   const pay = useMutation({
     mutationFn: () => adScreensApi.pay(id, { amount: parseMoney(amount) ?? 0, method }),
     onSuccess: () => { toast.success('To\'lov qabul qilindi'); setAmount(''); void refresh(); void qc.invalidateQueries({ queryKey: ['payments'] }); },
+    onError: toast.error,
+  });
+
+  // Xato kiritilgan to'lov — direktor bekor qiladi, so'ng to'g'risi qayta kiritiladi
+  const isAdmin = useUser().role === 'ADMIN';
+  const removePayment = useMutation({
+    mutationFn: paymentsApi.remove,
+    onSuccess: () => { toast.success('To\'lov bekor qilindi'); void refresh(); void qc.invalidateQueries({ queryKey: ['payments'] }); void qc.invalidateQueries({ queryKey: ['debts'] }); },
+    onError: toast.error,
+  });
+
+  // To'lovni tuzatish: summani faqat direktor, usul va izohni menejer ham
+  const [editPay, setEditPay] = React.useState<{ p: Payment; amount: string; method: PaymentMethod; note: string } | null>(null);
+  const savePayment = useMutation({
+    mutationFn: () => {
+      const e = editPay!;
+      const sum = parseMoney(e.amount);
+      if (!sum) return Promise.reject(new Error('Summani raqam bilan kiriting'));
+      return paymentsApi.update(e.p.id, { ...(sum !== e.p.amount && { amount: sum }), method: e.method, note: e.note.trim() || null });
+    },
+    onSuccess: () => {
+      toast.success('To\'lov tuzatildi');
+      setEditPay(null);
+      void refresh();
+      void qc.invalidateQueries({ queryKey: ['payments'] });
+      void qc.invalidateQueries({ queryKey: ['debts'] });
+    },
     onError: toast.error,
   });
 
@@ -100,17 +128,46 @@ export function CampaignDetailModal({ id, onClose }: { id: string; onClose: () =
             <div>
               <p className="mb-2 text-sm font-medium text-gray-700">To'lovlar</p>
               <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 text-sm">
-                {c.payments.map((p) => (
+                {c.payments.map((p) => editPay?.p.id === p.id ? (
+                  <li key={p.id} className="space-y-2 bg-gray-50 px-3 py-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <Input label="Summa" inputMode="numeric" value={editPay.amount} disabled={!isAdmin}
+                        onChange={(e) => setEditPay({ ...editPay, amount: e.target.value })} />
+                      <Select label="Usul" value={editPay.method} options={options(METHOD_LABELS)}
+                        onChange={(e) => setEditPay({ ...editPay, method: e.target.value as PaymentMethod })} />
+                      <Input label="Izoh" value={editPay.note} onChange={(e) => setEditPay({ ...editPay, note: e.target.value })} />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setEditPay(null)}>Bekor</Button>
+                      <Button size="sm" isLoading={savePayment.isPending} onClick={() => savePayment.mutate()}>Saqlash</Button>
+                    </div>
+                  </li>
+                ) : (
                   <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-2">
                     <span className="font-semibold">{formatCurrency(p.amount)}</span>
                     <span className="text-gray-500">{METHOD_LABELS[p.method]} · {p.user?.fullName}</span>
-                    <span className="text-xs text-gray-500">{formatDateTime(p.createdAt)}</span>
+                    <span className="text-xs text-gray-500">{formatDateTime(p.createdAt)}{p.note && ` · ${p.note}`}</span>
+                    <button onClick={() => setEditPay({ p, amount: String(p.amount), method: p.method, note: p.note ?? '' })}
+                      className="text-gray-300 hover:text-gray-700" aria-label="To'lovni tuzatish">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    {isAdmin && (
+                      <button onClick={() => window.confirm('To\'lovni bekor qilasizmi?') && removePayment.mutate(p.id)}
+                        className="text-gray-300 hover:text-red-600" aria-label="To'lovni bekor qilish">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
             </div>
           )}
           {c.notes && <p className="whitespace-pre-line rounded-xl bg-gray-50 p-3 text-sm text-gray-700">{c.notes}</p>}
+          {isAdmin && (
+            <Link to={`/audit?ref=${c.id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-gray-600 hover:text-gray-900">
+              <History className="h-4 w-4" />O'zgarishlar tarixi
+            </Link>
+          )}
         </div>
       )}
     </Modal>

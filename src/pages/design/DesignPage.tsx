@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Send, Share2, Upload } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Send, Share2, Trash2, Upload } from 'lucide-react';
 import { designsApi, reportsApi } from '@/api';
 import type { DesignTask, ShareInfo } from '@/types';
 import { DESIGN_STATUS_LABELS } from '@/lib/labels';
@@ -45,6 +45,12 @@ export default function DesignPage() {
     onError: toast.error,
   });
   const getShare = useMutation({ mutationFn: designsApi.share, onSuccess: setShare, onError: toast.error });
+  // Xato fayl yuklangan bo'lsa — mijozga yuborilmagan qoralama o'chiriladi
+  const removeDraft = useMutation({
+    mutationFn: designsApi.remove,
+    onSuccess: () => { toast.success('Qoralama o\'chirildi'); invalidateOrderViews(qc); },
+    onError: toast.error,
+  });
 
   if (isLoading) return <Loading rows={6} />;
   if (error || !tasks) return <ErrorState error={error} onRetry={refetch} />;
@@ -96,6 +102,12 @@ export default function DesignPage() {
             {t.status === 'DIZAYNDA' && v?.status === 'DRAFT' && (
               <Button size="sm" isLoading={send.isPending && send.variables === v.id} onClick={() => send.mutate(v.id)}>
                 <Send className="h-3 w-3" />Yuborish
+              </Button>
+            )}
+            {t.status === 'DIZAYNDA' && v?.status === 'DRAFT' && (
+              <Button size="sm" variant="ghost" className="text-red-600" aria-label="Qoralamani o'chirish" isLoading={removeDraft.isPending && removeDraft.variables === v.id}
+                onClick={() => window.confirm('Yuklangan qoralamani o\'chirasizmi?') && removeDraft.mutate(v.id)}>
+                <Trash2 className="h-3 w-3" />
               </Button>
             )}
             {t.status === 'DIZAYNDA' && (

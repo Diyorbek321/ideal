@@ -2,8 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
-import { inventoryApi, ordersApi, settingsApi, usersApi, type OrderItemInput } from '@/api';
-import type { Client, OrderSource } from '@/types';
+import { inventoryApi, ordersApi, settingsApi, usersApi, type OrderInput, type OrderItemInput } from '@/api';
+import type { Client, OrderDetail, OrderSource } from '@/types';
 import { SOURCE_LABELS, options } from '@/lib/labels';
 import { toDateInput, formatCurrency, parseDecimal, parseMoney } from '@/lib/utils';
 import { areaFromMeters, cmToMeters, formatArea, metersToCm } from '@/lib/size';
@@ -27,6 +27,8 @@ interface Props {
   initialClient?: Client | null;
   initialSource?: OrderSource;
   initialNotes?: string;
+  /** Berilsa — forma shu buyurtmani tahrirlaydi */
+  order?: OrderDetail;
 }
 
 // O'lcham metrda kiritiladi; 1 m² narxi bo'lsa dona narxi = maydon × 1 m² narxi
@@ -45,10 +47,15 @@ const blankItem = (): ItemDraft => ({
   productType: '', materialId: '', width: '', height: '', quantity: '1', finishing: '', pricePerM2: '', unitPrice: '',
 });
 
-const toDraft = (i: OrderItemInput): ItemDraft => ({
+const toDraft = (i: Omit<OrderItemInput, 'unitPrice'> & { unitPrice?: number }): ItemDraft => ({
   productType: i.productType, materialId: i.materialId ?? '', width: cmToMeters(i.widthCm), height: cmToMeters(i.heightCm),
-  quantity: String(i.quantity), finishing: i.finishing.join(', '), pricePerM2: '', unitPrice: String(i.unitPrice),
+  quantity: String(i.quantity), finishing: i.finishing.join(', '), pricePerM2: '', unitPrice: String(i.unitPrice ?? ''),
 });
+
+const isoToInput = (iso: string | null | undefined) => (iso ? toDateInput(new Date(iso)) : '');
+// Sana o'zgarmagan bo'lsa asl vaqt saqlanadi (tahrirda muddat soati siljimasin), yangi sana — kun oxiri 18:00
+const keepIso = (input: string, original: string | null | undefined) =>
+  !input ? null : original && isoToInput(original) === input ? original : new Date(`${input}T18:00:00`).toISOString();
 
 // 1 m² narxi kiritilgan bo'lsa dona narxini qayta hisoblaydi
 function withUnitPrice(it: ItemDraft): ItemDraft {
@@ -58,24 +65,27 @@ function withUnitPrice(it: ItemDraft): ItemDraft {
 }
 
 
-// Tez buyurtma: 1 daqiqada to'ldiriladigan forma
+// Tez buyurtma: 1 daqiqada to'ldiriladigan forma; `order` berilsa — o'sha buyurtmani tahrirlash
 export function OrderFormModal({
-  open, onClose, initialItems, initialNeedsDesign = true, initialNeedsInstallation = false, initialClient = null, initialSource = 'WALK_IN', initialNotes = '',
+  open, onClose, initialItems, initialNeedsDesign = true, initialNeedsInstallation = false, initialClient = null, initialSource = 'WALK_IN', initialNotes = '', order,
 }: Props) {
   const toast = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [client, setClient] = React.useState<Client | null>(initialClient);
-  const [source, setSource] = React.useState<OrderSource>(initialSource);
-  const [items, setItems] = React.useState<ItemDraft[]>(() => (initialItems?.length ? initialItems.map(toDraft) : [blankItem()]));
-  const [deadline, setDeadline] = React.useState('');
-  const [needsDesign, setNeedsDesign] = React.useState(initialNeedsDesign);
-  const [designerId, setDesignerId] = React.useState('');
-  const [needsInstallation, setNeedsInstallation] = React.useState(initialNeedsInstallation);
-  const [address, setAddress] = React.useState('');
-  const [discount, setDiscount] = React.useState('');
-  const [dueDate, setDueDate] = React.useState('');
-  const [notes, setNotes] = React.useState(initialNotes);
+  const [client, setClient] = React.useState<Pick<Client, 'id' | 'name'> | null>(order?.client ?? initialClient);
+  const [source, setSource] = React.useState<OrderSource>(order?.source ?? initialSource);
+  const [items, setItems] = React.useState<ItemDraft[]>(() => {
+    const start = order?.items ?? initialItems;
+    return start?.length ? start.map(toDraft) : [blankItem()];
+  });
+  const [deadline, setDeadline] = React.useState(isoToInput(order?.deadline));
+  const [needsDesign, setNeedsDesign] = React.useState(order?.needsDesign ?? initialNeedsDesign);
+  const [designerId, setDesignerId] = React.useState(order?.designerId ?? '');
+  const [needsInstallation, setNeedsInstallation] = React.useState(order?.needsInstallation ?? initialNeedsInstallation);
+  const [address, setAddress] = React.useState(order?.installationAddress ?? '');
+  const [discount, setDiscount] = React.useState(order?.discount ? String(order.discount) : '');
+  const [dueDate, setDueDate] = React.useState(isoToInput(order?.dueDate));
+  const [notes, setNotes] = React.useState(order?.notes ?? initialNotes);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   const { data: productTypes } = useQuery({ queryKey: ['product-types'], queryFn: settingsApi.productTypes, enabled: open });
@@ -125,15 +135,14 @@ export function OrderFormModal({
     });
     // O'z vaqtida topshirish bonusi (KPI) muddatga qarab hisoblanadi
     if (!deadline) e.deadline = 'Topshirish muddatini kiriting';
-    else if (deadline < toDateInput(new Date())) e.deadline = 'Muddat o\'tgan sana bo\'lishi mumkin emas';
+    else if (deadline < toDateInput(new Date()) && deadline !== isoToInput(order?.deadline)) e.deadline = 'Muddat o\'tgan sana bo\'lishi mumkin emas';
     if (needsInstallation && !address.trim()) e.address = 'O\'rnatish manzilini kiriting';
     if (discount.trim() && parseMoney(discount) === null) e.discount = 'Chegirmani raqam bilan kiriting';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const create = useMutation({
-    mutationFn: () => ordersApi.create({
+  const body = (): OrderInput => ({
       clientId: client!.id,
       source,
       items: items.map((i) => ({
@@ -146,36 +155,56 @@ export function OrderFormModal({
         unitPrice: parseMoney(i.unitPrice)!,
       })),
       discount: parseMoney(discount) ?? 0,
-      deadline: deadline ? new Date(`${deadline}T18:00:00`).toISOString() : null,
-      dueDate: dueDate ? new Date(`${dueDate}T18:00:00`).toISOString() : null,
+      deadline: keepIso(deadline, order?.deadline),
+      dueDate: keepIso(dueDate, order?.dueDate),
       needsDesign,
       designerId: needsDesign && designerId ? designerId : null,
       needsInstallation,
       installationAddress: needsInstallation ? address.trim() : null,
       notes: notes.trim() || null,
-    }),
-    onSuccess: (order) => {
-      toast.success(`Buyurtma ${order.number} yaratildi`);
+  });
+
+  // Tahrirda tarkib/chegirma o'zgarmagan bo'lsa yuborilmaydi — ishlab chiqarishdagi buyurtmaning
+  // muddati yoki izohini menejer ham o'zgartira olsin (tarkibini faqat admin)
+  const changesOnly = (o: OrderDetail, b: OrderInput): Partial<OrderInput> => {
+    const same = (x: unknown, y: unknown) => JSON.stringify(x) === JSON.stringify(y);
+    const original = o.items.map((i) => ({
+      productType: i.productType, materialId: i.materialId ?? null, widthCm: i.widthCm, heightCm: i.heightCm,
+      quantity: i.quantity, finishing: i.finishing, unitPrice: i.unitPrice,
+    }));
+    const { items: newItems, discount: newDiscount, ...rest } = b;
+    return {
+      ...rest,
+      ...(!same(newItems, original) && { items: newItems }),
+      ...(newDiscount !== (o.discount ?? 0) && { discount: newDiscount }),
+    };
+  };
+
+  const save = useMutation({
+    mutationFn: () => (order ? ordersApi.update(order.id, changesOnly(order, body())) : ordersApi.create(body())),
+    onSuccess: (saved) => {
+      toast.success(order ? 'Buyurtma saqlandi' : `Buyurtma ${saved.number} yaratildi`);
       invalidateOrderViews(qc);
+      if (order) qc.invalidateQueries({ queryKey: ['order', order.id] });
       onClose();
-      navigate(`/orders/${order.id}`);
+      if (!order) navigate(`/orders/${saved.id}`);
     },
     onError: toast.error,
   });
 
-  const submit = () => validate() && create.mutate();
+  const submit = () => validate() && save.mutate();
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Yangi buyurtma"
+      title={order ? `${order.number} — tahrirlash` : 'Yangi buyurtma'}
       size="xl"
       footer={(
         <>
           <span className="mr-auto self-center text-lg font-bold text-gray-900">Jami: {formatCurrency(total)}</span>
           <Button variant="outline" onClick={onClose}>Bekor qilish</Button>
-          <Button isLoading={create.isPending} onClick={submit}>Buyurtma yaratish</Button>
+          <Button isLoading={save.isPending} onClick={submit}>{order ? 'Saqlash' : 'Buyurtma yaratish'}</Button>
         </>
       )}
     >

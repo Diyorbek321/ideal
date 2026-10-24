@@ -152,16 +152,19 @@ export default function FinancePage() {
               </thead>
               <tbody>
                 {debts.data.items.map((d) => (
-                  <tr key={d.orderId} className="border-b border-gray-50 hover:bg-gray-50/50">
+                  <tr key={d.orderId ?? d.campaignId} className="border-b border-gray-50 hover:bg-gray-50/50">
                     <td className="px-4 py-3"><p className="font-medium">{d.client.name}</p><p className="text-xs text-gray-400">{CLIENT_TYPE_LABELS[d.client.type]}</p></td>
-                    <td className="px-4 py-3"><Link to={`/orders/${d.orderId}`} className="font-bold text-brand-600 hover:underline">{d.orderNumber}</Link></td>
+                    <td className="px-4 py-3">
+                      <Link to={d.orderId ? `/orders/${d.orderId}` : `/ad-screens?tab=campaigns&open=${d.campaignId}`} className="font-bold text-brand-600 hover:underline">{d.orderNumber}</Link>
+                      {d.campaignId && <span className="block text-xs text-gray-400">LED reklama</span>}
+                    </td>
                     <td className={cn('px-4 py-3', d.daysOverdue > 0 ? 'font-bold text-red-600' : 'text-gray-500')}>
                       {d.dueDate ? formatDate(d.dueDate) : '—'}{d.daysOverdue > 0 && <span className="block text-xs">{d.daysOverdue} kun o'tdi</span>}
                     </td>
                     <td className="px-4 py-3">{formatCurrency(d.totalAmount)}</td>
                     <td className="px-4 py-3 font-black text-red-600">{formatCurrency(d.remaining)}</td>
                     <td className="px-4 py-3 text-right">
-                      <Button variant="outline" size="sm" isLoading={remind.isPending && remind.variables === d.orderId} onClick={() => remind.mutate(d.orderId)}>Eslatma</Button>
+                      {d.orderId && <Button variant="outline" size="sm" isLoading={remind.isPending && remind.variables === d.orderId} onClick={() => remind.mutate(d.orderId!)}>Eslatma</Button>}
                     </td>
                   </tr>
                 ))}

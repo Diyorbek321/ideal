@@ -1,7 +1,8 @@
+import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileText, MapPin, Paperclip, Phone, Printer, User } from 'lucide-react';
-import { ordersApi, usersApi } from '@/api';
+import { ArrowLeft, FileText, History, MapPin, Paperclip, Pencil, Phone, Printer, Trash2, User } from 'lucide-react';
+import { filesApi, ordersApi, usersApi } from '@/api';
 import { CLIENT_TYPE_LABELS, SOURCE_LABELS, TASK_STATUS_LABELS } from '@/lib/labels';
 import { isFinance, useUser } from '@/lib/auth';
 import { fileUrl, formatCurrency, formatDate, formatPhone } from '@/lib/utils';
@@ -12,6 +13,7 @@ import { PaymentsCard } from '@/components/orders/detail/PaymentsCard';
 import { SmsCard } from '@/components/orders/detail/SmsCard';
 import { StatusPanel } from '@/components/orders/detail/StatusPanel';
 import { TimelineCard } from '@/components/orders/detail/TimelineCard';
+import { OrderFormModal } from '@/components/orders/OrderFormModal';
 import { StatusBadge } from '@/components/orders/StatusBadge';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -29,6 +31,7 @@ export default function OrderDetailPage() {
   const toast = useToast();
   const qc = useQueryClient();
   const finance = isFinance(user.role);
+  const [editing, setEditing] = React.useState(false);
 
   const { data: order, isLoading, error, refetch } = useQuery({
     queryKey: ['order', id],
@@ -44,6 +47,12 @@ export default function OrderDetailPage() {
   const assign = useMutation({
     mutationFn: (designerId: string | null) => ordersApi.update(id!, { designerId }),
     onSuccess: () => { toast.success('Dizayner tayinlandi'); qc.invalidateQueries({ queryKey: ['order', id] }); },
+    onError: toast.error,
+  });
+
+  const removeFile = useMutation({
+    mutationFn: filesApi.remove,
+    onSuccess: () => { toast.success('Fayl o\'chirildi'); qc.invalidateQueries({ queryKey: ['order', id] }); },
     onError: toast.error,
   });
 
@@ -67,10 +76,17 @@ export default function OrderDetailPage() {
           </div>
         </div>
         {finance && (
-          <Link to={`/documents?order=${order.id}`}>
-            <Button variant="outline"><FileText className="h-4 w-4" />Hujjatlar</Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {order.status !== 'BEKOR_QILINDI' && <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Tahrirlash</Button>}
+            {user.role === 'ADMIN' && (
+              <Link to={`/audit?ref=${order.id}`}><Button variant="ghost"><History className="h-4 w-4" />Tarix</Button></Link>
+            )}
+            <Link to={`/documents?order=${order.id}`}>
+              <Button variant="outline"><FileText className="h-4 w-4" />Hujjatlar</Button>
+            </Link>
+          </div>
         )}
+        {editing && <OrderFormModal open onClose={() => setEditing(false)} order={order} />}
       </div>
 
       <StatusPanel order={order} />
@@ -177,9 +193,21 @@ export default function OrderDetailPage() {
             {order.files.length ? (
               <div className="space-y-2">
                 {order.files.map((f) => (
-                  <a key={f.id} href={fileUrl(f.url)} target="_blank" rel="noreferrer" className="flex items-center text-sm text-brand-600 hover:underline">
-                    <Paperclip className="mr-2 h-4 w-4 shrink-0" /><span className="truncate">{f.name}</span>
-                  </a>
+                  <div key={f.id} className="flex items-center justify-between gap-2">
+                    <a href={fileUrl(f.url)} target="_blank" rel="noreferrer" className="flex min-w-0 items-center text-sm text-brand-600 hover:underline">
+                      <Paperclip className="mr-2 h-4 w-4 shrink-0" /><span className="truncate">{f.name}</span>
+                    </a>
+                    {(finance || f.uploadedById === user.id) && (
+                      <button
+                        onClick={() => window.confirm(`«${f.name}» faylini o'chirasizmi?`) && removeFile.mutate(f.id)}
+                        disabled={removeFile.isPending}
+                        className="shrink-0 text-gray-300 hover:text-red-600"
+                        aria-label="Faylni o'chirish"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             ) : <p className="text-center text-sm text-gray-400">Fayllar yo'q</p>}

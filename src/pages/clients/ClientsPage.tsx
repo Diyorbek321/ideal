@@ -28,16 +28,17 @@ export default function ClientsPage() {
   const [search, setSearch] = React.useState('');
   const [type, setType] = React.useState('');
   const [withDebt, setWithDebt] = React.useState(false);
+  const [archived, setArchived] = React.useState(false);
   const [page, setPage] = React.useState(1);
   const [creating, setCreating] = React.useState(false);
   const [importing, setImporting] = React.useState(false);
   const q = useDebounced(search);
 
-  React.useEffect(() => setPage(1), [q, type, withDebt]);
+  React.useEffect(() => setPage(1), [q, type, withDebt, archived]);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['clients', q, type, withDebt, page],
-    queryFn: () => clientsApi.list({ search: q || undefined, type: type || undefined, withDebt: withDebt || undefined, page, limit: 30 }),
+    queryKey: ['clients', q, type, withDebt, archived, page],
+    queryFn: () => clientsApi.list({ search: q || undefined, type: type || undefined, withDebt: withDebt || undefined, archived: archived || undefined, page, limit: 30 }),
     placeholderData: keepPreviousData,
   });
   const pages = data ? Math.max(1, Math.ceil(data.meta.total / data.meta.limit)) : 1;
@@ -61,6 +62,7 @@ export default function ClientsPage() {
         </div>
         <Select value={type} onChange={(e) => setType(e.target.value)} placeholder="Barcha turlar" options={options(CLIENT_TYPE_LABELS)} />
         <label className="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" checked={withDebt} onChange={(e) => setWithDebt(e.target.checked)} />Faqat qarzdorlar</label>
+        <label className="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" checked={archived} onChange={(e) => setArchived(e.target.checked)} />Arxiv</label>
       </div>
 
       {error ? <ErrorState error={error} onRetry={refetch} /> : isLoading ? <Loading rows={6} /> : !data?.data.length ? <Card><Empty text="Mijozlar topilmadi" /></Card> : (

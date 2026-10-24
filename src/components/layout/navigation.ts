@@ -1,5 +1,5 @@
 import {
-  AlarmClock, BarChart3, Boxes, CalendarCheck, Calculator, DollarSign, FileText, Globe, LayoutDashboard, MonitorPlay, Palette, Printer, Receipt, Settings, ShoppingBag,
+  AlarmClock, BarChart3, History, Boxes, CalendarCheck, Calculator, DollarSign, FileText, Globe, LayoutDashboard, MonitorPlay, Palette, Printer, Receipt, Settings, ShoppingBag,
   Target, Truck, UserCheck, Users, Warehouse,
 } from 'lucide-react';
 import type { UserRole } from '@/types';
@@ -48,6 +48,7 @@ export const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
       { path: '/attendance', label: 'Davomat', short: 'Davomat', icon: CalendarCheck, roles: ['ADMIN', 'MANAGER'] },
       { path: '/overdue', label: 'Kechikkan ishlar', short: 'Kechikish', icon: AlarmClock, roles: ['ADMIN', 'MANAGER'] },
       { path: '/documents', label: 'Hujjatlar', short: 'Hujjat', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/audit', label: 'Harakatlar jurnali', short: 'Jurnal', icon: History, roles: ['ADMIN'] },
       { path: '/settings', label: 'Sozlamalar', short: 'Sozlama', icon: Settings, roles: ['ADMIN'] },
     ],
   },

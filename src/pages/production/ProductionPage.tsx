@@ -1,12 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Download, Play, Printer } from 'lucide-react';
+import { CheckCircle, Download, Pencil, Play, Plus, Printer } from 'lucide-react';
 import { equipmentApi, inventoryApi, productionApi } from '@/api';
-import type { EquipmentStatus, QueueTask } from '@/types';
+import type { Equipment, EquipmentStatus, QueueTask } from '@/types';
 import { EQUIPMENT_STATUS_LABELS, EQUIPMENT_TYPE_LABELS, TASK_STATUS_LABELS, UNIT_LABELS, options } from '@/lib/labels';
 import { cn, deadlineText, fileUrl, formatNumber, parseDecimal } from '@/lib/utils';
 import { invalidateOrderViews } from '@/lib/queries';
+import { isFinance, useUser } from '@/lib/auth';
+import { EquipmentFormModal } from '@/components/production/EquipmentFormModal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { MyKpiCard } from '@/components/kpi/MyKpiCard';
@@ -90,6 +92,9 @@ export default function ProductionPage() {
   const qc = useQueryClient();
   const [eqFilter, setEqFilter] = React.useState('');
   const [finishing, setFinishing] = React.useState<QueueTask | null>(null);
+  const user = useUser();
+  // undefined — yopiq, null — yangi uskuna
+  const [editEq, setEditEq] = React.useState<Equipment | null | undefined>(undefined);
 
   const { data: equipment } = useQuery({ queryKey: ['equipment'], queryFn: equipmentApi.list });
   const { data: tasks, isLoading, error, refetch } = useQuery({
@@ -122,7 +127,9 @@ export default function ProductionPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Ishlab chiqarish navbati" subtitle="Printer, lazer va frezer navbati" />
+      <PageHeader title="Ishlab chiqarish navbati" subtitle="Printer, lazer va frezer navbati"
+        actions={user.role === 'ADMIN' ? <Button variant="outline" onClick={() => setEditEq(null)}><Plus className="h-4 w-4" />Uskuna</Button> : undefined} />
+      {editEq !== undefined && <EquipmentFormModal equipment={editEq} onClose={() => setEditEq(undefined)} />}
       <MyKpiCard />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
@@ -134,7 +141,14 @@ export default function ProductionPage() {
           >
             <div className="mb-3 flex items-start justify-between">
               <div className="rounded-lg bg-gray-50 p-2 text-gray-600"><Printer className="h-5 w-5" /></div>
-              <Badge variant={EQ_VARIANT[eq.status]}>{EQUIPMENT_STATUS_LABELS[eq.status]}</Badge>
+              <div className="flex items-center gap-1">
+                <Badge variant={EQ_VARIANT[eq.status]}>{EQUIPMENT_STATUS_LABELS[eq.status]}</Badge>
+                {(isFinance(user.role) || user.role === 'PRINTER') && (
+                  <button onClick={(e) => { e.stopPropagation(); setEditEq(eq); }} className="rounded p-1 text-gray-300 hover:text-gray-700" aria-label="Uskunani tahrirlash">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
             <h3 className="mb-1 text-sm font-bold text-gray-900">{eq.name}</h3>
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{EQUIPMENT_TYPE_LABELS[eq.type]} · navbatda {eq.openTasks}</p>

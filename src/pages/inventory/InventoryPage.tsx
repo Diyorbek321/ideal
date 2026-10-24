@@ -17,7 +17,7 @@ import { useToast } from '@/components/ui/Toast';
 import { Tabs } from '@/components/reports/Tabs';
 import { InventoryAnalytics } from './InventoryAnalytics';
 
-type Op = { kind: 'in' | 'out'; material?: Material } | { kind: 'new' } | { kind: 'count' } | { kind: 'history'; material: Material };
+type Op = { kind: 'in' | 'out'; material?: Material } | { kind: 'new' } | { kind: 'edit'; material: Material } | { kind: 'count' } | { kind: 'history'; material: Material };
 const dec = (s: string) => parseDecimal(s) ?? NaN;
 const money = (s: string) => parseMoney(s) ?? NaN;
 
@@ -29,14 +29,17 @@ function OpModal({ op, materials, onClose }: { op: Op | null; materials: Materia
   const [price, setPrice] = React.useState('');
   const [supplier, setSupplier] = React.useState('');
   const [note, setNote] = React.useState('');
-  const [mat, setMat] = React.useState({ name: '', category: '', unit: 'M2' as MaterialUnit, minStock: '', purchasePrice: '' });
+  const [mat, setMat] = React.useState({ name: '', category: '', unit: 'M2' as MaterialUnit, minStock: '', purchasePrice: '', isActive: true });
   const [counts, setCounts] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
     if (!op) return;
     setMaterialId('material' in op && op.material ? op.material.id : materials[0]?.id ?? '');
     setQty(''); setPrice(''); setSupplier(''); setNote(''); setCounts({});
-    setMat({ name: '', category: '', unit: 'M2', minStock: '', purchasePrice: '' });
+    const m = op.kind === 'edit' ? op.material : null;
+    setMat(m
+      ? { name: m.name, category: m.category, unit: m.unit, minStock: String(m.minStock), purchasePrice: String(m.purchasePrice ?? 0), isActive: m.isActive }
+      : { name: '', category: '', unit: 'M2', minStock: '', purchasePrice: '', isActive: true });
   }, [op, materials]);
 
   const { data: history } = useQuery({
@@ -51,10 +54,12 @@ function OpModal({ op, materials, onClose }: { op: Op | null; materials: Materia
       // Noto'g'ri raqam serverga yuborilmaydi
       const bad = (v: number) => Number.isNaN(v);
       if ((op.kind === 'in' || op.kind === 'out') && (bad(dec(qty)) || (price && bad(money(price))))) throw new Error('Miqdor yoki narx noto\'g\'ri kiritilgan');
-      if (op.kind === 'new' && ((mat.minStock && bad(dec(mat.minStock))) || (mat.purchasePrice && bad(money(mat.purchasePrice))))) throw new Error('Raqamlar noto\'g\'ri kiritilgan');
+      if ((op.kind === 'new' || op.kind === 'edit') && ((mat.minStock && bad(dec(mat.minStock))) || (mat.purchasePrice && bad(money(mat.purchasePrice))))) throw new Error('Raqamlar noto\'g\'ri kiritilgan');
       if (op.kind === 'in') return inventoryApi.stockIn({ materialId, quantity: dec(qty), price: price ? money(price) : undefined, supplier: supplier || undefined, note: note || undefined });
       if (op.kind === 'out') return inventoryApi.stockOut({ materialId, quantity: dec(qty), note: note || undefined });
-      if (op.kind === 'new') return inventoryApi.createMaterial({ name: mat.name, category: mat.category, unit: mat.unit, minStock: mat.minStock ? dec(mat.minStock) : 0, purchasePrice: mat.purchasePrice ? money(mat.purchasePrice) : 0 });
+      const matBody = { name: mat.name, category: mat.category, unit: mat.unit, minStock: mat.minStock ? dec(mat.minStock) : 0, purchasePrice: mat.purchasePrice ? money(mat.purchasePrice) : 0 };
+      if (op.kind === 'new') return inventoryApi.createMaterial(matBody);
+      if (op.kind === 'edit') return inventoryApi.updateMaterial(op.material.id, { ...matBody, isActive: mat.isActive });
       if (op.kind === 'count') {
         const items = Object.entries(counts).filter(([, v]) => v !== '').map(([id, v]) => ({ materialId: id, actual: dec(v) }));
         if (items.some((i) => Number.isNaN(i.actual))) throw new Error('Qoldiq noto\'g\'ri kiritilgan');
@@ -66,7 +71,7 @@ function OpModal({ op, materials, onClose }: { op: Op | null; materials: Materia
   });
 
   if (!op) return null;
-  const titles = { in: 'Kirim qilish', out: 'Chiqim qilish', new: 'Yangi material', count: 'Inventarizatsiya', history: 'Harakatlar tarixi' };
+  const titles = { in: 'Kirim qilish', out: 'Chiqim qilish', new: 'Yangi material', edit: 'Materialni tahrirlash', count: 'Inventarizatsiya', history: 'Harakatlar tarixi' };
   const unit = materials.find((m) => m.id === materialId)?.unit;
 
   return (
@@ -91,13 +96,20 @@ function OpModal({ op, materials, onClose }: { op: Op | null; materials: Materia
           <Input label="Izoh" value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
       )}
-      {op.kind === 'new' && (
+      {(op.kind === 'new' || op.kind === 'edit') && (
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2"><Input label="Nomi" value={mat.name} onChange={(e) => setMat({ ...mat, name: e.target.value })} autoFocus /></div>
           <Input label="Kategoriya" value={mat.category} onChange={(e) => setMat({ ...mat, category: e.target.value })} placeholder="Banner, Akril..." />
           <Select label="O'lchov birligi" value={mat.unit} onChange={(e) => setMat({ ...mat, unit: e.target.value as MaterialUnit })} options={options(UNIT_LABELS)} />
           <Input label="Minimal qoldiq" inputMode="decimal" value={mat.minStock} onChange={(e) => setMat({ ...mat, minStock: e.target.value })} />
           <Input label="Xarid narxi" inputMode="numeric" value={mat.purchasePrice} onChange={(e) => setMat({ ...mat, purchasePrice: e.target.value })} />
+          {/* Material o'chirilmaydi (harakat tarixi bor) — ro'yxatdan yashiriladi */}
+          {op.kind === 'edit' && (
+            <label className="col-span-2 flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={mat.isActive} onChange={(e) => setMat({ ...mat, isActive: e.target.checked })} />
+              Faol (o'chirilsa ro'yxatlarda ko'rinmaydi, tarixi saqlanadi)
+            </label>
+          )}
         </div>
       )}
       {op.kind === 'count' && (
@@ -152,9 +164,11 @@ function StockView({ tabs }: { tabs: React.ReactNode }) {
   const [search, setSearch] = React.useState('');
   const [category, setCategory] = React.useState('');
   const [op, setOp] = React.useState<Op | null>(null);
+  const [inactive, setInactive] = React.useState(false);
   const { data: materials, isLoading, error, refetch } = useQuery({ queryKey: ['materials'], queryFn: () => inventoryApi.materials() });
+  const { data: hidden } = useQuery({ queryKey: ['materials', 'inactive'], queryFn: () => inventoryApi.materials({ active: 'false' }), enabled: inactive });
 
-  const list = (materials ?? []).filter((m) =>
+  const list = ((inactive ? hidden : materials) ?? []).filter((m) =>
     (!category || m.category === category) && (!search || m.name.toLowerCase().includes(search.toLowerCase())));
   const categories = [...new Set((materials ?? []).map((m) => m.category))];
   const lowCount = (materials ?? []).filter((m) => m.isLow).length;
@@ -199,7 +213,12 @@ function StockView({ tabs }: { tabs: React.ReactNode }) {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input placeholder="Material nomi..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {finance && (
+              <label className="mr-2 flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" checked={inactive} onChange={(e) => setInactive(e.target.checked)} />O'chirilganlar
+              </label>
+            )}
             {categories.map((c) => (
               <button key={c} onClick={() => setCategory((x) => (x === c ? '' : c))}>
                 <Badge variant={category === c ? 'info' : 'outline'} className="cursor-pointer">{c}</Badge>
@@ -234,6 +253,7 @@ function StockView({ tabs }: { tabs: React.ReactNode }) {
                     <td className="space-x-3 px-6 py-4 text-right">
                       <button className="font-bold text-emerald-600 hover:underline" onClick={() => setOp({ kind: 'in', material: m })}>Kirim</button>
                       {finance && <button className="font-bold text-brand-600 hover:underline" onClick={() => setOp({ kind: 'history', material: m })}>Tarix</button>}
+                      {finance && <button className="font-bold text-gray-600 hover:underline" onClick={() => setOp({ kind: 'edit', material: m })}>Tahrirlash</button>}
                     </td>
                   </tr>
                 ))}

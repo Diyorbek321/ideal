@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Globe, MessageSquareText, Phone, Search, UserPlus } from 'lucide-react';
+import { Globe, MessageSquareText, Phone, Search, Trash2, UserPlus } from 'lucide-react';
 import { clientsApi, leadsApi } from '@/api';
 import type { Client, ClientType, Lead, LeadStatus } from '@/types';
 import { CLIENT_TYPE_LABELS, LEAD_STATUS_LABELS, options } from '@/lib/labels';
@@ -44,6 +44,11 @@ function LeadDetail({ id, onClose, onOrder }: { id: string; onClose: () => void;
     onSuccess: () => { toast.success('Saqlandi'); void refresh(); },
     onError: toast.error,
   });
+  const remove = useMutation({
+    mutationFn: () => leadsApi.remove(id),
+    onSuccess: () => { toast.success('Ariza o\'chirildi'); void refresh(); onClose(); },
+    onError: toast.error,
+  });
   const convert = useMutation({
     mutationFn: () => leadsApi.convert(id, { type, name: name?.trim() || undefined }),
     onSuccess: async (r) => {
@@ -62,6 +67,10 @@ function LeadDetail({ id, onClose, onOrder }: { id: string; onClose: () => void;
     <Modal open onClose={onClose} title={lead ? lead.name : 'Ariza'} size="lg"
       footer={lead && !closed ? (
         <>
+          <Button variant="ghost" className="text-red-600 sm:mr-auto" isLoading={remove.isPending}
+            onClick={() => window.confirm('Arizani o\'chirasizmi? (spam yoki takror bo\'lsa)') && remove.mutate()}>
+            <Trash2 className="h-4 w-4" />O'chirish
+          </Button>
           {lead.status !== 'REJECTED' && <Button variant="ghost" onClick={() => update.mutate({ status: 'REJECTED' })}>Rad etish</Button>}
           {lead.status === 'NEW' && <Button variant="outline" onClick={() => update.mutate({ status: 'CONTACTED' })}>Bog'landim</Button>}
           <Button onClick={() => convert.mutate()} isLoading={convert.isPending}><UserPlus className="h-4 w-4" />Mijoz va buyurtma</Button>

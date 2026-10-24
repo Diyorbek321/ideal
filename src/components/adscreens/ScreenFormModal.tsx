@@ -1,8 +1,10 @@
 import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Trash2 } from 'lucide-react';
 import { adScreensApi, type AdScreenInput } from '@/api';
 import type { AdScreen } from '@/types';
 import { fileUrl, formatCurrency, parseDecimal, parseMoney } from '@/lib/utils';
+import { useUser } from '@/lib/auth';
 import { Button } from '@/components/ui/Button';
 import { FileButton } from '@/components/ui/FileButton';
 import { Input } from '@/components/ui/Input';
@@ -64,6 +66,14 @@ export function ScreenFormModal({ screen, onClose }: Props) {
     onError: toast.error,
   });
 
+  const isAdmin = useUser().role === 'ADMIN';
+  // Reklama tarixi bo'lsa server rad etadi — "faol emas" qilish taklif qilinadi
+  const remove = useMutation({
+    mutationFn: () => adScreensApi.remove(screen!.id),
+    onSuccess: () => { toast.success('Ekran o\'chirildi'); void qc.invalidateQueries({ queryKey: ['ad-screens'] }); onClose(); },
+    onError: toast.error,
+  });
+
   const submit = () => {
     const b = body();
     if (typeof b === 'string') toast.error(b); else save.mutate(b);
@@ -73,7 +83,18 @@ export function ScreenFormModal({ screen, onClose }: Props) {
 
   return (
     <Modal open onClose={onClose} title={screen ? 'Ekranni tahrirlash' : 'Yangi LED ekran'} size="lg"
-      footer={<><Button variant="outline" onClick={onClose}>Bekor</Button><Button onClick={submit} isLoading={save.isPending}>Saqlash</Button></>}>
+      footer={(
+        <>
+          {screen && isAdmin && (
+            <Button variant="ghost" className="text-red-600 sm:mr-auto" isLoading={remove.isPending}
+              onClick={() => window.confirm(`«${screen.name}» ekranini o'chirasizmi?`) && remove.mutate()}>
+              <Trash2 className="h-4 w-4" />O'chirish
+            </Button>
+          )}
+          <Button variant="outline" onClick={onClose}>Bekor</Button>
+          <Button onClick={submit} isLoading={save.isPending}>Saqlash</Button>
+        </>
+      )}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Input label="Nomi" placeholder="Markaziy chorraha" value={f.name} onChange={set('name')} />
         <Input label="Manzil" placeholder="Angren, Navoiy ko'chasi 12" value={f.address} onChange={set('address')} />

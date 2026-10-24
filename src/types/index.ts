@@ -143,6 +143,7 @@ export interface FileAsset {
   name: string;
   mime: string;
   size: number;
+  uploadedById: string | null;
   createdAt: string;
 }
 
@@ -330,9 +331,11 @@ export interface Payment {
 }
 
 export interface Debt {
-  orderId: string;
+  /** Buyurtma qarzi — orderId, LED reklama qarzi — campaignId */
+  orderId: string | null;
+  campaignId: string | null;
   orderNumber: string;
-  status: OrderStatus;
+  status: string;
   client: Pick<Client, 'id' | 'name' | 'type' | 'phones' | 'telegram'>;
   totalAmount: number;
   paidAmount: number;
@@ -934,4 +937,26 @@ export interface AdCampaign {
 export interface AdOccupancy {
   maxSlots: number;
   days: Array<{ day: string; used: number; free: number }>;
+}
+
+// ───────────── Audit jurnali ─────────────
+
+export interface AuditLogEntry {
+  id: string;
+  createdAt: string;
+  userId: string | null;
+  userName: string | null;
+  userRole: UserRole | null;
+  /** Xodim bo'lmasa: "Mijoz (havola)", "Sayt", "Mijoz (Telegram)" */
+  actor: string | null;
+  action: string;
+  method: string;
+  route: string;
+  entity: string | null;
+  entityId: string | null;
+  refIds: string[];
+  changes: Record<string, { from: unknown; to: unknown }> | null;
+  data: unknown;
+  status: number;
+  ip: string | null;
 }

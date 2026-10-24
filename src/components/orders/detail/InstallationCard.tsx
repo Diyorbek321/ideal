@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -45,6 +46,7 @@ export function InstallationCard({ order }: { order: OrderDetail }) {
     setMountingType(current?.mountingType ?? '');
     setSizesNote(current?.sizesNote ?? '');
     setRequiredItems(current?.requiredItems.join(', ') ?? '');
+    setCancelReason(null);
     setOpen(true);
   };
 
@@ -74,6 +76,12 @@ export function InstallationCard({ order }: { order: OrderDetail }) {
       if (err instanceof ApiError && err.status === 409 && window.confirm(`${err.message}\n\nBaribir rejalashtirasizmi?`)) create.mutate(true);
       else toast.error(err);
     },
+  });
+  const [cancelReason, setCancelReason] = React.useState<string | null>(null);
+  const cancel = useMutation({
+    mutationFn: () => installationsApi.cancel(current!.id, cancelReason ?? ''),
+    onSuccess: () => { toast.success('Montaj bekor qilindi'); setOpen(false); setCancelReason(null); invalidateOrderViews(qc); },
+    onError: toast.error,
   });
   const resolve = useMutation({
     mutationFn: installationsApi.resolveProblem,
@@ -125,42 +133,56 @@ export function InstallationCard({ order }: { order: OrderDetail }) {
         onClose={() => setOpen(false)}
         title={current ? 'O\'rnatishni tahrirlash' : 'O\'rnatishni rejalashtirish'}
         size="lg"
-        footer={(
+        footer={cancelReason !== null ? (
           <>
-            <Button variant="outline" onClick={() => setOpen(false)}>Bekor qilish</Button>
+            <Button variant="outline" onClick={() => setCancelReason(null)}>Orqaga</Button>
+            <Button variant="danger" disabled={cancelReason.trim().length < 3} isLoading={cancel.isPending} onClick={() => cancel.mutate()}>Montajni bekor qilish</Button>
+          </>
+        ) : (
+          <>
+            {/* Boshlanmagan montajni bekor qilish (mijoz o'zi olib ketdi va h.k.) */}
+            {current && (current.status === 'PLANNED' || current.status === 'ON_THE_WAY') && (
+              <Button variant="ghost" className="text-red-600 sm:mr-auto" onClick={() => setCancelReason('')}>Montajni bekor qilish</Button>
+            )}
+            <Button variant="outline" onClick={() => setOpen(false)}>Yopish</Button>
             <Button disabled={!!date && !time} isLoading={create.isPending} onClick={() => create.mutate(false)}>Saqlash</Button>
           </>
         )}
       >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input label="Sana (bo'sh — keyin kelishiladi)" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <Input label="Vaqt" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-          <div className="md:col-span-2"><Input label="Manzil" value={address} onChange={(e) => setAddress(e.target.value)} /></div>
-          <Input label="Xarita havolasi (Google/Yandex)" value={mapUrl} onChange={(e) => setMapUrl(e.target.value)} placeholder="https://" />
-          <Input label="Joyidagi aloqa telefoni" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
-          <Input label="Mahkamlash turi" value={mountingType} onChange={(e) => setMountingType(e.target.value)} placeholder="Devorga, dyubel" />
-          <Input label="Aniq o'lchamlar" value={sizesNote} onChange={(e) => setSizesNote(e.target.value)} />
-          <div className="md:col-span-2"><Input label="Olib ketiladigan narsalar (vergul bilan)" value={requiredItems} onChange={(e) => setRequiredItems(e.target.value)} placeholder="Narvon, perforator, silikon" /></div>
-          <div className="md:col-span-2">
-            <p className="mb-1 text-sm font-medium text-gray-700">Jamoa</p>
-            <p className="mb-2 text-xs text-gray-500">Bo'sh qoldirsangiz, ustanovkachilar o'zlari "Men boraman" bilan qo'shiladi</p>
-            <div className="flex flex-wrap gap-2">
-              {installers?.map((u) => {
-                const on = team.includes(u.id);
-                return (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => setTeam((t) => (on ? t.filter((x) => x !== u.id) : [...t, u.id]))}
-                    className={`rounded-full border px-3 py-1 text-sm ${on ? 'border-gray-900 bg-brand-300 font-medium text-gray-900' : 'border-gray-200 text-gray-600'}`}
-                  >
-                    {u.fullName}
-                  </button>
-                );
-              })}
+        {cancelReason !== null ? (
+          <Textarea label="Nega bekor qilinmoqda?" rows={3} autoFocus value={cancelReason} onChange={(e) => setCancelReason(e.target.value)}
+            placeholder="Mijoz mahsulotni o'zi olib ketdi" />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Input label="Sana (bo'sh — keyin kelishiladi)" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <Input label="Vaqt" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            <div className="md:col-span-2"><Input label="Manzil" value={address} onChange={(e) => setAddress(e.target.value)} /></div>
+            <Input label="Xarita havolasi (Google/Yandex)" value={mapUrl} onChange={(e) => setMapUrl(e.target.value)} placeholder="https://" />
+            <Input label="Joyidagi aloqa telefoni" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
+            <Input label="Mahkamlash turi" value={mountingType} onChange={(e) => setMountingType(e.target.value)} placeholder="Devorga, dyubel" />
+            <Input label="Aniq o'lchamlar" value={sizesNote} onChange={(e) => setSizesNote(e.target.value)} />
+            <div className="md:col-span-2"><Input label="Olib ketiladigan narsalar (vergul bilan)" value={requiredItems} onChange={(e) => setRequiredItems(e.target.value)} placeholder="Narvon, perforator, silikon" /></div>
+            <div className="md:col-span-2">
+              <p className="mb-1 text-sm font-medium text-gray-700">Jamoa</p>
+              <p className="mb-2 text-xs text-gray-500">Bo'sh qoldirsangiz, ustanovkachilar o'zlari "Men boraman" bilan qo'shiladi</p>
+              <div className="flex flex-wrap gap-2">
+                {installers?.map((u) => {
+                  const on = team.includes(u.id);
+                  return (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => setTeam((t) => (on ? t.filter((x) => x !== u.id) : [...t, u.id]))}
+                      className={`rounded-full border px-3 py-1 text-sm ${on ? 'border-gray-900 bg-brand-300 font-medium text-gray-900' : 'border-gray-200 text-gray-600'}`}
+                    >
+                      {u.fullName}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </Modal>
     </Card>
   );
