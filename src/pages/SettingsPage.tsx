@@ -138,6 +138,7 @@ function KpiTab({ s }: { s: CompanySettings }) {
 function PriceRow({ p }: { p: PriceListItem }) {
   const toast = useToast();
   const qc = useQueryClient();
+  const [name, setName] = React.useState(p.name);
   const [price, setPrice] = React.useState(String(p.price));
   const [cost, setCost] = React.useState(String(p.costPrice));
   const save = useMutation({
@@ -147,16 +148,27 @@ function PriceRow({ p }: { p: PriceListItem }) {
   });
   const priceN = parseMoney(price);
   const costN = parseMoney(cost);
-  const dirty = priceN !== p.price || costN !== p.costPrice;
+  const dirty = priceN !== p.price || costN !== p.costPrice || name.trim() !== p.name;
   return (
     <tr className={cn('border-b border-gray-50', !p.isActive && 'opacity-40')}>
-      <td className="py-2 pr-2"><p className="font-medium">{p.name}</p><p className="text-[11px] text-gray-400">{p.code}</p></td>
-      <td className="py-2 pr-2 text-gray-500">{PRICE_KIND_LABELS[p.kind]}</td>
-      <td className="py-2 pr-2 text-gray-500">{PRICE_UNIT_LABELS[p.unit]}</td>
+      <td className="py-2 pr-2">
+        <input value={name} onChange={(e) => setName(e.target.value)} className="h-8 w-full min-w-40 rounded border border-gray-200 px-2 font-medium" aria-label="Nomi" />
+        <p className="mt-0.5 text-[11px] text-gray-400">{p.code}</p>
+      </td>
+      <td className="py-2 pr-2">
+        <select value={p.kind} onChange={(e) => save.mutate({ kind: e.target.value as PriceKind })} className="h-8 rounded border border-gray-200 px-2 text-gray-600" aria-label="Turi">
+          {options(PRICE_KIND_LABELS).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </td>
+      <td className="py-2 pr-2">
+        <select value={p.unit} onChange={(e) => save.mutate({ unit: e.target.value as PriceUnit })} className="h-8 rounded border border-gray-200 px-2 text-gray-600" aria-label="Birlik">
+          {options(PRICE_UNIT_LABELS).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </td>
       <td className="py-2 pr-2"><input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="numeric" className="h-8 w-28 rounded border border-gray-200 px-2" aria-label="Narx" /></td>
       <td className="py-2 pr-2"><input value={cost} onChange={(e) => setCost(e.target.value)} inputMode="numeric" className="h-8 w-28 rounded border border-gray-200 px-2" aria-label="Tannarx" /></td>
       <td className="whitespace-nowrap py-2 text-right">
-        {dirty && <Button size="sm" disabled={priceN === null || costN === null} isLoading={save.isPending} onClick={() => save.mutate({ price: priceN!, costPrice: costN! })}>Saqlash</Button>}
+        {dirty && <Button size="sm" disabled={priceN === null || costN === null || !name.trim()} isLoading={save.isPending} onClick={() => save.mutate({ name: name.trim(), price: priceN!, costPrice: costN! })}>Saqlash</Button>}
         <Button size="sm" variant="ghost" onClick={() => save.mutate({ isActive: !p.isActive })}>{p.isActive ? 'O\'chirish' : 'Yoqish'}</Button>
       </td>
     </tr>
@@ -167,6 +179,8 @@ function PricesTab() {
   const toast = useToast();
   const qc = useQueryClient();
   const { data: prices, isLoading } = useQuery({ queryKey: ['prices'], queryFn: settingsApi.prices });
+  const activePrices = prices?.filter((p) => p.isActive);
+  const designPrice = activePrices?.find((p) => p.code === 'DESIGN_M2') ?? activePrices?.find((p) => p.kind === 'DESIGN');
   const [f, setF] = React.useState({ code: '', name: '', kind: 'MATERIAL' as PriceKind, unit: 'M2' as PriceUnit, price: '', costPrice: '' });
 
   const create = useMutation({
@@ -174,7 +188,7 @@ function PricesTab() {
       const price = parseMoney(f.price);
       const costPrice = f.costPrice.trim() ? parseMoney(f.costPrice) : 0;
       if (price === null || costPrice === null) return Promise.reject(new Error('Narxni raqam bilan kiriting'));
-      return settingsApi.createPrice({ code: f.code.toUpperCase(), name: f.name, kind: f.kind, unit: f.unit, price, costPrice });
+      return settingsApi.createPrice({ ...(f.code.trim() && { code: f.code.trim().toUpperCase() }), name: f.name.trim(), kind: f.kind, unit: f.unit, price, costPrice });
     },
     onSuccess: () => { toast.success('Qo\'shildi'); setF({ ...f, code: '', name: '', price: '', costPrice: '' }); qc.invalidateQueries({ queryKey: ['prices'] }); },
     onError: toast.error,
@@ -187,25 +201,29 @@ function PricesTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead><tr className="border-b border-gray-100 text-gray-500"><th className="py-2">Nomi</th><th>Turi</th><th>Birlik</th><th>Narx</th><th>Tannarx</th><th /></tr></thead>
-              <tbody>{prices?.map((p) => <PriceRow key={`${p.id}-${p.price}-${p.costPrice}-${p.isActive}`} p={p} />)}</tbody>
+              <tbody>{prices?.map((p) => <PriceRow key={`${p.id}-${p.name}-${p.price}-${p.costPrice}-${p.isActive}`} p={p} />)}</tbody>
             </table>
           </div>
         )}
         <div className="mt-6 grid grid-cols-2 gap-3 rounded-xl border border-dashed border-gray-200 p-4 md:grid-cols-7">
-          <Input label="Kod" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} placeholder="AKRIL_5" />
+          <Input label="Kod (ixtiyoriy)" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} placeholder="avtomatik" />
           <div className="col-span-2"><Input label="Nomi" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
           <Select label="Turi" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as PriceKind })} options={options(PRICE_KIND_LABELS)} />
           <Select label="Birlik" value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value as PriceUnit })} options={options(PRICE_UNIT_LABELS)} />
           <Input label="Narx" inputMode="numeric" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} />
           <div className="flex items-end gap-2">
             <Input label="Tannarx" inputMode="numeric" value={f.costPrice} onChange={(e) => setF({ ...f, costPrice: e.target.value })} />
-            <Button disabled={!f.code || !f.name || !f.price} isLoading={create.isPending} onClick={() => create.mutate()} aria-label="Qo'shish"><Plus className="h-4 w-4" /></Button>
+            <Button disabled={!f.name.trim() || !f.price} isLoading={create.isPending} onClick={() => create.mutate()} aria-label="Qo'shish"><Plus className="h-4 w-4" /></Button>
           </div>
         </div>
-        <p className="mt-2 text-xs text-gray-500">Dizayn narxi kodi albatta <b>DESIGN_M2</b> bo'lishi kerak. Hozir: {formatCurrency(prices?.find((p) => p.code === 'DESIGN_M2')?.price)} / m².</p>
+        <p className="mt-2 text-xs text-gray-500">
+          "Pardozlash" turidagilar — xizmatlar: buyurtmada va kalkulyatorda belgilanadi. Dizayn narxi — "Dizayn" turidagi pozitsiya
+          {designPrice ? <> (hozir {formatCurrency(designPrice.price)}/{PRICE_UNIT_LABELS[designPrice.unit]})</> : <b className="text-red-600"> — hali qo'shilmagan</b>}.
+          Kod nomidan o'zi yaratiladi va keyin o'zgarmaydi.
+        </p>
       </Card>
 
-      <Card title="Mahsulot turlari" description="Turlar va ularning 1 m² narxlari alohida sahifada">
+      <Card title="Mahsulot turlari" description="Turlar, ularning narxi (m² yoki dona) va doimiy xizmatlari alohida sahifada">
         <Link to="/product-types" className="text-sm font-semibold text-brand-700 hover:underline">Mahsulot turlari sahifasiga o'tish →</Link>
       </Card>
     </div>

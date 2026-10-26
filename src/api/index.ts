@@ -2,7 +2,7 @@ import type {
   Client, ClientDetail, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
   Expense, FileAsset, Installation, InstallProblem, InstallProblemType, Material, Order, OrderDetail,
   AuditLogEntry, OrderEvent, OrderSource, OrderStatus, Payment, PaymentKind, PaymentMethod, PayrollEntry, PayrollSheet, PayrollTxKind, AbsenceReason, PriceListItem,
-  PriceResult, ProductType, PublicApproval, QueueTask, ReportSummary, ShareInfo, SmsMessage, SmsStatusInfo, StockMovement,
+  PriceResult, ProductPriceUnit, ProductType, PublicApproval, QueueTask, ReportSummary, ShareInfo, SmsMessage, SmsStatusInfo, StockMovement,
   AppNotification, ClientImportResult, TrackInfo, User, MyKpi, TeamKpi, Lead, LeadStatus, ClientType,
   FinanceAnalytics, ClientsAnalytics, InventoryAnalytics, OverdueReport, MyOverdue, AttendanceMonth, AttendanceRecord,
   Feedback, FeedbackInput, FeedbackStats, AdScreen, AdScreensOverview, AdCampaign, AdCampaignView, AdOccupancy,
@@ -26,6 +26,8 @@ export interface ProductTypeInput {
   defaultMaterialId?: string | null;
   pricePerM2?: number;
   costPerM2?: number;
+  priceUnit?: ProductPriceUnit;
+  serviceCodes?: string[];
   isActive?: boolean;
 }
 
@@ -103,8 +105,10 @@ export const ordersApi = {
   comment: (id: string, message: string) => api.post<OrderEvent>(`/orders/${id}/comments`, { message }),
 };
 
+// Biri majburiy: productTypeId (turning narxi yoki asosiy materiali) yoki materialCode
 export interface PriceInput {
-  materialCode: string;
+  productTypeId?: string;
+  materialCode?: string;
   printCode?: string;
   widthCm: number;
   heightCm: number;
@@ -288,7 +292,8 @@ export const settingsApi = {
   company: () => api.get<CompanySettings>('/settings/company'),
   updateCompany: (body: Partial<CompanySettings>) => api.patch<CompanySettings>('/settings/company', body),
   prices: () => api.get<PriceListItem[]>('/settings/prices'),
-  createPrice: (body: Omit<PriceListItem, 'id' | 'isActive' | 'materialId'> & { materialId?: string | null }) =>
+  // code berilmasa backend nomidan yaratadi
+  createPrice: (body: Omit<PriceListItem, 'id' | 'isActive' | 'materialId' | 'code'> & { code?: string; materialId?: string | null }) =>
     api.post<PriceListItem>('/settings/prices', body),
   updatePrice: (id: string, body: Partial<PriceListItem>) => api.patch<PriceListItem>(`/settings/prices/${id}`, body),
   productTypes: () => api.get<ProductType[]>('/settings/product-types'),

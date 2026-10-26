@@ -1,12 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { inventoryApi, ordersApi, settingsApi, usersApi, type OrderInput, type OrderItemInput } from '@/api';
-import type { Client, OrderDetail, OrderSource } from '@/types';
-import { SOURCE_LABELS, options } from '@/lib/labels';
-import { toDateInput, formatCurrency, parseDecimal, parseMoney } from '@/lib/utils';
+import type { Client, OrderDetail, OrderSource, PriceLine, PriceListItem } from '@/types';
+import { PRICE_UNIT_LABELS, SOURCE_LABELS, options } from '@/lib/labels';
+import { toDateInput, formatCurrency, formatNumber, parseDecimal, parseMoney } from '@/lib/utils';
 import { areaFromMeters, cmToMeters, formatArea, metersToCm } from '@/lib/size';
+import { activeOfKind, findType, productPriceLabel } from '@/lib/pricing';
+import { ServiceChips } from '@/components/pricing/ServiceChips';
+import { installationIndex, priceInputFor, useItemPricing, type ItemPrice, type PricedDraft } from './useItemPricing';
 import { invalidateOrderViews } from '@/lib/queries';
 import { ClientPicker } from '@/components/clients/ClientPicker';
 import { Button } from '@/components/ui/Button';
@@ -31,39 +34,45 @@ interface Props {
   order?: OrderDetail;
 }
 
-// O'lcham metrda kiritiladi; 1 m² narxi bo'lsa dona narxi = maydon × 1 m² narxi
-interface ItemDraft {
-  productType: string;
-  materialId: string;
-  width: string;
-  height: string;
-  quantity: string;
-  finishing: string;
-  pricePerM2: string;
+// O'lcham metrda kiritiladi; narx tur/material + xizmatlar + dizayn + montajdan avtomatik hisoblanadi
+interface ItemDraft extends PricedDraft {
+  /** Narxlar ro'yxatida yo'q eski pardozlash nomlari — o'zgarishsiz saqlanadi */
+  extraFinishing: string[];
+  /** Tahrirdagi asl ro'yxat: tarkib o'zgarmasa aynan shu yuboriladi */
+  initialFinishing?: string[];
   unitPrice: string;
 }
 
 const blankItem = (): ItemDraft => ({
-  productType: '', materialId: '', width: '', height: '', quantity: '1', finishing: '', pricePerM2: '', unitPrice: '',
+  productType: '', materialId: '', width: '', height: '', quantity: '1', services: [], extraFinishing: [], unitPrice: '', manual: false,
 });
 
-const toDraft = (i: Omit<OrderItemInput, 'unitPrice'> & { unitPrice?: number }): ItemDraft => ({
-  productType: i.productType, materialId: i.materialId ?? '', width: cmToMeters(i.widthCm), height: cmToMeters(i.heightCm),
-  quantity: String(i.quantity), finishing: i.finishing.join(', '), pricePerM2: '', unitPrice: String(i.unitPrice ?? ''),
-});
+// Tahrirdagi va kalkulyatordan kelgan narx tayyor — qayta hisoblanmaydi (manual)
+const toDraft = (i: Omit<OrderItemInput, 'unitPrice'> & { unitPrice?: number }, catalog: PriceListItem[]): ItemDraft => {
+  const byName = (n: string) => catalog.find((c) => c.kind === 'FINISHING' && c.name.toLowerCase() === n.trim().toLowerCase());
+  return {
+    productType: i.productType, materialId: i.materialId ?? '', width: cmToMeters(i.widthCm), height: cmToMeters(i.heightCm),
+    quantity: String(i.quantity),
+    services: i.finishing.flatMap((n) => byName(n)?.code ?? []),
+    extraFinishing: i.finishing.filter((n) => !byName(n)),
+    initialFinishing: i.finishing,
+    unitPrice: String(i.unitPrice ?? ''),
+    manual: true,
+  };
+};
+
+function finishingNames(it: ItemDraft, catalog: PriceListItem[]): string[] {
+  const names = [...it.services.map((c) => catalog.find((p) => p.code === c)?.name ?? c), ...it.extraFinishing];
+  // Katta-kichik harf farqi "o'zgarish" emas — aks holda tarkib o'zgarmasa ham yuboriladi (menejerga 403)
+  const norm = (l: string[]) => l.map((n) => n.trim().toLowerCase()).sort().join('|');
+  const same = it.initialFinishing && norm(names) === norm(it.initialFinishing);
+  return same ? it.initialFinishing! : names;
+}
 
 const isoToInput = (iso: string | null | undefined) => (iso ? toDateInput(new Date(iso)) : '');
 // Sana o'zgarmagan bo'lsa asl vaqt saqlanadi (tahrirda muddat soati siljimasin), yangi sana — kun oxiri 18:00
 const keepIso = (input: string, original: string | null | undefined) =>
   !input ? null : original && isoToInput(original) === input ? original : new Date(`${input}T18:00:00`).toISOString();
-
-// 1 m² narxi kiritilgan bo'lsa dona narxini qayta hisoblaydi
-function withUnitPrice(it: ItemDraft): ItemDraft {
-  const perM2 = parseMoney(it.pricePerM2);
-  if (!perM2) return it;
-  return { ...it, unitPrice: String(Math.round(areaFromMeters(it.width, it.height) * perM2)) };
-}
-
 
 // Tez buyurtma: 1 daqiqada to'ldiriladigan forma; `order` berilsa — o'sha buyurtmani tahrirlash
 export function OrderFormModal({
@@ -74,14 +83,22 @@ export function OrderFormModal({
   const navigate = useNavigate();
   const [client, setClient] = React.useState<Pick<Client, 'id' | 'name'> | null>(order?.client ?? initialClient);
   const [source, setSource] = React.useState<OrderSource>(order?.source ?? initialSource);
-  const [items, setItems] = React.useState<ItemDraft[]>(() => {
-    const start = order?.items ?? initialItems;
-    return start?.length ? start.map(toDraft) : [blankItem()];
-  });
+  // Qayta urinishsiz: yuklanmasa forma kutib qolmasin
+  const { data: prices, isError: pricesFailed } = useQuery({ queryKey: ['prices'], queryFn: settingsApi.prices, enabled: open, retry: 0 });
+  const catalog = prices ?? [];
+  const start = order?.items ?? initialItems;
+  // Eski pardozlash nomlarini xizmat kodlariga moslash uchun narxlar ro'yxati kerak
+  const [items, setItems] = React.useState<ItemDraft[] | null>(start?.length ? null : [blankItem()]);
+  React.useEffect(() => {
+    // Narxlar yuklanmasa ham forma ochilsin — pardozlash nomlari "Boshqa" sifatida saqlanadi
+    if (items === null && (prices || pricesFailed)) setItems(start!.map((i) => toDraft(i, prices ?? [])));
+  }, [items, prices, pricesFailed, start]);
   const [deadline, setDeadline] = React.useState(isoToInput(order?.deadline));
   const [needsDesign, setNeedsDesign] = React.useState(order?.needsDesign ?? initialNeedsDesign);
   const [designerId, setDesignerId] = React.useState(order?.designerId ?? '');
   const [needsInstallation, setNeedsInstallation] = React.useState(order?.needsInstallation ?? initialNeedsInstallation);
+  // undefined — hali tanlanmagan: eng arzon montaj narxi olinadi; '' — narxsiz
+  const [installChoice, setInstallChoice] = React.useState<string | undefined>(undefined);
   const [address, setAddress] = React.useState(order?.installationAddress ?? '');
   const [discount, setDiscount] = React.useState(order?.discount ? String(order.discount) : '');
   const [dueDate, setDueDate] = React.useState(isoToInput(order?.dueDate));
@@ -94,43 +111,61 @@ export function OrderFormModal({
     queryKey: ['users', 'DESIGNER'], queryFn: () => usersApi.list({ role: 'DESIGNER', active: true }), enabled: open,
   });
 
-  const lineTotal = (i: ItemDraft) => (parseMoney(i.unitPrice) ?? 0) * (parseDecimal(i.quantity) ?? 0);
-  const subtotal = items.reduce((s, i) => s + lineTotal(i), 0);
-  const total = Math.max(0, subtotal - (parseMoney(discount) ?? 0));
-  const knownType = (name: string) => productTypes?.find((p) => p.name.toLowerCase() === name.trim().toLowerCase());
+  const services = activeOfKind(catalog, 'FINISHING');
+  // Standart — eng arzon montaj (o'rnatish belgilansa narxsiz qolib ketmasin)
+  const installPrices = [...activeOfKind(catalog, 'INSTALLATION')].sort((a, b) => a.price - b.price);
+  const installationCode = needsInstallation ? installChoice ?? installPrices[0]?.code ?? '' : '';
+  const list = items ?? [];
 
   const patchItem = (idx: number, patch: Partial<ItemDraft>) =>
-    setItems((list) => list.map((it, i) => (i === idx ? withUnitPrice({ ...it, ...patch }) : it)));
-  const updateItem = (idx: number, k: keyof ItemDraft, v: string) => patchItem(idx, { [k]: v });
+    setItems((l) => (l ?? []).map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  const updateItem = (idx: number, k: 'materialId' | 'width' | 'height' | 'quantity', v: string) => patchItem(idx, { [k]: v });
 
-  // Ro'yxatdagi tur tanlansa — uning 1 m² narxi va materiali qo'yiladi
+  const pricing = { types: productTypes, prices, needsDesign, installationCode };
+  const results = useItemPricing(list, pricing, (idx, unitPrice) =>
+    setItems((l) => (l ?? []).map((it, i) => (i === idx && !it.manual && it.unitPrice !== String(unitPrice) ? { ...it, unitPrice: String(unitPrice) } : it))));
+  const canAuto = (it: ItemDraft) => priceInputFor({ ...it, manual: false }, false, pricing) !== null;
+  const installLost = !!installationCode && installationIndex(list, pricing) === -1;
+
+  const lineTotal = (i: ItemDraft) => (parseMoney(i.unitPrice) ?? 0) * (parseDecimal(i.quantity) ?? 0);
+  const subtotal = list.reduce((s, i) => s + lineTotal(i), 0);
+  const total = Math.max(0, subtotal - (parseMoney(discount) ?? 0));
+
+  // Ro'yxatdagi tur tanlansa — asosiy materiali va doimiy xizmatlari qo'yiladi, narx yana avtomatik
   const changeType = (idx: number, name: string) => {
-    const t = knownType(name);
-    const it = items[idx]!;
+    const t = findType(productTypes, name);
+    const it = list[idx]!;
+    const active = new Set(services.map((x) => x.code));
     patchItem(idx, {
       productType: name,
-      ...(t && t.pricePerM2 > 0 && { pricePerM2: String(t.pricePerM2) }),
-      ...(t?.defaultMaterialId && !it.materialId && { materialId: t.defaultMaterialId }),
+      ...(t && {
+        manual: false,
+        services: t.serviceCodes.filter((c) => active.has(c)),
+        ...(t.defaultMaterialId && !it.materialId && { materialId: t.defaultMaterialId }),
+      }),
     });
   };
 
   const addType = useMutation({
-    mutationFn: (it: ItemDraft) => settingsApi.createProductType({
-      name: it.productType.trim(),
-      pricePerM2: parseMoney(it.pricePerM2) ?? 0,
-      defaultMaterialId: it.materialId || null,
-    }),
-    onSuccess: (t) => { toast.success(`"${t.name}" ro'yxatga qo'shildi`); qc.invalidateQueries({ queryKey: ['product-types'] }); },
+    mutationFn: (it: ItemDraft) => settingsApi.createProductType({ name: it.productType.trim(), defaultMaterialId: it.materialId || null }),
+    onSuccess: (t) => {
+      toast.success(`"${t.name}" ro'yxatga qo'shildi. Narxini "Mahsulot turlari" sahifasida qo'ying`);
+      qc.invalidateQueries({ queryKey: ['product-types'] });
+    },
     onError: toast.error,
   });
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!client) e.client = 'Mijozni tanlang';
-    items.forEach((i, idx) => {
+    list.forEach((i, idx) => {
       if (!i.productType.trim()) e[`item${idx}`] = 'Mahsulot turini kiriting';
       else if (metersToCm(i.width) === null || metersToCm(i.height) === null) e[`item${idx}`] = 'O\'lchamni metrda kiriting, masalan 1,20';
       else if (!Number.isInteger(parseDecimal(i.quantity)) || (parseDecimal(i.quantity) ?? 0) < 1) e[`item${idx}`] = 'Soni butun son bo\'lishi kerak';
+      else if (!i.manual && !canAuto(i)) e[`item${idx}`] = 'Bu tur uchun narx yo\'q — dona narxini qo\'lda yozing';
+      // Avtomatik narx joriy ma'lumot bo'yicha hisoblangan bo'lishi shart (eski o'lcham narxi saqlanmasin)
+      else if (!i.manual && typeof results[idx] === 'string') e[`item${idx}`] = results[idx] as string;
+      else if (!i.manual && (!results[idx] || String((results[idx] as { unitPrice: number }).unitPrice) !== i.unitPrice)) e[`item${idx}`] = 'Narx hisoblanmoqda — bir soniyadan keyin qayta bosing';
       else if (parseMoney(i.unitPrice) === null) e[`item${idx}`] = 'Narxni raqam bilan kiriting';
     });
     // O'z vaqtida topshirish bonusi (KPI) muddatga qarab hisoblanadi
@@ -145,13 +180,13 @@ export function OrderFormModal({
   const body = (): OrderInput => ({
       clientId: client!.id,
       source,
-      items: items.map((i) => ({
+      items: list.map((i) => ({
         productType: i.productType.trim(),
         materialId: i.materialId || null,
         widthCm: metersToCm(i.width)!,
         heightCm: metersToCm(i.height)!,
         quantity: parseDecimal(i.quantity)!,
-        finishing: i.finishing.split(',').map((f) => f.trim()).filter(Boolean),
+        finishing: finishingNames(i, catalog),
         unitPrice: parseMoney(i.unitPrice)!,
       })),
       discount: parseMoney(discount) ?? 0,
@@ -192,7 +227,7 @@ export function OrderFormModal({
     onError: toast.error,
   });
 
-  const submit = () => validate() && save.mutate();
+  const submit = () => items !== null && validate() && save.mutate();
 
   return (
     <Modal
@@ -217,12 +252,16 @@ export function OrderFormModal({
         <div className="space-y-3">
           <p className="text-sm font-semibold text-gray-900">Mahsulotlar</p>
           <datalist id="product-types">{productTypes?.filter((p) => p.isActive).map((p) => <option key={p.id} value={p.name} />)}</datalist>
-          {items.map((it, idx) => (
+          {items === null && <p className="text-sm text-gray-500">Yuklanmoqda…</p>}
+          {list.map((it, idx) => {
+            const t = findType(productTypes, it.productType);
+            return (
             <div key={idx} className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-8">
                 <div className="col-span-2">
                   <Input label="Turi" list="product-types" value={it.productType} onChange={(e) => changeType(idx, e.target.value)} />
-                  {it.productType.trim() && productTypes && !knownType(it.productType) && (
+                  {t && productPriceLabel(t) && <p className="mt-1 text-xs text-gray-500">{productPriceLabel(t)}</p>}
+                  {it.productType.trim() && productTypes && !t && (
                     <button
                       type="button"
                       disabled={addType.isPending}
@@ -245,30 +284,44 @@ export function OrderFormModal({
                 <Input label="Eni, m" inputMode="decimal" placeholder="1,40" value={it.width} onChange={(e) => updateItem(idx, 'width', e.target.value)} />
                 <Input label="Bo'yi, m" inputMode="decimal" placeholder="1,20" value={it.height} onChange={(e) => updateItem(idx, 'height', e.target.value)} />
                 <Input label="Soni" inputMode="numeric" value={it.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)} />
-                <Input label="1 m² narxi" inputMode="numeric" value={it.pricePerM2} onChange={(e) => updateItem(idx, 'pricePerM2', e.target.value)} />
-                <div className="col-span-2 md:col-span-4"><Input label="Pardozlash (vergul bilan)" value={it.finishing} onChange={(e) => updateItem(idx, 'finishing', e.target.value)} placeholder="Luvers, Laminatsiya" /></div>
-                <div className="col-span-2">
+                <div className="col-span-2 md:col-span-1">
                   <Input
-                    label="Dona narxi"
+                    label={it.manual ? 'Dona narxi (qo\'lda)' : 'Dona narxi'}
                     inputMode="numeric"
                     value={it.unitPrice}
-                    // Qo'lda yozilsa 1 m² narxidan uziladi
-                    onChange={(e) => patchItem(idx, { unitPrice: e.target.value, pricePerM2: '' })}
+                    // Qo'lda yozilsa avtomatik hisobdan uziladi
+                    onChange={(e) => patchItem(idx, { unitPrice: e.target.value, manual: true })}
                   />
                 </div>
-                <div className="col-span-2 flex items-end justify-end pb-2">
-                  {items.length > 1 && (
-                    <button type="button" onClick={() => setItems((l) => l.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700" aria-label="O'chirish">
+                <div className="col-span-2 md:col-span-6">
+                  <p className="mb-1.5 text-xs font-medium text-gray-500">Xizmatlar</p>
+                  <ServiceChips services={services} value={it.services} onChange={(codes) => patchItem(idx, { services: codes })} showPrice />
+                  {it.extraFinishing.length > 0 && <p className="mt-1 text-xs text-gray-400">Boshqa: {it.extraFinishing.join(', ')}</p>}
+                </div>
+                <div className="col-span-2 flex items-end justify-end gap-3 pb-2">
+                  {it.manual && canAuto(it) && (
+                    <button
+                      type="button"
+                      onClick={() => patchItem(idx, { manual: false })}
+                      title="Narx qo'lda — o'lcham, xizmat yoki montaj o'zgarsa qayta hisoblanmaydi"
+                      className="flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline"
+                    >
+                      <RotateCcw className="h-3 w-3" />Avtomatik narx
+                    </button>
+                  )}
+                  {list.length > 1 && (
+                    <button type="button" onClick={() => setItems((l) => (l ?? []).filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700" aria-label="O'chirish">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
                 </div>
               </div>
-              <ItemSummary it={it} total={lineTotal(it)} />
+              <ItemSummary it={it} total={lineTotal(it)} res={results[idx] ?? null} auto={!it.manual && canAuto(it)} canAutoHint={canAuto(it)} />
               {errors[`item${idx}`] && <p className="mt-2 text-xs text-red-500">{errors[`item${idx}`]}</p>}
             </div>
-          ))}
-          <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => setItems((l) => [...l, blankItem()])}>
+            );
+          })}
+          <Button variant="outline" size="sm" className="w-full border-dashed" onClick={() => setItems((l) => [...(l ?? []), blankItem()])}>
             <Plus className="h-4 w-4" /> Yana mahsulot
           </Button>
         </div>
@@ -298,7 +351,23 @@ export function OrderFormModal({
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
               <input type="checkbox" checked={needsInstallation} onChange={(e) => setNeedsInstallation(e.target.checked)} /> O'rnatish kerak
             </label>
-            {needsInstallation && <Input label="Manzil" value={address} onChange={(e) => setAddress(e.target.value)} error={errors.address} />}
+            {needsInstallation && (
+              <>
+                <Input label="Manzil" value={address} onChange={(e) => setAddress(e.target.value)} error={errors.address} />
+                {installPrices.length > 0 && (
+                  <Select
+                    label="Montaj narxi"
+                    value={installationCode}
+                    onChange={(e) => setInstallChoice(e.target.value)}
+                    placeholder="Narxsiz"
+                    options={installPrices.map((p) => ({ value: p.code, label: `${p.name} — ${formatCurrency(p.price)}/${PRICE_UNIT_LABELS[p.unit]}` }))}
+                  />
+                )}
+                {installLost && (
+                  <p className="text-xs text-amber-700">Montaj narxi qo'shilmadi: mahsulotlar narxi qo'lda. Uni dona narxiga qo'shing yoki "Avtomatik narx"ni bosing</p>
+                )}
+              </>
+            )}
           </div>
         </div>
 
@@ -308,18 +377,33 @@ export function OrderFormModal({
   );
 }
 
-// "1,40 × 1,20 = 1,68 m² × 45 000 so'm = 75 600 so'm · 2 dona = 151 200 so'm"
-function ItemSummary({ it, total }: { it: ItemDraft; total: number }) {
+// "Banner: 1,68 m² × 45 000 so'm", qat'iy narx — "Oddiy o'rnatish: 150 000 so'm"
+function lineText(l: PriceLine): string {
+  if (l.unit === 'FIXED') return `${l.name}: ${formatCurrency(l.total)}`;
+  const amount = formatNumber(l.amount, Number.isInteger(l.amount) ? 0 : 2).replace('.', ',');
+  return `${l.name}: ${amount} ${PRICE_UNIT_LABELS[l.unit]} × ${formatCurrency(l.price)}`;
+}
+
+// "1,40 × 1,20 = 1,68 m² · Banner 1,68 m² × 45 000 · Luvers 6 dona × 2 000 · jami 87 600 so'm"
+function ItemSummary({ it, total, res, auto, canAutoHint }: { it: ItemDraft; total: number; res: ItemPrice; auto: boolean; canAutoHint: boolean }) {
   const area = areaFromMeters(it.width, it.height);
   if (area <= 0) return null;
-  const perM2 = parseMoney(it.pricePerM2);
   const qty = parseDecimal(it.quantity) ?? 0;
   return (
-    <p className="mt-2 text-sm text-gray-600">
-      {it.width} × {it.height} = <b className="text-gray-900">{formatArea(area)}</b>
-      {perM2 ? <> × {formatCurrency(perM2)} = {formatCurrency(Math.round(area * perM2))}</> : null}
-      {qty > 1 && <> · {qty} dona = {formatArea(area * qty)}</>}
-      {' · '}jami <b className="text-gray-900">{formatCurrency(total)}</b>
-    </p>
+    <div className="mt-2 space-y-1 text-sm text-gray-600">
+      <p>
+        {it.width} × {it.height} = <b className="text-gray-900">{formatArea(area)}</b>
+        {qty > 1 && <> · {qty} dona = {formatArea(area * qty)}</>}
+        {' · '}jami <b className="text-gray-900">{formatCurrency(total)}</b>
+      </p>
+      {auto && typeof res === 'string' && <p className="text-xs text-red-600">{res}</p>}
+      {auto && res && typeof res !== 'string' && (
+        <p className="text-xs text-gray-500">
+          {res.lines.map(lineText).join(' · ')}
+        </p>
+      )}
+      {it.manual && canAutoHint && <p className="text-xs text-gray-400">Narx qo'lda — o'lcham yoki xizmat o'zgarsa qayta hisoblanmaydi</p>}
+      {!auto && !it.manual && <p className="text-xs text-amber-700">Bu tur uchun narx yo'q — dona narxini qo'lda yozing yoki turga narx qo'ying</p>}
+    </div>
   );
 }

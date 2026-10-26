@@ -449,6 +449,8 @@ export interface PriceResult {
   totalAreaM2: number;
   perimeterM: number;
   lines: PriceLine[];
+  /** Mahsulot turining o'z narxi bo'yicha qism */
+  productCost: number;
   materialCost: number;
   printCost: number;
   finishingCost: number;
@@ -468,11 +470,17 @@ export interface ProductType {
   id: string;
   name: string;
   defaultMaterialId: string | null;
-  /** 0 — narx qo'lda kiritiladi */
+  /** M2 — 1 m² narxi, PIECE — 1 dona narxi */
+  priceUnit: ProductPriceUnit;
+  /** priceUnit bo'yicha narx; 0 — asosiy materialning narxidan yoki qo'lda */
   pricePerM2: number;
   costPerM2: number;
+  /** Tur tanlanganda avtomatik belgilanadigan xizmatlar (PriceListItem.code) */
+  serviceCodes: string[];
   isActive: boolean;
 }
+
+export type ProductPriceUnit = Extract<PriceUnit, 'M2' | 'PIECE'>;
 
 export interface CompanySettings {
   name: string;
