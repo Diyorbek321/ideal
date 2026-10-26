@@ -22,12 +22,13 @@ export default function PublicApprovalPage() {
   const [uploading, setUploading] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [done, setDone] = React.useState<'APPROVE' | 'REQUEST_CHANGES' | null>(null);
+  const [prepayDue, setPrepayDue] = React.useState(0);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const { data, isLoading, error } = useQuery({ queryKey: ['public', token], queryFn: () => publicApi.get(token), retry: false });
   const decide = useMutation({
     mutationFn: (decision: 'APPROVE' | 'REQUEST_CHANGES') => publicApi.decide(token, decision, comment.trim() || undefined, markupUrl),
-    onSuccess: (_, d) => setDone(d),
+    onSuccess: (r, d) => { setPrepayDue(r.prepayDue ?? 0); setDone(d); },
   });
 
   const uploadMarkup = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +62,11 @@ export default function PublicApprovalPage() {
           </div>
           <h1 className="mb-2 text-2xl font-black text-gray-900">{approved ? 'Tasdiqlandi!' : 'Izohingiz yuborildi'}</h1>
           <p className="mb-8 text-gray-600">
-            {approved ? 'Dizayn tasdiqlandi. Buyurtmangiz ishlab chiqarishga yo\'naltirildi.' : 'Dizayner o\'zgartirishlarni kiritib, yangi variantni yuboradi.'}
+            {!approved
+              ? 'Dizayner o\'zgartirishlarni kiritib, yangi variantni yuboradi.'
+              : prepayDue > 0
+                ? `Dizayn tasdiqlandi. Ishlab chiqarish avans to'langach boshlanadi: ${formatCurrency(prepayDue)}. Menejerimiz siz bilan bog'lanadi.`
+                : 'Dizayn tasdiqlandi. Buyurtmangiz ishlab chiqarishga yo\'naltirildi.'}
           </p>
           <p className="text-sm italic text-gray-400">"{company}" jamoasi sizga rahmat aytadi!</p>
         </Card>

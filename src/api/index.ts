@@ -131,13 +131,14 @@ export const designsApi = {
   share: (id: string) => api.get<ShareInfo>(`/designs/${id}/share`),
   remove: (id: string) => api.del<{ deleted: boolean }>(`/designs/${id}`),
   decide: (id: string, decision: 'APPROVE' | 'REQUEST_CHANGES', comment?: string) =>
-    api.post<DesignVersion>(`/designs/${id}/decision`, { decision, comment }),
+    // prepayDue > 0 — tasdiqlandi, lekin ishlab chiqarish avans to'langach boshlanadi
+    api.post<DesignVersion & { prepayDue: number }>(`/designs/${id}/decision`, { decision, comment }),
 };
 
 export const publicApi = {
   get: (token: string) => api.get<PublicApproval>(`/public/approve/${token}`),
   decide: (token: string, decision: 'APPROVE' | 'REQUEST_CHANGES', comment?: string, markupUrl?: string) =>
-    api.post<{ status: string }>(`/public/approve/${token}`, { decision, comment, markupUrl }),
+    api.post<{ status: string; prepayDue: number }>(`/public/approve/${token}`, { decision, comment, markupUrl }),
   track: (token: string) => api.get<TrackInfo>(`/public/track/${token}`),
   uploadMarkup: (token: string, file: File) => api.upload<{ url: string }>(`/public/approve/${token}/markup`, file),
   feedback: (token: string, body: FeedbackInput) => api.post<{ rating: number; createdAt: string }>(`/public/track/${token}/feedback`, body),

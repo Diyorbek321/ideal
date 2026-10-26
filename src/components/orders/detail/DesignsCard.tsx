@@ -5,7 +5,7 @@ import { designsApi } from '@/api';
 import type { DesignStatus, OrderDetail, ShareInfo } from '@/types';
 import { DESIGN_STATUS_LABELS } from '@/lib/labels';
 import { isFinance, useUser } from '@/lib/auth';
-import { fileUrl, formatDateTime } from '@/lib/utils';
+import { fileUrl, formatCurrency, formatDateTime } from '@/lib/utils';
 import { invalidateOrderViews } from '@/lib/queries';
 import { DesignUploadModal } from '@/components/design/DesignUploadModal';
 import { ShareModal } from '@/components/design/ShareModal';
@@ -41,7 +41,12 @@ export function DesignsCard({ order }: { order: OrderDetail }) {
   const decide = useMutation({
     mutationFn: ({ id, decision, comment }: { id: string; decision: 'APPROVE' | 'REQUEST_CHANGES'; comment?: string }) =>
       designsApi.decide(id, decision, comment),
-    onSuccess: (_, v) => { toast.success(v.decision === 'APPROVE' ? 'Tasdiqlandi — ishlab chiqarishga o\'tdi' : 'Dizaynga qaytarildi'); refresh(); },
+    onSuccess: (r, v) => {
+      if (v.decision !== 'APPROVE') toast.success('Dizaynga qaytarildi');
+      else if (r.prepayDue > 0) toast.success(`Tasdiqlandi. Avans kutilmoqda: ${formatCurrency(r.prepayDue)} — to'langach ishlab chiqarish o'zi boshlanadi`);
+      else toast.success('Tasdiqlandi — ishlab chiqarishga o\'tdi');
+      refresh();
+    },
     onError: toast.error,
   });
 

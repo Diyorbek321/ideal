@@ -1,7 +1,7 @@
 import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, XCircle } from 'lucide-react';
-import { ordersApi } from '@/api';
+import { ApiError, ordersApi } from '@/api';
 import type { OrderDetail, OrderStatus } from '@/types';
 import { ORDER_FLOW, STATUS_LABELS } from '@/lib/labels';
 import { isFinance, useUser } from '@/lib/auth';
@@ -20,15 +20,24 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
   const qc = useQueryClient();
   const [cancelOpen, setCancelOpen] = React.useState(false);
   const [reason, setReason] = React.useState('');
+  // Shart bajarilmagan o'tish: direktor sabab yozib istisno qila oladi
+  const [blocked, setBlocked] = React.useState<{ status: OrderStatus; unmet: string[] } | null>(null);
+  const [override, setOverride] = React.useState('');
 
   const change = useMutation({
     mutationFn: ({ status, comment }: { status: OrderStatus; comment?: string }) => ordersApi.changeStatus(order.id, status, comment),
     onSuccess: (_, v) => {
       toast.success(`Status: ${STATUS_LABELS[v.status]}`);
       setCancelOpen(false);
+      setBlocked(null);
+      setOverride('');
       invalidateOrderViews(qc);
     },
-    onError: toast.error,
+    onError: (err, v) => {
+      const unmet = err instanceof ApiError ? (err.details as { unmet?: string[] } | null)?.unmet : undefined;
+      if (user.role === 'ADMIN' && unmet?.length) setBlocked({ status: v.status, unmet });
+      else toast.error(err);
+    },
   });
 
   const flow = order.status === 'YETKAZISHDA' ? ORDER_FLOW.map((s) => (s === 'ORNATISHDA' ? 'YETKAZISHDA' : s)) : ORDER_FLOW;
@@ -94,6 +103,29 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
       >
         <p className="mb-4 text-sm text-gray-600">Ochiq ishlab chiqarish vazifalari o'chiriladi. Bu amalni qaytarib bo'lmaydi.</p>
         <Textarea label="Sabab" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
+      </Modal>
+
+      <Modal
+        open={!!blocked}
+        onClose={() => setBlocked(null)}
+        title={blocked ? `Shart bajarilmagan: → ${STATUS_LABELS[blocked.status]}` : ''}
+        footer={(
+          <>
+            <Button variant="outline" onClick={() => setBlocked(null)}>Bekor</Button>
+            <Button
+              isLoading={change.isPending}
+              disabled={!override.trim()}
+              onClick={() => blocked && change.mutate({ status: blocked.status, comment: override.trim() })}
+            >
+              Istisno sifatida o'tkazish
+            </Button>
+          </>
+        )}
+      >
+        <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-red-700">
+          {blocked?.unmet.map((u) => <li key={u}>{u}</li>)}
+        </ul>
+        <Textarea label="Sabab (jurnalga yoziladi)" value={override} onChange={(e) => setOverride(e.target.value)} rows={2} />
       </Modal>
     </Card>
   );

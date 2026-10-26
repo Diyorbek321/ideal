@@ -507,6 +507,9 @@ export interface CompanySettings {
   officeRadiusM: number;
   /** Check-in'da selfi so'rash ehtimoli, %: 0 — o'chiq, 100 — har kuni */
   selfiePercent: number;
+  /** Ishlab chiqarishga o'tish uchun avans, %: 0 — tekshirilmaydi */
+  prepayPercent: number;
+  prepayExemptTypes: ClientType[];
   /** Oylik: kechikish jarimasi (0 — o'chiq), necha daqiqadan keyin; kelmagan kunlar qaysi sanadan sanaladi */
   latePenalty: number;
   lateGraceMin: number;
