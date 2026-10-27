@@ -14,7 +14,7 @@ import { Select } from '@/components/ui/Select';
 import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
 
 const ENTITY_LABELS: Record<string, string> = {
-  order: 'Buyurtma', payment: 'To\'lov', client: 'Mijoz', campaign: 'LED reklama', adScreen: 'LED ekran', expense: 'Xarajat',
+  order: 'Buyurtma', payment: 'To\'lov', client: 'Mijoz', campaign: 'LED reklama', staffRequest: 'Xodim so\'rovi', adScreen: 'LED ekran', expense: 'Xarajat',
   user: 'Xodim', design: 'Dizayn', installation: 'Montaj', installProblem: 'Montaj muammosi', productionTask: 'Ishlab chiqarish',
   equipment: 'Uskuna', material: 'Material', stock: 'Ombor', payrollEntry: 'Oylik', payrollTx: 'Oylik yozuvi', absence: 'Sababli kun',
   settings: 'Sozlamalar', price: 'Narx', productType: 'Mahsulot turi', file: 'Fayl', lead: 'Ariza', sms: 'SMS',

@@ -372,6 +372,8 @@ export interface PayrollEntry {
   absenceDeduction: number;
   lateCount: number;
   latePenalty: number;
+  overtimeMinutes: number;
+  overtimePay: number;
   /** Hisoblangan (avansdan oldin) */
   gross: number;
   /** Qo'lga: gross − avans */
@@ -415,7 +417,11 @@ export interface PayrollSheet {
   absentDays: string[];
   lateDays: Array<{ day: string; minutes: number }>;
   excuses: AbsenceExcuse[];
-  rules: { latePenalty: number; lateGraceMin: number; absenceFrom: string | null; workDaysInMonth: number };
+  rules: { latePenalty: number; lateGraceMin: number; absenceFrom: string | null; workDaysInMonth: number; overtimePercent: number };
+  /** Ish hajmi bonusi: yuqori stavkagacha nechta qoldi (qoida yo'q — null) */
+  workProgress: {
+    unit: BonusUnit; quantity: number; threshold: number; rate: number; rateOver: number; amount: number; toNextTier: number; onHigherTier: boolean;
+  } | null;
 }
 
 export type PriceKind = 'MATERIAL' | 'PRINT' | 'FINISHING' | 'DESIGN' | 'INSTALLATION' | 'OTHER';
@@ -504,6 +510,7 @@ export interface CompanySettings {
   workStartTime: string;
   workEndTime: string;
   autoCloseTime: string;
+  overtimePercent: number;
   officeLat: number | null;
   officeLng: number | null;
   officeRadiusM: number;
@@ -884,6 +891,34 @@ export interface AttendanceRecord {
   overtimeStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
   overtimeMinutes: number;
 }
+
+export type StaffRequestKind = 'ABSENCE' | 'ADVANCE' | 'DISPUTE';
+export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+export type DisputeTarget = 'LATE' | 'EARLY_LEAVE';
+
+export interface StaffRequest {
+  id: string;
+  userId: string;
+  kind: StaffRequestKind;
+  status: RequestStatus;
+  note: string;
+  dayFrom: string | null;
+  dayTo: string | null;
+  absenceReason: AbsenceReason | null;
+  amount: number | null;
+  attendanceId: string | null;
+  attendanceDay: string | null;
+  disputeTarget: DisputeTarget | null;
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  user?: UserRef & { role: UserRole };
+}
+
+export type StaffRequestInput =
+  | { kind: 'ABSENCE'; dayFrom: string; dayTo: string; absenceReason: AbsenceReason; note: string }
+  | { kind: 'ADVANCE'; amount: number; note: string }
+  | { kind: 'DISPUTE'; attendanceId: string; disputeTarget: DisputeTarget; note: string };
 
 export interface AttendanceMonth {
   period: string;

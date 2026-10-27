@@ -1,4 +1,5 @@
 import type {
+  RequestStatus, StaffRequest, StaffRequestInput,
   Client, ClientDetail, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
   Expense, FileAsset, Installation, InstallProblem, InstallProblemType, Material, Order, OrderDetail,
   AuditLogEntry, OrderEvent, OrderSource, OrderStatus, Payment, PaymentKind, PaymentMethod, PayrollEntry, PayrollSheet, PayrollTxKind, AbsenceReason, PriceListItem,
@@ -283,6 +284,14 @@ export const payrollApi = {
   pay: (id: string, method?: PaymentMethod) => api.post<PayrollEntry>(`/payroll/${id}/pay`, { method }),
 };
 
+export const requestsApi = {
+  mine: () => api.get<StaffRequest[]>('/requests/me'),
+  create: (body: StaffRequestInput) => api.post<StaffRequest>('/requests', body),
+  cancel: (id: string) => api.post<StaffRequest>(`/requests/${id}/cancel`),
+  all: (status?: RequestStatus) => api.get<StaffRequest[]>('/requests', status ? { status } : undefined),
+  review: (id: string, body: { approve: boolean; reviewNote?: string; method?: PaymentMethod }) => api.post<StaffRequest>(`/requests/${id}/review`, body),
+};
+
 export const reportsApi = {
   dashboard: () => api.get<Dashboard>('/reports/dashboard'),
   summary: (from: string, to: string) => api.get<ReportSummary>('/reports/summary', { from, to }),
@@ -348,6 +357,8 @@ export const attendanceApi = {
   requestOvertime: (body: { until: string; reason: string }) => api.post<AttendanceRecord>('/attendance/overtime', body),
   reviewOvertime: (id: string, approve: boolean) => api.post<AttendanceRecord>(`/attendance/${id}/overtime`, { approve }),
   month: (period: string) => api.get<AttendanceMonth>('/attendance', { period }),
+  /** Xodimning o'z davomati — e'tiroz uchun */
+  mine: (period: string) => api.get<AttendanceRecord[]>('/attendance/me', { period }),
 };
 
 export const feedbackApi = {

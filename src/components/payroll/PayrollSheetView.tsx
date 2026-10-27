@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
 import { payrollApi } from '@/api';
 import type { AbsenceReason, PaymentMethod, PayrollSheet, PayrollTxKind } from '@/types';
-import { METHOD_LABELS, options } from '@/lib/labels';
+import { ABSENCE_LABELS, METHOD_LABELS, options } from '@/lib/labels';
 import { cn, formatCurrency, formatDate, parseMoney, toDateInput } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -11,7 +11,6 @@ import { Select } from '@/components/ui/Select';
 import { useToast } from '@/components/ui/Toast';
 
 export const TX_LABELS: Record<PayrollTxKind, string> = { ADVANCE: 'Avans', PAYMENT: 'To\'lov', BONUS: 'Bonus', FINE: 'Jarima' };
-const ABSENCE_LABELS: Record<AbsenceReason, string> = { SICK: 'Kasal', VACATION: 'Ta\'til', DAY_OFF: 'Ruxsat bilan dam', OTHER: 'Boshqa sabab' };
 const dm = (day: string) => day.slice(5).split('-').reverse().join('.');
 
 function Row({ label, amount, strong, tone }: { label: string; amount: number; strong?: boolean; tone?: 'muted' | 'brand' | 'green' }) {

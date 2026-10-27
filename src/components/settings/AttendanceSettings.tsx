@@ -15,11 +15,11 @@ const num = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.'))
 export function AttendanceSettings({ s }: { s: CompanySettings }) {
   const toast = useToast();
   const qc = useQueryClient();
-  const [f, setF] = React.useState({ start: '', end: '', close: '', lat: '', lng: '', radius: '', penalty: '', grace: '', from: '', selfie: '' });
+  const [f, setF] = React.useState({ start: '', end: '', close: '', overtime: '', lat: '', lng: '', radius: '', penalty: '', grace: '', from: '', selfie: '' });
   const [locating, setLocating] = React.useState(false);
   React.useEffect(() => {
     setF({
-      start: s.workStartTime, end: s.workEndTime, close: s.autoCloseTime, lat: s.officeLat == null ? '' : String(s.officeLat), lng: s.officeLng == null ? '' : String(s.officeLng), radius: String(s.officeRadiusM),
+      start: s.workStartTime, end: s.workEndTime, close: s.autoCloseTime, overtime: String(s.overtimePercent), lat: s.officeLat == null ? '' : String(s.officeLat), lng: s.officeLng == null ? '' : String(s.officeLng), radius: String(s.officeRadiusM),
       penalty: String(s.latePenalty), grace: String(s.lateGraceMin), from: s.absenceFrom ?? '', selfie: String(s.selfiePercent),
     });
   }, [s]);
@@ -30,13 +30,15 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
   const penalty = f.penalty.trim() ? parseMoney(f.penalty) : 0;
   const grace = Number(f.grace);
   const selfie = f.selfie.trim() === '' ? 0 : Number(f.selfie);
+  const overtime = f.overtime.trim() === '' ? 0 : Number(f.overtime);
   const valid = /^\d{2}:\d{2}$/.test(f.start) && /^\d{2}:\d{2}$/.test(f.end) && /^\d{2}:\d{2}$/.test(f.close) && f.start < f.end && f.end < f.close && (lat == null) === (lng == null) && !Number.isNaN(lat) && !Number.isNaN(lng) && radius >= 20
     && penalty !== null && Number.isInteger(grace) && grace >= 0
-    && Number.isInteger(selfie) && selfie >= 0 && selfie <= 100;
+    && Number.isInteger(selfie) && selfie >= 0 && selfie <= 100
+    && Number.isInteger(overtime) && overtime >= 0 && overtime <= 500;
 
   const save = useMutation({
     mutationFn: () => settingsApi.updateCompany({
-      workStartTime: f.start, workEndTime: f.end, autoCloseTime: f.close, officeLat: lat, officeLng: lng, officeRadiusM: Math.round(radius),
+      workStartTime: f.start, workEndTime: f.end, autoCloseTime: f.close, overtimePercent: overtime, officeLat: lat, officeLng: lng, officeRadiusM: Math.round(radius),
       latePenalty: penalty ?? 0, lateGraceMin: grace, absenceFrom: f.from || null, selfiePercent: selfie,
     }),
     onSuccess: () => {
@@ -81,6 +83,12 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
           <Input label="Kelmagan kunlar qaysi sanadan ayiriladi" type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />
           <Input label="Kechikish jarimasi (so'm, har biriga)" inputMode="numeric" placeholder="0 — jarima yo'q" value={f.penalty} onChange={(e) => setF({ ...f, penalty: e.target.value })} />
           <Input label="Necha daqiqadan keyin" inputMode="numeric" value={f.grace} onChange={(e) => setF({ ...f, grace: e.target.value })} />
+          <div>
+            <Input label="Qo'shimcha ish haqi (%)" inputMode="numeric" placeholder="0 — to'lanmaydi" value={f.overtime} onChange={(e) => setF({ ...f, overtime: e.target.value })} />
+            <p className="mt-1 text-xs text-gray-500">
+              {overtime ? `Tasdiqlangan qo'shimcha soat — soatbay stavkaning ${overtime}% i (${(overtime / 100).toLocaleString('ru-RU')} baravar). Faqat fiks oylikdagilarga` : 'Qo\'shimcha ish to\'lanmaydi, faqat hisobotda'}
+            </p>
+          </div>
         </div>
         <p className="mt-2 text-xs text-gray-500">
           Fiks oylikdan har kelmagan ish kuni uchun oylik ÷ oydagi ish kunlari ayiriladi; sababli kunlar (kasal, ta'til) — oylik varag'ida belgilanadi va ayirilmaydi.

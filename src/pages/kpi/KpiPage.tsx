@@ -5,7 +5,7 @@ import { CheckCircle2, Settings, Target, TrendingUp, Users } from 'lucide-react'
 import { analyticsApi, kpiApi, payrollApi } from '@/api';
 import { PayrollSheetView } from '@/components/payroll/PayrollSheetView';
 import { OverdueList } from '@/components/reports/OverdueList';
-import type { KpiSummary } from '@/types';
+import type { KpiSummary, PayrollSheet } from '@/types';
 import { useUser } from '@/lib/auth';
 import { ROLE_LABELS } from '@/lib/labels';
 import { cn, currentPeriod, formatCurrency } from '@/lib/utils';
@@ -61,13 +61,43 @@ function MyOverdue({ period }: { period: string }) {
   );
 }
 
+const UNIT: Record<'M2' | 'ORDER', { many: string; per: string }> = {
+  M2: { many: 'm²', per: 'har m²' },
+  ORDER: { many: 'ta ish', per: 'har ish' },
+};
+
+/** Ish hajmi bonusi: hozir qayerdasiz va yuqori stavkagacha nechta qoldi — motivatsiya uchun */
+function WorkProgress({ p }: { p: NonNullable<PayrollSheet['workProgress']> }) {
+  if (p.unit === 'NONE') return null;
+  const u = UNIT[p.unit];
+  const pct = p.threshold > 0 ? Math.min(100, Math.round((p.quantity / p.threshold) * 100)) : 100;
+  return (
+    <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm text-gray-600">Shu oy: <b className="text-gray-900">{p.quantity} {u.many}</b> · bonus <b className="text-gray-900">{formatCurrency(p.amount)}</b></p>
+        {p.toNextTier > 0 && <p className="text-sm font-semibold text-brand-700">Yana {p.toNextTier} {u.many} — keyin {u.per} {formatCurrency(p.rateOver)} dan</p>}
+        {p.onHigherTier && <p className="text-sm font-semibold text-emerald-700">Yuqori stavkadasiz: {u.per} {formatCurrency(p.rateOver)}</p>}
+      </div>
+      {p.threshold > 0 && p.rateOver !== p.rate && (
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+          <div className={cn('h-full rounded-full', p.onHigherTier ? 'bg-emerald-500' : 'bg-brand-400')} style={{ width: `${pct}%` }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Xodim o'z oyligi qanday hisoblanganini ko'radi — har bir qo'shilgan va ayirilgan summa sababi bilan
 function MySalary({ period }: { period: string }) {
   const { data } = useQuery({ queryKey: ['payroll', 'me', period], queryFn: () => payrollApi.me(period) });
   if (!data) return null;
   return (
     <Card title="Mening oyligim" description="Oy davomida avtomatik hisoblanadi: davomat, bajarilgan ish, bonus va avanslar">
+      {data.workProgress && <WorkProgress p={data.workProgress} />}
       <PayrollSheetView sheet={data} />
+      <p className="mt-3 text-sm text-gray-500">
+        Avans, javob yoki davomatga e'tiroz kerakmi? <Link to="/requests" className="font-semibold text-brand-700 hover:underline">So'rov yuborish</Link>
+      </p>
     </Card>
   );
 }

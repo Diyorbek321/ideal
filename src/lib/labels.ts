@@ -1,4 +1,5 @@
 import type {
+  AbsenceReason, RequestStatus, StaffRequestKind,
   ClientType, DesignStatus, EquipmentStatus, EquipmentType, InstallationStatus, InstallProblemType, MaterialUnit,
   OrderSource, OrderStatus, PaymentKind, PaymentMethod, PriceKind, PriceUnit, SmsEvent, SmsStatus, TaskStatus, UserRole, LeadStatus, HeardFrom, BonusUnit, OverdueKind, AdCampaignPhase,
 } from '@/types';
@@ -166,3 +167,7 @@ export const AD_PHASE_LABELS: Record<AdCampaignPhase, string> = {
 
 export const options = <K extends string>(labels: Record<K, string>) =>
   (Object.entries(labels) as Array<[K, string]>).map(([value, label]) => ({ value, label }));
+
+export const ABSENCE_LABELS: Record<AbsenceReason, string> = { SICK: 'Kasal', VACATION: 'Ta\'til', DAY_OFF: 'Ruxsat bilan dam', OTHER: 'Boshqa sabab' };
+export const REQUEST_KIND_LABELS: Record<StaffRequestKind, string> = { ABSENCE: 'Javob / ta\'til', ADVANCE: 'Avans', DISPUTE: 'E\'tiroz' };
+export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = { PENDING: 'Kutilmoqda', APPROVED: 'Tasdiqlandi', REJECTED: 'Rad etildi', CANCELLED: 'Bekor qilindi' };
