@@ -109,7 +109,7 @@ export default function TrackPage() {
                 return (
                   <li key={s} className="flex items-start gap-3">
                     <span className={cn('mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
-                      done ? 'bg-emerald-500 text-white' : active ? 'bg-brand-400 text-gray-900' : 'bg-gray-100 text-gray-300')}>
+                      done ? 'bg-emerald-500 text-white' : active ? 'bg-brand-400 text-white' : 'bg-gray-100 text-gray-300')}>
                       {done ? <Check className="h-4 w-4" /> : <Circle className="h-3 w-3" fill="currentColor" />}
                     </span>
                     <div>

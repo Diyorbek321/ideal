@@ -154,7 +154,7 @@ export default function LeadsPage() {
               className={cn('flex h-10 shrink-0 items-center gap-2 rounded-xl border px-4 text-sm font-medium transition-colors',
                 status === t.value ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400')}>
               {t.label}
-              {t.value === 'NEW' && !!count?.new && <span className="rounded-full bg-brand-400 px-1.5 text-xs font-bold text-gray-900">{count.new}</span>}
+              {t.value === 'NEW' && !!count?.new && <span className="rounded-full bg-brand-400 px-1.5 text-xs font-bold text-white">{count.new}</span>}
             </button>
           ))}
         </div>

@@ -59,7 +59,7 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
               <div key={s} className="relative z-10 flex w-20 flex-col items-center">
                 <div className={cn(
                   'flex h-8 w-8 items-center justify-center rounded-full border-2',
-                  i < idx || finished ? 'border-gray-900 bg-gray-900 text-brand-400' : i === idx ? 'border-gray-900 bg-brand-400 text-gray-900' : 'border-gray-200 bg-white text-gray-300',
+                  i < idx || finished ? 'border-gray-900 bg-gray-900 text-brand-300' : i === idx ? 'border-gray-900 bg-brand-400 text-white' : 'border-gray-200 bg-white text-gray-300',
                 )}>
                   {i < idx || finished ? <CheckCircle2 className="h-5 w-5" /> : <span className="text-xs font-bold">{i + 1}</span>}
                 </div>

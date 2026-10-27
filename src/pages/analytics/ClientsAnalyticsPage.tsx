@@ -97,7 +97,7 @@ export default function ClientsAnalyticsPage() {
           <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
             <Card title="Oxirgi 6 oy">
               <MonthlyBars money={false} data={d.trend.map((t) => ({ ...t, label: periodShort(t.period) }))} series={[
-                { key: 'newClients', name: 'Yangi mijozlar', color: C.yellow },
+                { key: 'newClients', name: 'Yangi mijozlar', color: C.brand },
                 { key: 'orders', name: 'Buyurtmalar', color: C.ink, type: 'line' },
               ]} />
             </Card>

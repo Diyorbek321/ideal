@@ -31,7 +31,7 @@ export function InventoryAnalytics({ tabs }: { tabs: React.ReactNode }) {
             <Card title="Oxirgi 6 oy: sarf va xarid">
               <MonthlyBars data={data.trend.map((t) => ({ ...t, label: periodShort(t.period) }))} series={[
                 { key: 'consumedCost', name: 'Sarf', color: C.ink },
-                { key: 'purchasedCost', name: 'Xarid', color: C.yellow },
+                { key: 'purchasedCost', name: 'Xarid', color: C.brand },
               ]} />
             </Card>
             <Card title="Sarf kategoriyalar bo'yicha">

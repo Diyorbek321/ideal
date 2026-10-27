@@ -15,7 +15,7 @@ export function Badge({ variant = 'default', className, ...props }: BadgeProps) 
     success: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
     warning: 'bg-amber-50 text-amber-800 ring-amber-200',
     error: 'bg-red-50 text-red-700 ring-red-200',
-    info: 'bg-brand-100 text-brand-800 ring-brand-200',
+    info: 'bg-sky-50 text-sky-800 ring-sky-200',
     outline: 'bg-white text-gray-600 ring-gray-200',
   };
 

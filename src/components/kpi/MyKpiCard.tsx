@@ -13,7 +13,7 @@ export function MyKpiCard() {
   return (
     <Link to="/kpi" className="group block rounded-2xl border border-gray-200 bg-white p-4 transition-colors hover:border-gray-900 sm:p-5">
       <div className="flex items-center gap-4">
-        <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-400 text-gray-900 sm:flex"><Target className="h-5 w-5" /></span>
+        <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-400 text-white sm:flex"><Target className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-3">
             <p className="text-sm font-medium text-gray-500">Jamoa rejasi: <b className="text-gray-900">{data.closedCount}</b> / {data.plan} buyurtma</p>

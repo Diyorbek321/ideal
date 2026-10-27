@@ -44,13 +44,13 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-white lg:flex-row">
       <aside className="relative flex flex-col justify-between overflow-hidden bg-brand-400 px-6 py-6 lg:w-[44%] lg:px-12 lg:py-10">
-        <Logo onYellow />
+        <Logo onBrand />
         <div className="relative mt-8 hidden lg:block">
-          <p className="font-display text-4xl font-bold leading-[1.1] text-gray-900 xl:text-5xl">Buyurtmadan<br />montajgacha —<br />bitta tizimda.</p>
-          <p className="mt-5 max-w-sm text-gray-800">Dizayn, tasdiq, pechat, o'rnatish va to'lovlar bir joyda kuzatiladi.</p>
+          <p className="font-display text-4xl font-bold leading-[1.1] text-white xl:text-5xl">Buyurtmadan<br />montajgacha —<br />bitta tizimda.</p>
+          <p className="mt-5 max-w-sm text-brand-50">Dizayn, tasdiq, pechat, o'rnatish va to'lovlar bir joyda kuzatiladi.</p>
         </div>
-        <p className="relative mt-8 hidden text-sm text-gray-800 lg:block">Ideal Dizayn · Angren</p>
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-24 -right-24 hidden h-80 w-80 rounded-full border-[40px] border-gray-900/10 lg:block" />
+        <p className="relative mt-8 hidden text-sm text-brand-50 lg:block">Ideal Dizayn · Angren</p>
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-24 -right-24 hidden h-80 w-80 rounded-full border-[40px] border-white/15 lg:block" />
       </aside>
       <main className="flex flex-1 items-start justify-center px-5 py-10 sm:items-center">
       <div className="w-full max-w-sm">

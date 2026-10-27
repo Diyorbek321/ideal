@@ -79,7 +79,7 @@ export default function FinancePage() {
       />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-        <Card className="border-0 bg-brand-400 p-6 text-gray-900">
+        <Card className="border-0 bg-brand-400 p-6 text-white">
           <div className="mb-4 w-fit rounded-lg bg-white/20 p-2"><DollarSign className="h-6 w-6" /></div>
           <p className="mb-1 text-sm opacity-80">Tushum</p>
           <p className="font-display text-base font-bold tabular-nums sm:text-2xl">{formatCurrency(s.revenue)}</p>

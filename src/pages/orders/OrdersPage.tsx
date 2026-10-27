@@ -102,7 +102,7 @@ export default function OrdersPage() {
           </div>
           <Button variant="outline" className="h-11 md:hidden" onClick={() => setFiltersOpen((o) => !o)} aria-expanded={filtersOpen}>
             <SlidersHorizontal className="h-4 w-4" />
-            {activeFilters > 0 && <span className="rounded-full bg-brand-400 px-1.5 text-xs text-gray-900">{activeFilters}</span>}
+            {activeFilters > 0 && <span className="rounded-full bg-brand-400 px-1.5 text-xs text-white">{activeFilters}</span>}
           </Button>
         </div>
         <div className={cn('grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-4 md:grid-cols-4', !filtersOpen && 'hidden md:grid')}>

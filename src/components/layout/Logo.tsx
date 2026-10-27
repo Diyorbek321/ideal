@@ -1,16 +1,18 @@
 import { cn } from '@/lib/utils';
+import { MARK_PATH, MARK_VIEWBOX, WORD_PATH, WORD_VIEWBOX } from './logoPaths';
 
-// Korporativ saytdagi CMYK belgisi bilan bir xil
-const MARK = ['bg-[#00A3D9]', 'bg-[#C8175D]', 'bg-brand-400', 'bg-gray-900'];
-
-// onYellow: sariq fonda sariq kvadrat ko'rinmaydi — oqqa almashadi
-export function Logo({ className, compact, onYellow }: { className?: string; compact?: boolean; onYellow?: boolean }) {
+// onBrand: qizil fonda logotip oq rangda chiziladi
+export function Logo({ className, compact, onBrand }: { className?: string; compact?: boolean; onBrand?: boolean }) {
   return (
-    <span className={cn('inline-flex items-center gap-2.5 font-display text-[1.05rem] tracking-tight text-gray-900', className)}>
-      <span className="grid grid-cols-2 gap-[3px]" aria-hidden="true">
-        {MARK.map((c) => <i key={c} className={cn('h-2.5 w-2.5 rounded-[3px]', onYellow && c === 'bg-brand-400' ? 'bg-white' : c)} />)}
-      </span>
-      {!compact && <span className="font-medium">Ideal<b className="font-bold">Dizayn</b></span>}
+    <span className={cn('inline-flex items-center gap-2', onBrand ? 'text-white' : 'text-[#FF000A]', className)} aria-label="Ideal Dizayn">
+      <svg viewBox={MARK_VIEWBOX} className="h-8 w-8 shrink-0" fill="currentColor" aria-hidden="true">
+        <path fillRule="evenodd" d={MARK_PATH} />
+      </svg>
+      {!compact && (
+        <svg viewBox={WORD_VIEWBOX} className="h-3.5 w-[122px]" fill="currentColor" aria-hidden="true">
+          <path fillRule="evenodd" d={WORD_PATH} />
+        </svg>
+      )}
     </span>
   );
 }

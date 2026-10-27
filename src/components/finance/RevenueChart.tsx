@@ -3,7 +3,7 @@ import { formatCurrency } from '@/lib/utils';
 
 // Recharts CSS o'zgaruvchilarni o'qimaydi — qiymatlar index.css dagi token'lar bilan bir xil
 const INK = '#0E1726';
-const YELLOW = '#FFC20E';
+const BRAND = '#DC0011';
 const GRID = '#EEEEEA';
 const AXIS = '#5D6676';
 
@@ -16,8 +16,8 @@ export function RevenueChart({ data, className = 'h-56 sm:h-64' }: { data: Array
         <AreaChart data={data}>
           <defs>
             <linearGradient id="revenue-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={YELLOW} stopOpacity={0.55} />
-              <stop offset="100%" stopColor={YELLOW} stopOpacity={0.05} />
+              <stop offset="0%" stopColor={BRAND} stopOpacity={0.55} />
+              <stop offset="100%" stopColor={BRAND} stopOpacity={0.05} />
             </linearGradient>
           </defs>
           <CartesianGrid stroke={GRID} vertical={false} />

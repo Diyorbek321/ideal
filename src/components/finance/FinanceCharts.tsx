@@ -44,8 +44,8 @@ export function FinanceCharts({ period }: { period: string }) {
         </div>
         <p className="mb-2 mt-6 text-sm font-semibold text-gray-900">Oxirgi 6 oy</p>
         <MonthlyBars data={trend} series={[
-          { key: 'revenue', name: 'Tushum', color: C.yellow },
-          { key: 'expenses', name: 'Xarajat', color: C.red },
+          { key: 'revenue', name: 'Tushum', color: C.brand },
+          { key: 'expenses', name: 'Xarajat', color: C.expense },
           { key: 'profit', name: 'Sof oqim', color: C.ink, type: 'line' },
         ]} />
       </Card>
@@ -95,7 +95,7 @@ export function ExpenseCharts({ period }: { period: string }) {
         <Donut data={data.expensesByCategory.slice(0, 8).map((x) => ({ name: x.category, value: x.amount }))} />
       </Card>
       <Card title="Kunlik xarajat" description={data.current.revenue ? `Tushumning ${data.current.expenseRatio}% i xarajatga ketdi` : undefined}>
-        <MonthlyBars data={days} series={[{ key: 'amount', name: 'Xarajat', color: C.red }]} className="h-64" />
+        <MonthlyBars data={days} series={[{ key: 'amount', name: 'Xarajat', color: C.expense }]} className="h-64" />
       </Card>
     </div>
   );

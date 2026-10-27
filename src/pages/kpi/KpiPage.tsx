@@ -86,7 +86,7 @@ function MyView({ period }: { period: string }) {
           {[['Reja bonusi', data.planBonus], ['O\'z vaqtida bonusi', data.onTimeBonus], ['Jami bonusim', data.total]].map(([l, v], i) => (
             <Card key={l as string} className={cn('p-5', i === 2 && 'border-0 bg-gray-900 text-white')}>
               <p className={cn('text-sm', i === 2 ? 'text-gray-300' : 'text-gray-500')}>{l}</p>
-              <p className={cn('mt-1 font-display text-2xl font-bold tabular-nums', i === 2 && 'text-brand-400')}>{formatCurrency(v as number)}</p>
+              <p className={cn('mt-1 font-display text-2xl font-bold tabular-nums', i === 2 && 'text-brand-300')}>{formatCurrency(v as number)}</p>
             </Card>
           ))}
         </div>

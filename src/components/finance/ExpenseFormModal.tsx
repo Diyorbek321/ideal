@@ -108,7 +108,7 @@ export function ExpenseFormModal({ open, onClose, expense }: ExpenseFormModalPro
             {EXPENSE_METHODS.map((m) => (
               <button key={m} type="button" onClick={() => setForm({ ...form, method: m })} aria-pressed={form.method === m}
                 className={cn('h-10 rounded-xl border text-sm font-medium transition-colors',
-                  form.method === m ? 'border-gray-900 bg-brand-400 text-gray-900' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400')}>
+                  form.method === m ? 'border-gray-900 bg-brand-400 text-white' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400')}>
                 {METHOD_LABELS[m]}
               </button>
             ))}

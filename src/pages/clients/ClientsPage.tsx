@@ -20,7 +20,7 @@ const ICONS: Record<ClientType, typeof User> = {
   BUDGET: Building2, MILITARY: Shield, SCHOOL: GraduationCap, COMPANY: Building2, INDIVIDUAL: User,
 };
 const COLORS: Record<ClientType, string> = {
-  BUDGET: 'bg-brand-50 text-brand-600', MILITARY: 'bg-red-50 text-red-600', SCHOOL: 'bg-amber-50 text-amber-600',
+  BUDGET: 'bg-sky-50 text-sky-700', MILITARY: 'bg-red-50 text-red-600', SCHOOL: 'bg-amber-50 text-amber-600',
   COMPANY: 'bg-emerald-50 text-emerald-600', INDIVIDUAL: 'bg-gray-50 text-gray-600',
 };
 

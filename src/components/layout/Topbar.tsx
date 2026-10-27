@@ -52,7 +52,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
               <p className="text-sm font-semibold leading-none text-gray-900">{user.fullName}</p>
               <p className="mt-1 text-xs text-gray-500">{ROLE_LABELS[user.role]}</p>
             </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-400 font-display text-xs font-bold text-gray-900">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-400 font-display text-xs font-bold text-white">
               {initials(user.fullName)}
             </div>
           </button>

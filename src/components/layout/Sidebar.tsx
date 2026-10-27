@@ -44,7 +44,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                     className={({ isActive }) => cn(
                       'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors',
                       isActive
-                        ? 'bg-brand-400 font-semibold text-gray-900'
+                        ? 'bg-brand-400 font-semibold text-white'
                         : 'font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900',
                     )}
                   >

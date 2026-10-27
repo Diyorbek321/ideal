@@ -45,7 +45,7 @@ function ScreenCard({ s, onEdit, onBook }: { s: AdScreen; onEdit: () => void; on
     <Card className={cn('flex flex-col overflow-hidden', !s.isActive && 'opacity-60')}>
       {s.photoUrl
         ? <img src={fileUrl(s.photoUrl)} alt={s.name} className="h-36 w-full object-cover" />
-        : <div className="flex h-36 items-center justify-center bg-gray-900 text-brand-400"><MonitorPlay className="h-10 w-10" /></div>}
+        : <div className="flex h-36 items-center justify-center bg-gray-900 text-brand-300"><MonitorPlay className="h-10 w-10" /></div>}
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">

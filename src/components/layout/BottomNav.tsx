@@ -29,9 +29,9 @@ export default function BottomNav({ onMore }: { onMore: () => void }) {
           className={({ isActive }) => cn(cell, isActive ? 'text-gray-900' : 'text-gray-500')}>
           {({ isActive }) => (
             <>
-              <span className={cn('relative flex h-7 w-12 items-center justify-center rounded-full transition-colors', isActive && 'bg-brand-400')}>
+              <span className={cn('relative flex h-7 w-12 items-center justify-center rounded-full transition-colors', isActive && 'bg-brand-400 text-white')}>
                 <item.icon className="h-5 w-5" />
-                {badgeOf(item) > 0 && <span className="absolute -right-0.5 -top-1 rounded-full bg-red-600 px-1 text-[10px] font-bold leading-4 text-white">{badgeOf(item)}</span>}
+                {badgeOf(item) > 0 && <span className="absolute -right-0.5 -top-1 rounded-full bg-gray-900 px-1 text-[10px] font-bold leading-4 text-white">{badgeOf(item)}</span>}
               </span>
               <span className={cn('truncate', isActive && 'font-semibold')}>{item.short}</span>
             </>
@@ -42,7 +42,7 @@ export default function BottomNav({ onMore }: { onMore: () => void }) {
         <button onClick={onMore} className={cn(cell, 'text-gray-500')}>
           <span className="relative flex h-7 w-12 items-center justify-center">
             <Menu className="h-5 w-5" />
-            {hiddenBadges > 0 && <span className="absolute -right-0.5 -top-1 rounded-full bg-red-600 px-1 text-[10px] font-bold leading-4 text-white">{hiddenBadges}</span>}
+            {hiddenBadges > 0 && <span className="absolute -right-0.5 -top-1 rounded-full bg-gray-900 px-1 text-[10px] font-bold leading-4 text-white">{hiddenBadges}</span>}
           </span>
           <span>Menyu</span>
         </button>

@@ -6,14 +6,15 @@ import { cn, formatCurrency } from '@/lib/utils';
 // Recharts CSS o'zgaruvchilarni o'qimaydi — qiymatlar index.css dagi token'lar bilan bir xil
 export const C = {
   ink: '#0E1726',
-  yellow: '#FFC20E',
-  red: '#DC2626',
+  brand: '#DC0011',
+  // xarajat neytral kulrang — brend qizili bilan adashmasin
+  expense: '#8A93A3',
   green: '#059669',
   grid: '#EEEEEA',
   axis: '#5D6676',
 };
-// Kategoriyalar uchun ketma-ket ranglar (sariq + neytral + yordamchi)
-export const PALETTE = ['#FFC20E', '#0E1726', '#2563EB', '#059669', '#DC2626', '#9333EA', '#EA580C', '#0891B2', '#65A30D', '#94A3B8'];
+// Kategoriyalar uchun ketma-ket ranglar (brend qizili + neytral + yordamchi)
+export const PALETTE = ['#DC0011', '#0E1726', '#2563EB', '#059669', '#9333EA', '#EA580C', '#0891B2', '#65A30D', '#94A3B8'];
 
 export const axisMoney = (v: number) => {
   const a = Math.abs(v);
@@ -107,7 +108,7 @@ export function Stat({ label, value, hint, tone = 'default' }: {
   return (
     <div className={cn(
       'rounded-2xl border p-4 sm:p-5',
-      tone === 'brand' ? 'border-0 bg-brand-400 text-gray-900'
+      tone === 'brand' ? 'border-0 bg-brand-400 text-white'
         : tone === 'bad' ? 'border-red-200 bg-red-50 text-red-800'
           : tone === 'good' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-gray-200 bg-white',
     )}>

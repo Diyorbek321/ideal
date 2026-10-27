@@ -28,7 +28,7 @@ export function OccupancyStrip({ screenId, from, days = 30, highlight }: Props) 
           return (
             <div key={d.day} title={`${d.day}: ${d.used}/${data.maxSlots} band, ${d.free} bo'sh`}
               className={cn('relative h-full flex-1 rounded-t-sm', inRange ? 'bg-gray-300' : 'bg-gray-100')}>
-              <div className={cn('absolute inset-x-0 bottom-0 rounded-t-sm', full ? 'bg-red-500' : d.used ? 'bg-brand-400' : 'bg-transparent')}
+              <div className={cn('absolute inset-x-0 bottom-0 rounded-t-sm', full ? 'bg-brand-400' : d.used ? 'bg-gray-400' : 'bg-transparent')}
                 style={{ height: `${pct}%` }} />
             </div>
           );

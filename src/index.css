@@ -1,31 +1,31 @@
 @import "tailwindcss";
 
 /*
- * Ideal Dizayn brendi — korporativ sayt (website/css/base.css) bilan bir xil.
- * Sariq faqat fon bo'ladi (ustida siyoh rang matn, 11:1). Oq fonda sariq matn/chegara 1.6:1 — taqiqlangan,
- * urg'u matni uchun brand-600/700 (6.2–7.4:1).
+ * Ideal Dizayn brendi — korporativ sayt (website/css/base.css) bilan bir xil: logotip qizili #FF000A.
+ * brand-400 (#DC0011) fon bo'lsa ustidagi matn faqat OQ (5.2:1); siyoh rang qizilda 3.5:1 — taqiqlangan.
+ * Oq fonda urg'u matni brand-600/700 (6.9–8.5:1). brand-300 fonda siyoh matn (7.5:1).
  */
 @theme {
   --font-sans: "Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Unbounded", "Onest", ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand-50: #FFFBEB;
-  --color-brand-100: #FFF6D6;
-  --color-brand-200: #FFE89A;
-  --color-brand-300: #FFD54F;
-  --color-brand-400: #FFC20E;
-  --color-brand-500: #F0B000;
-  --color-brand-600: #7A5C00;
-  --color-brand-700: #6B5200;
-  --color-brand-800: #4F3C00;
-  --color-brand-900: #3D2E00;
+  --color-brand-50: #FFF1F1;
+  --color-brand-100: #FFE3E4;
+  --color-brand-200: #FFC2C5;
+  --color-brand-300: #FF8A90;
+  --color-brand-400: #DC0011;
+  --color-brand-500: #C4000F;
+  --color-brand-600: #B8000C;
+  --color-brand-700: #9E000A;
+  --color-brand-800: #7A0008;
+  --color-brand-900: #5C0006;
 
   --color-ink-900: #0E1726;
   --color-ink-800: #18233A;
   --color-ink-700: #243049;
 
   /* Neytral shkala siyoh rangga moslangan; 400 ham oq fonda 4.2:1 (asl Tailwind 2.6:1 edi) */
-  --color-gray-50: #F6F6F3;
+  --color-gray-50: #F7F7F7;
   --color-gray-100: #EEEEEA;
   --color-gray-200: #E4E5E1;
   --color-gray-300: #CDD0D5;
