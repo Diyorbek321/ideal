@@ -502,6 +502,8 @@ export interface CompanySettings {
   kpiOverPlanBonus: number;
   kpiOnTimeBonus: number;
   workStartTime: string;
+  workEndTime: string;
+  autoCloseTime: string;
   officeLat: number | null;
   officeLng: number | null;
   officeRadiusM: number;
@@ -874,14 +876,26 @@ export interface AttendanceRecord {
   lateMinutes: number;
   distanceM: number | null;
   selfieUrl: string | null;
+  outDistanceM: number | null;
+  earlyLeaveMinutes: number;
+  autoClosed: boolean;
+  overtimeUntil: string | null;
+  overtimeReason: string | null;
+  overtimeStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+  overtimeMinutes: number;
 }
 
 export interface AttendanceMonth {
   period: string;
   workStartTime: string;
+  workEndTime: string;
   workDays: string[];
-  users: Array<UserRef & { role: UserRole; present: number; late: number; lateMinutes: number; absent: number }>;
+  users: Array<UserRef & {
+    role: UserRole; present: number; late: number; lateMinutes: number; absent: number;
+    earlyLeaves: number; earlyLeaveMinutes: number; autoClosed: number; overtimeMinutes: number;
+  }>;
   records: AttendanceRecord[];
+  pendingOvertime: Array<{ id: string; day: string; overtimeUntil: string; overtimeReason: string; checkOutAt: string | null; user: UserRef }>;
 }
 
 // ───────────── LED ekranlar (tashqi reklama) ─────────────

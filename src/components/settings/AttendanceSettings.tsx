@@ -15,11 +15,11 @@ const num = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.'))
 export function AttendanceSettings({ s }: { s: CompanySettings }) {
   const toast = useToast();
   const qc = useQueryClient();
-  const [f, setF] = React.useState({ start: '', lat: '', lng: '', radius: '', penalty: '', grace: '', from: '', selfie: '' });
+  const [f, setF] = React.useState({ start: '', end: '', close: '', lat: '', lng: '', radius: '', penalty: '', grace: '', from: '', selfie: '' });
   const [locating, setLocating] = React.useState(false);
   React.useEffect(() => {
     setF({
-      start: s.workStartTime, lat: s.officeLat == null ? '' : String(s.officeLat), lng: s.officeLng == null ? '' : String(s.officeLng), radius: String(s.officeRadiusM),
+      start: s.workStartTime, end: s.workEndTime, close: s.autoCloseTime, lat: s.officeLat == null ? '' : String(s.officeLat), lng: s.officeLng == null ? '' : String(s.officeLng), radius: String(s.officeRadiusM),
       penalty: String(s.latePenalty), grace: String(s.lateGraceMin), from: s.absenceFrom ?? '', selfie: String(s.selfiePercent),
     });
   }, [s]);
@@ -30,13 +30,13 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
   const penalty = f.penalty.trim() ? parseMoney(f.penalty) : 0;
   const grace = Number(f.grace);
   const selfie = f.selfie.trim() === '' ? 0 : Number(f.selfie);
-  const valid = /^\d{2}:\d{2}$/.test(f.start) && (lat == null) === (lng == null) && !Number.isNaN(lat) && !Number.isNaN(lng) && radius >= 20
+  const valid = /^\d{2}:\d{2}$/.test(f.start) && /^\d{2}:\d{2}$/.test(f.end) && /^\d{2}:\d{2}$/.test(f.close) && f.start < f.end && f.end < f.close && (lat == null) === (lng == null) && !Number.isNaN(lat) && !Number.isNaN(lng) && radius >= 20
     && penalty !== null && Number.isInteger(grace) && grace >= 0
     && Number.isInteger(selfie) && selfie >= 0 && selfie <= 100;
 
   const save = useMutation({
     mutationFn: () => settingsApi.updateCompany({
-      workStartTime: f.start, officeLat: lat, officeLng: lng, officeRadiusM: Math.round(radius),
+      workStartTime: f.start, workEndTime: f.end, autoCloseTime: f.close, officeLat: lat, officeLng: lng, officeRadiusM: Math.round(radius),
       latePenalty: penalty ?? 0, lateGraceMin: grace, absenceFrom: f.from || null, selfiePercent: selfie,
     }),
     onSuccess: () => {
@@ -60,6 +60,11 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
     <Card title="Davomat (check-in)" description="Xodimlar ishga kelganda «Ishga keldim» tugmasini bosadi. Kechikish shu vaqtdan hisoblanadi">
       <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
         <Input label="Ish boshlanish vaqti" type="time" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} />
+        <Input label="Ish tugash vaqti" type="time" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} />
+        <div>
+          <Input label="«Ketdim» bosilmasa — kun yopiladi" type="time" value={f.close} onChange={(e) => setF({ ...f, close: e.target.value })} />
+          <p className="mt-1 text-xs text-gray-500">Vaqt ish tugashiga qo'yiladi, direktorga Telegram xabar boradi. Tasdiqlangan qo'shimcha ish bo'lsa — o'sha muddatgacha kutiladi</p>
+        </div>
         <Input label="Ruxsat etilgan masofa (metr)" inputMode="numeric" value={f.radius} onChange={(e) => setF({ ...f, radius: e.target.value })} />
         <Input label="Ofis kengligi (lat)" inputMode="decimal" placeholder="bo'sh — joylashuv tekshirilmaydi" value={f.lat} onChange={(e) => setF({ ...f, lat: e.target.value })} />
         <Input label="Ofis uzunligi (lng)" inputMode="decimal" value={f.lng} onChange={(e) => setF({ ...f, lng: e.target.value })} />
@@ -89,7 +94,7 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
         )}
       </div>
       <p className="mt-3 text-sm text-gray-500">
-        Ofis joylashuvi kiritilsa, check-in faqat ofisdan {f.radius || '…'} m ichida qabul qilinadi. Ofisda turib «Hozirgi joylashuv» ni bosing.
+        Ofis joylashuvi kiritilsa, «Ishga keldim» va «Ketdim» faqat ofisdan {f.radius || '…'} m ichida qabul qilinadi. Ofisda turib «Hozirgi joylashuv» ni bosing.
       </p>
       <div className="mt-6 flex flex-wrap justify-end gap-2">
         <Button variant="outline" isLoading={locating} onClick={here}><MapPin className="h-4 w-4" />Hozirgi joylashuv</Button>

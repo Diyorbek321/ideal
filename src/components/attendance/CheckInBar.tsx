@@ -1,10 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Camera, Fingerprint, LogOut, MapPin } from 'lucide-react';
+import { Camera, Clock, Fingerprint, LogOut, MapPin } from 'lucide-react';
 import React from 'react';
 import { attendanceApi, filesApi } from '@/api';
 import { useUser } from '@/lib/auth';
 import { formatDateTime } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
+import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
 import { SelfieCamera } from './SelfieCamera';
 
@@ -15,7 +18,7 @@ function currentPosition(): Promise<{ lat: number; lng: number }> {
     if (!navigator.geolocation) return reject(new Error('Qurilmada joylashuv (GPS) yo\'q'));
     navigator.geolocation.getCurrentPosition(
       (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => reject(new Error('Joylashuvga ruxsat bering — check-in faqat ofisda qilinadi')),
+      () => reject(new Error('Joylashuvga ruxsat bering — belgilash faqat ofisda qilinadi')),
       { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
     );
   });
@@ -42,7 +45,17 @@ export function CheckInBar() {
     onSuccess: (r) => { setCamera(false); toast.success(r.lateMinutes ? `Belgilandi. ${r.lateMinutes} daqiqa kechikdingiz` : 'Belgilandi. Xayrli ish kuni!'); done(); },
     onError: toast.error,
   });
-  const checkOut = useMutation({ mutationFn: attendanceApi.checkOut, onSuccess: () => { toast.success('Ketish vaqti belgilandi'); done(); }, onError: toast.error });
+  const checkOut = useMutation({
+    mutationFn: async () => attendanceApi.checkOut(data?.geofence ? await currentPosition() : {}),
+    onSuccess: (r) => { toast.success(r.earlyLeaveMinutes ? `Belgilandi. Ish tugashidan ${r.earlyLeaveMinutes} daqiqa oldin` : 'Ketish vaqti belgilandi'); done(); },
+    onError: toast.error,
+  });
+  const [ot, setOt] = React.useState<{ until: string; reason: string } | null>(null);
+  const overtime = useMutation({
+    mutationFn: attendanceApi.requestOvertime,
+    onSuccess: () => { setOt(null); toast.success('So\'rov yuborildi — rahbar tasdiqlashi kerak'); done(); },
+    onError: toast.error,
+  });
 
   if (!enabled || !data) return null;
   const r = data.record;
@@ -75,10 +88,32 @@ export function CheckInBar() {
         {r.checkOutAt && <> · Ketdingiz: <b className="text-gray-900">{hhmm(r.checkOutAt)}</b></>}
       </span>
       {!r.checkOutAt && (
-        <Button variant="ghost" size="sm" isLoading={checkOut.isPending} onClick={() => window.confirm('Ish kunini yakunlaysizmi?') && checkOut.mutate()}>
-          <LogOut className="h-4 w-4" />Ketdim
-        </Button>
+        <span className="flex flex-wrap items-center gap-1">
+          {r.overtimeStatus === 'PENDING' && <span className="text-xs text-amber-700">Qo'shimcha ish: tasdiq kutilmoqda</span>}
+          {r.overtimeStatus === 'APPROVED' && r.overtimeUntil && <span className="text-xs text-emerald-700">Qo'shimcha ish {hhmm(r.overtimeUntil)} gacha tasdiqlangan</span>}
+          {r.overtimeStatus === 'REJECTED' && <span className="text-xs text-red-600">Qo'shimcha ish rad etildi</span>}
+          {r.overtimeStatus !== 'APPROVED' && (
+            <Button variant="ghost" size="sm" onClick={() => setOt({ until: '20:00', reason: '' })}><Clock className="h-4 w-4" />Qolib ishlayman</Button>
+          )}
+          <Button variant="ghost" size="sm" isLoading={checkOut.isPending}
+            onClick={() => window.confirm(`Ish kunini yakunlaysizmi?${data.geofence ? ' (faqat ofisda)' : ''}`) && checkOut.mutate()}>
+            <LogOut className="h-4 w-4" />Ketdim
+          </Button>
+        </span>
       )}
+      <Modal open={!!ot} onClose={() => setOt(null)} title="Qo'shimcha ish so'rovi"
+        footer={<Button disabled={!ot || ot.reason.trim().length < 3} isLoading={overtime.isPending} onClick={() => ot && overtime.mutate(ot)}>Yuborish</Button>}>
+        {ot && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Ish {data.workEndTime} da tugaydi. Undan keyingi vaqt faqat rahbar tasdiqlasa hisoblanadi.
+              Tunda qolsangiz — ertangi vaqtni yozing (masalan 02:00).
+            </p>
+            <Input label="Qachongacha" type="time" value={ot.until} onChange={(e) => setOt({ ...ot, until: e.target.value })} />
+            <Textarea label="Sababi" placeholder="Masalan: ID-1234 buyurtmasi ertaga topshiriladi" value={ot.reason} onChange={(e) => setOt({ ...ot, reason: e.target.value })} />
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
