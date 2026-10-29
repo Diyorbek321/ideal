@@ -19,7 +19,7 @@ const HINT: Record<StaffRequestKind, string> = {
 };
 const dm = (day: string) => day.split('-').reverse().join('.');
 
-/** E'tiroz uchun: shu va o'tgan oydagi kechikish/erta ketish belgilari */
+/** E'tiroz uchun: shu va o'tgan oydagi kechikish/erta ketish/«Ketdim» bosilmagan belgilari */
 function useDisputable() {
   const cur = currentPeriod();
   const [y, m] = cur.split('-').map(Number) as [number, number];
@@ -31,6 +31,7 @@ function useDisputable() {
   return (q.data ?? []).flatMap((r) => [
     ...(r.lateMinutes ? [{ value: `${r.id}:LATE`, label: `${dm(r.day)} — ${r.lateMinutes} daq kechikish` }] : []),
     ...(r.earlyLeaveMinutes ? [{ value: `${r.id}:EARLY_LEAVE`, label: `${dm(r.day)} — ${r.earlyLeaveMinutes} daq erta ketish` }] : []),
+    ...(r.autoClosed ? [{ value: `${r.id}:UNMARKED`, label: `${dm(r.day)} — «Ketdim» bosilmagan` }] : []),
   ]);
 }
 

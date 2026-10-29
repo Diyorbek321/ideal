@@ -15,12 +15,13 @@ const num = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.'))
 export function AttendanceSettings({ s }: { s: CompanySettings }) {
   const toast = useToast();
   const qc = useQueryClient();
-  const [f, setF] = React.useState({ start: '', end: '', close: '', overtime: '', lat: '', lng: '', radius: '', penalty: '', grace: '', from: '', selfie: '' });
+  const [f, setF] = React.useState({ start: '', end: '', close: '', overtime: '', lat: '', lng: '', radius: '', penalty: '', grace: '', from: '', selfie: '', unmarked: '', siteRadius: '', siteAfter: '' });
   const [locating, setLocating] = React.useState(false);
   React.useEffect(() => {
     setF({
       start: s.workStartTime, end: s.workEndTime, close: s.autoCloseTime, overtime: String(s.overtimePercent), lat: s.officeLat == null ? '' : String(s.officeLat), lng: s.officeLng == null ? '' : String(s.officeLng), radius: String(s.officeRadiusM),
       penalty: String(s.latePenalty), grace: String(s.lateGraceMin), from: s.absenceFrom ?? '', selfie: String(s.selfiePercent),
+      unmarked: String(s.unmarkedPenalty), siteRadius: String(s.siteRadiusM), siteAfter: s.siteLeaveAfter,
     });
   }, [s]);
 
@@ -31,15 +32,19 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
   const grace = Number(f.grace);
   const selfie = f.selfie.trim() === '' ? 0 : Number(f.selfie);
   const overtime = f.overtime.trim() === '' ? 0 : Number(f.overtime);
+  const unmarked = f.unmarked.trim() ? parseMoney(f.unmarked) : 0;
+  const siteRadius = Number(f.siteRadius);
   const valid = /^\d{2}:\d{2}$/.test(f.start) && /^\d{2}:\d{2}$/.test(f.end) && /^\d{2}:\d{2}$/.test(f.close) && f.start < f.end && f.end < f.close && (lat == null) === (lng == null) && !Number.isNaN(lat) && !Number.isNaN(lng) && radius >= 20
     && penalty !== null && Number.isInteger(grace) && grace >= 0
     && Number.isInteger(selfie) && selfie >= 0 && selfie <= 100
-    && Number.isInteger(overtime) && overtime >= 0 && overtime <= 500;
+    && Number.isInteger(overtime) && overtime >= 0 && overtime <= 500
+    && unmarked !== null && Number.isInteger(siteRadius) && siteRadius >= 10 && siteRadius <= 2000 && /^\d{2}:\d{2}$/.test(f.siteAfter);
 
   const save = useMutation({
     mutationFn: () => settingsApi.updateCompany({
       workStartTime: f.start, workEndTime: f.end, autoCloseTime: f.close, overtimePercent: overtime, officeLat: lat, officeLng: lng, officeRadiusM: Math.round(radius),
       latePenalty: penalty ?? 0, lateGraceMin: grace, absenceFrom: f.from || null, selfiePercent: selfie,
+      unmarkedPenalty: unmarked ?? 0, siteRadiusM: siteRadius, siteLeaveAfter: f.siteAfter,
     }),
     onSuccess: () => {
       toast.success('Saqlandi');
@@ -78,11 +83,31 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
         </div>
       </div>
       <div className="mt-6 border-t border-gray-100 pt-4">
+        <p className="mb-1 text-sm font-semibold text-gray-900">O'rnatishchilar: obyektdan uyga ketish</p>
+        <p className="mb-3 text-xs text-gray-500">
+          O'rnatishni tugatgan jamoa «Ketdim»ni ofisga qaytmasdan, o'sha obyektda bosa oladi («Tugatdim» bosilgan joydan shu masofa ichida). Uydan bosib bo'lmaydi
+        </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <Input label="Obyekt radiusi (metr)" inputMode="numeric" value={f.siteRadius} onChange={(e) => setF({ ...f, siteRadius: e.target.value })} />
+            {siteRadius > 0 && siteRadius < 50 && <p className="mt-1 text-xs text-amber-700">Telefon GPS'i 10–30 m adashishi mumkin — xodim obyektda turib ham rad javobini olsa, radiusni oshiring</p>}
+          </div>
+          <div>
+            <Input label="Shu vaqtdan keyin — erta ketish yozilmaydi" type="time" value={f.siteAfter} onChange={(e) => setF({ ...f, siteAfter: e.target.value })} />
+            <p className="mt-1 text-xs text-gray-500">Undan oldin tugatsa — ofisga qaytadi, aks holda ish tugashigacha erta ketish yoziladi</p>
+          </div>
+        </div>
+      </div>
+      <div className="mt-6 border-t border-gray-100 pt-4">
         <p className="mb-3 text-sm font-semibold text-gray-900">Oylikka ta'siri</p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Input label="Kelmagan kunlar qaysi sanadan ayiriladi" type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />
           <Input label="Kechikish jarimasi (so'm, har biriga)" inputMode="numeric" placeholder="0 — jarima yo'q" value={f.penalty} onChange={(e) => setF({ ...f, penalty: e.target.value })} />
           <Input label="Necha daqiqadan keyin" inputMode="numeric" value={f.grace} onChange={(e) => setF({ ...f, grace: e.target.value })} />
+          <div>
+            <Input label="«Ketdim» bosilmagan kun jarimasi (so'm)" inputMode="numeric" placeholder="0 — jarima yo'q" value={f.unmarked} onChange={(e) => setF({ ...f, unmarked: e.target.value })} />
+            <p className="mt-1 text-xs text-gray-500">Ish tugashida va 30 daqiqadan keyin eslatiladi (Telegram ulangan bo'lsa). Shundan keyin ham bosilmay tizim yopgan kun uchun</p>
+          </div>
           <div>
             <Input label="Qo'shimcha ish haqi (%)" inputMode="numeric" placeholder="0 — to'lanmaydi" value={f.overtime} onChange={(e) => setF({ ...f, overtime: e.target.value })} />
             <p className="mt-1 text-xs text-gray-500">

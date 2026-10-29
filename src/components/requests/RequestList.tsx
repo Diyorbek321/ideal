@@ -2,7 +2,7 @@ import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, Inbox, X } from 'lucide-react';
 import { requestsApi } from '@/api';
-import type { PaymentMethod, RequestStatus, StaffRequest } from '@/types';
+import type { DisputeTarget, PaymentMethod, RequestStatus, StaffRequest } from '@/types';
 import { ABSENCE_LABELS, METHOD_LABELS, REQUEST_KIND_LABELS, REQUEST_STATUS_LABELS, ROLE_LABELS, options } from '@/lib/labels';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -17,13 +17,15 @@ const STATUS_VARIANT: Record<RequestStatus, 'warning' | 'success' | 'error' | 'd
   PENDING: 'warning', APPROVED: 'success', REJECTED: 'error', CANCELLED: 'default',
 };
 
+const DISPUTE_LABELS: Record<DisputeTarget, string> = { LATE: 'Kechikish', EARLY_LEAVE: 'Erta ketish', UNMARKED: '«Ketdim» bosilmagan kun' };
+
 export function requestSummary(r: StaffRequest): string {
   if (r.kind === 'ABSENCE') {
     const range = r.dayFrom === r.dayTo ? dm(r.dayFrom!) : `${dm(r.dayFrom!)} – ${dm(r.dayTo!)}`;
     return `${ABSENCE_LABELS[r.absenceReason!]}: ${range}`;
   }
   if (r.kind === 'ADVANCE') return `Avans: ${formatCurrency(r.amount ?? 0)}`;
-  return `${r.disputeTarget === 'LATE' ? 'Kechikish' : 'Erta ketish'}ga e'tiroz${r.attendanceDay ? ` · ${dm(r.attendanceDay)}` : ''}`;
+  return `${DISPUTE_LABELS[r.disputeTarget ?? 'LATE']}ga e'tiroz${r.attendanceDay ? ` · ${dm(r.attendanceDay)}` : ''}`;
 }
 
 /** Direktor uchun: tasdiqlash/rad etish, avansda — qanday berilgani */

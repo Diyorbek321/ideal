@@ -47,11 +47,12 @@ export function PayrollSheetView({ sheet, editable = false }: { sheet: PayrollSh
 }
 
 function AttendanceNote({ sheet }: { sheet: PayrollSheet }) {
-  if (!sheet.absentDays.length && !sheet.lateDays.length) return null;
+  if (!sheet.absentDays.length && !sheet.lateDays.length && !sheet.unmarkedDays.length) return null;
   return (
     <div className="space-y-1 text-xs text-gray-500">
       {sheet.absentDays.length > 0 && <p>Kelmagan kunlar: {sheet.absentDays.map(dm).join(', ')}</p>}
       {sheet.lateDays.length > 0 && <p>Kechikkan: {sheet.lateDays.map((d) => `${dm(d.day)} (${d.minutes} daq)`).join(', ')}</p>}
+      {sheet.unmarkedDays.length > 0 && <p>«Ketdim» bosilmagan: {sheet.unmarkedDays.map(dm).join(', ')} — xato bo'lsa, So'rovlar bo'limida e'tiroz bildiring.</p>}
       <p>Sababli bo'lsa (kasal, ta'til) — direktorga ayting, u belgilab qo'yadi.</p>
     </div>
   );
@@ -155,7 +156,7 @@ function SheetEditor({ sheet }: { sheet: PayrollSheet }) {
         {!sheet.rules.absenceFrom && (
           <p className="mb-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">Kelmagan kunlar hali ayirilmaydi — Sozlamalar → Davomat'da "qaysi sanadan" ni belgilang.</p>
         )}
-        {sheet.absentDays.length === 0 && sheet.excuses.length === 0 && sheet.lateDays.length === 0 && <p className="text-sm text-gray-500">Kelmagan va kechikkan kun yo'q</p>}
+        {sheet.absentDays.length === 0 && sheet.excuses.length === 0 && sheet.lateDays.length === 0 && sheet.unmarkedDays.length === 0 && <p className="text-sm text-gray-500">Kelmagan va kechikkan kun yo'q</p>}
         <div className="space-y-1">
           {sheet.absentDays.map((day) => (
             <div key={day} className="flex items-center justify-between gap-3 rounded-lg bg-red-50 px-3 py-1.5 text-sm">
@@ -181,6 +182,12 @@ function SheetEditor({ sheet }: { sheet: PayrollSheet }) {
             <div key={d.day} className="flex justify-between rounded-lg bg-amber-50 px-3 py-1.5 text-sm text-amber-800">
               <span>{dm(d.day)} — {d.minutes} daqiqa kechikdi</span>
               {sheet.rules.latePenalty > 0 && <span>−{formatCurrency(sheet.rules.latePenalty)}</span>}
+            </div>
+          ))}
+          {sheet.unmarkedDays.map((d) => (
+            <div key={`u-${d}`} className="flex justify-between rounded-lg bg-red-50 px-3 py-1.5 text-sm text-red-800">
+              <span>{dm(d)} — «Ketdim» bosilmagan</span>
+              {sheet.rules.unmarkedPenalty > 0 && <span>−{formatCurrency(sheet.rules.unmarkedPenalty)}</span>}
             </div>
           ))}
         </div>

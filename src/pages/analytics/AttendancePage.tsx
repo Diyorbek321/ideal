@@ -18,7 +18,7 @@ const dur = (m: number) => (m ? `${Math.floor(m / 60)} soat ${m % 60} daq` : '�
 
 function cellTitle(r: AttendanceRecord): string {
   const parts = [`Keldi ${hhmm(r.checkInAt)}`];
-  if (r.checkOutAt) parts.push(r.autoClosed ? '«Ketdim» bosilmagan — tizim yopdi' : `ketdi ${hhmm(r.checkOutAt)}`);
+  if (r.checkOutAt) parts.push(r.autoClosed ? '«Ketdim» bosilmagan — tizim yopdi' : `ketdi ${hhmm(r.checkOutAt)}${r.outInstallationId ? ` — obyektdan${r.outOrderNumber ? ` (${r.outOrderNumber})` : ''}` : ''}`);
   if (r.lateMinutes) parts.push(`${r.lateMinutes} daq kech`);
   if (r.earlyLeaveMinutes) parts.push(`${r.earlyLeaveMinutes} daq erta ketdi`);
   if (r.overtimeMinutes) parts.push(`qo'shimcha ${r.overtimeMinutes} daq`);
@@ -33,6 +33,7 @@ function Cell({ r, isWorkDay, onSelfie }: { r?: AttendanceRecord; isWorkDay: boo
       {r.selfieUrl ? (
         <button type="button" className="underline decoration-dotted underline-offset-2" onClick={() => onSelfie(r)}>{hhmm(r.checkInAt)}</button>
       ) : hhmm(r.checkInAt)}
+      {r.outInstallationId && <span className="absolute right-0 top-0 text-[8px] leading-none text-sky-600" aria-label="Obyektdan ketdi">●</span>}
     </td>
   );
 }
@@ -109,6 +110,7 @@ export default function AttendancePage() {
                       <th className="px-2 py-2 text-right font-semibold">Jami kechikish</th>
                       <th className="px-2 py-2 text-right font-semibold">Erta ketdi</th>
                       <th className="px-2 py-2 text-right font-semibold">«Ketdim» bosilmagan</th>
+                      <th className="px-2 py-2 text-right font-semibold">Obyektdan ketdi</th>
                       <th className="px-2 py-2 text-right font-semibold">Qo'shimcha ish</th>
                       <th className="px-5 py-2 text-right font-semibold sm:px-6">Kelmadi</th>
                     </tr>
@@ -122,6 +124,7 @@ export default function AttendancePage() {
                         <td className="px-2 py-2 text-right tabular-nums text-gray-600">{dur(u.lateMinutes)}</td>
                         <td className={cn('px-2 py-2 text-right tabular-nums', u.earlyLeaves && 'font-semibold text-amber-700')}>{u.earlyLeaves ? `${u.earlyLeaves} marta · ${dur(u.earlyLeaveMinutes)}` : '—'}</td>
                         <td className={cn('px-2 py-2 text-right tabular-nums', u.autoClosed && 'font-semibold text-red-600')}>{u.autoClosed ? `${u.autoClosed} kun` : '—'}</td>
+                        <td className="px-2 py-2 text-right tabular-nums text-gray-600">{u.siteCheckOuts ? `${u.siteCheckOuts} kun` : '—'}</td>
                         <td className="px-2 py-2 text-right tabular-nums text-gray-600">{dur(u.overtimeMinutes)}</td>
                         <td className={cn('px-5 py-2 text-right tabular-nums sm:px-6', u.absent && 'font-semibold text-red-600')}>{u.absent} kun</td>
                       </tr>

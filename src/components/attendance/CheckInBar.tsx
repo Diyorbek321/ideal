@@ -3,7 +3,7 @@ import { Camera, Clock, Fingerprint, LogOut, MapPin } from 'lucide-react';
 import React from 'react';
 import { attendanceApi, filesApi } from '@/api';
 import { useUser } from '@/lib/auth';
-import { formatDateTime } from '@/lib/utils';
+import { cn, formatCurrency, formatDateTime } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -13,12 +13,18 @@ import { SelfieCamera } from './SelfieCamera';
 
 const hhmm = (iso: string) => formatDateTime(iso).slice(-5);
 
+/** "Ketdim": ofisda yoki o'rnatish joyida — GPS doim yuboriladi; ofis sozlanmagan bo'lsa GPS'siz ham bo'ladi */
+const checkoutPosition = (geofence: boolean) => currentPosition().catch((e: unknown) => {
+  if (geofence) throw e;
+  return {};
+});
+
 function currentPosition(): Promise<{ lat: number; lng: number }> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) return reject(new Error('Qurilmada joylashuv (GPS) yo\'q'));
     navigator.geolocation.getCurrentPosition(
       (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => reject(new Error('Joylashuvga ruxsat bering — belgilash faqat ofisda qilinadi')),
+      () => reject(new Error('Joylashuvga ruxsat bering — belgilash faqat ofisda (yoki o\'rnatish joyida) qilinadi')),
       { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
     );
   });
@@ -46,8 +52,12 @@ export function CheckInBar() {
     onError: toast.error,
   });
   const checkOut = useMutation({
-    mutationFn: async () => attendanceApi.checkOut(data?.geofence ? await currentPosition() : {}),
-    onSuccess: (r) => { toast.success(r.earlyLeaveMinutes ? `Belgilandi. Ish tugashidan ${r.earlyLeaveMinutes} daqiqa oldin` : 'Ketish vaqti belgilandi'); done(); },
+    mutationFn: async () => attendanceApi.checkOut(await checkoutPosition(!!data?.geofence)),
+    onSuccess: (r) => {
+      const where = r.outInstallationId ? ' (o\'rnatish joyidan)' : '';
+      toast.success(r.earlyLeaveMinutes ? `Belgilandi${where}. Ish tugashidan ${r.earlyLeaveMinutes} daqiqa oldin` : `Ketish vaqti belgilandi${where}`);
+      done();
+    },
     onError: toast.error,
   });
   const [ot, setOt] = React.useState<{ until: string; reason: string } | null>(null);
@@ -79,13 +89,22 @@ export function CheckInBar() {
     );
   }
 
+  // Ish vaqti (yoki tasdiqlangan qo'shimcha ish) tugagan, «Ketdim» bosilmagan — ko'zga tashlanadigan eslatma
+  const endAt = r.overtimeStatus === 'APPROVED' && r.overtimeUntil ? new Date(r.overtimeUntil) : new Date(`${r.day}T${data.workEndTime}:00+05:00`);
+  const overdue = !r.checkOutAt && Date.now() >= endAt.getTime();
+
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
+    <div className={cn('mb-4 flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600', overdue && 'rounded-2xl border border-brand-300 bg-brand-100 p-3')}>
       <span className="flex items-center gap-2">
         <span className="h-2 w-2 rounded-full bg-emerald-500" />
         Keldingiz: <b className="text-gray-900">{hhmm(r.checkInAt)}</b>
         {r.lateMinutes > 0 && <span className="font-medium text-red-600">({r.lateMinutes} daq kechikish)</span>}
-        {r.checkOutAt && <> · Ketdingiz: <b className="text-gray-900">{hhmm(r.checkOutAt)}</b></>}
+        {r.checkOutAt && <> · Ketdingiz: <b className="text-gray-900">{hhmm(r.checkOutAt)}</b>{r.outInstallationId && ' (obyektdan)'}</>}
+        {overdue && (
+          <b className="text-gray-900">
+            · Ish vaqti tugadi — «Ketdim»ni bosing{data.unmarkedPenalty > 0 && `, aks holda ${formatCurrency(data.unmarkedPenalty)} jarima`}
+          </b>
+        )}
       </span>
       {!r.checkOutAt && (
         <span className="flex flex-wrap items-center gap-1">
@@ -96,7 +115,7 @@ export function CheckInBar() {
             <Button variant="ghost" size="sm" onClick={() => setOt({ until: '20:00', reason: '' })}><Clock className="h-4 w-4" />Qolib ishlayman</Button>
           )}
           <Button variant="ghost" size="sm" isLoading={checkOut.isPending}
-            onClick={() => window.confirm(`Ish kunini yakunlaysizmi?${data.geofence ? ' (faqat ofisda)' : ''}`) && checkOut.mutate()}>
+            onClick={() => window.confirm(`Ish kunini yakunlaysizmi?${data.geofence ? ' (ofisda yoki bugun o\'rnatishni tugatgan joyda)' : ''}`) && checkOut.mutate()}>
             <LogOut className="h-4 w-4" />Ketdim
           </Button>
         </span>

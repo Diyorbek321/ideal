@@ -200,8 +200,8 @@ export const installationsApi = {
   depart: (id: string) => api.post(`/installations/${id}/depart`),
   start: (id: string) => api.post(`/installations/${id}/start`),
   photos: (id: string, kind: 'before' | 'after', urls: string[]) => api.post(`/installations/${id}/photos`, { kind, urls }),
-  finish: (id: string, clientConfirmedName?: string) =>
-    api.post<{ orderCompleted: boolean }>(`/installations/${id}/finish`, { clientConfirmedName }),
+  finish: (id: string, body: { clientConfirmedName?: string; lat?: number; lng?: number }) =>
+    api.post<{ orderCompleted: boolean }>(`/installations/${id}/finish`, body),
   problem: (id: string, body: { type: InstallProblemType; description: string; photoUrl?: string }) =>
     api.post<InstallProblem>(`/installations/${id}/problems`, body),
   resolveProblem: (problemId: string) => api.post(`/installations/problems/${problemId}/resolve`),
@@ -351,7 +351,7 @@ export const analyticsApi = {
 };
 
 export const attendanceApi = {
-  today: () => api.get<{ record: AttendanceRecord | null; workStartTime: string; workEndTime: string; geofence: boolean; selfieRequired: boolean }>('/attendance/me/today'),
+  today: () => api.get<{ record: AttendanceRecord | null; workStartTime: string; workEndTime: string; geofence: boolean; selfieRequired: boolean; unmarkedPenalty: number }>('/attendance/me/today'),
   checkIn: (body: { lat?: number; lng?: number; selfieUrl?: string } = {}) => api.post<AttendanceRecord>('/attendance/check-in', body),
   checkOut: (body: { lat?: number; lng?: number } = {}) => api.post<AttendanceRecord>('/attendance/check-out', body),
   requestOvertime: (body: { until: string; reason: string }) => api.post<AttendanceRecord>('/attendance/overtime', body),

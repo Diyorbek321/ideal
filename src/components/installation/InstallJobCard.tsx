@@ -17,6 +17,20 @@ import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
 import { formatSize } from '@/lib/size';
 
+/**
+ * "Tugatdim" joyi — jamoa shu yerdan «Ketdim» bosa oladi. GPS berilmasa ham ish yakunlanadi (faqat obyektdan ketish ishlamaydi)
+ */
+function finishPosition(): Promise<{ lat?: number; lng?: number }> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve({});
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => resolve({}),
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
+    );
+  });
+}
+
 const mapLink = (i: Installation) => i.mapUrl ?? `https://yandex.uz/maps/?text=${encodeURIComponent(i.address)}`;
 
 interface Props {
@@ -153,7 +167,7 @@ export function InstallJobCard({ job, variant = 'mine' }: Props) {
                   className="h-12 w-full bg-emerald-600 hover:bg-emerald-700"
                   disabled={job.afterPhotos.length === 0 || unresolved.length > 0}
                   isLoading={act.isPending}
-                  onClick={() => run(() => installationsApi.finish(job.id, confirmedBy.trim() || undefined), 'Ish yakunlandi!')}
+                  onClick={() => run(async () => installationsApi.finish(job.id, { clientConfirmedName: confirmedBy.trim() || undefined, ...(await finishPosition()) }), 'Ish yakunlandi!')}
                 >
                   Tugatdim
                 </Button>

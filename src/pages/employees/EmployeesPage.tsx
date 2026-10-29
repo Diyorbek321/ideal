@@ -120,7 +120,7 @@ function EmployeeModal({ user, open, onClose }: { user?: User; open: boolean; on
 }
 
 function PayrollRow({ e, onOpen }: { e: PayrollEntry; onOpen: () => void }) {
-  const minus = e.absenceDeduction + e.latePenalty;
+  const minus = e.absenceDeduction + e.latePenalty + e.unmarkedPenalty;
   const plus = e.workBonus + e.planBonus + e.onTimeBonus + e.bonus;
   return (
     <tr className="cursor-pointer border-b border-gray-50 hover:bg-gray-50/50" onClick={onOpen}>

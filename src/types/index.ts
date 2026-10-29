@@ -372,6 +372,9 @@ export interface PayrollEntry {
   absenceDeduction: number;
   lateCount: number;
   latePenalty: number;
+  /** «Ketdim» bosilmagan kunlar jarimasi */
+  unmarkedCount: number;
+  unmarkedPenalty: number;
   overtimeMinutes: number;
   overtimePay: number;
   /** Hisoblangan (avansdan oldin) */
@@ -416,8 +419,9 @@ export interface PayrollSheet {
   transactions: PayrollTransaction[];
   absentDays: string[];
   lateDays: Array<{ day: string; minutes: number }>;
+  unmarkedDays: string[];
   excuses: AbsenceExcuse[];
-  rules: { latePenalty: number; lateGraceMin: number; absenceFrom: string | null; workDaysInMonth: number; overtimePercent: number };
+  rules: { latePenalty: number; lateGraceMin: number; unmarkedPenalty: number; absenceFrom: string | null; workDaysInMonth: number; overtimePercent: number };
   /** Ish hajmi bonusi: yuqori stavkagacha nechta qoldi (qoida yo'q — null) */
   workProgress: {
     unit: BonusUnit; quantity: number; threshold: number; rate: number; rateOver: number; amount: number; toNextTier: number; onHigherTier: boolean;
@@ -523,6 +527,11 @@ export interface CompanySettings {
   latePenalty: number;
   lateGraceMin: number;
   absenceFrom: string | null;
+  /** «Ketdim» bosilmagan har kun uchun jarima (0 — o'chiq) */
+  unmarkedPenalty: number;
+  /** O'rnatishni tugatgan joydan «Ketdim»: radius (m) va qachondan erta ketish yozilmaydi */
+  siteRadiusM: number;
+  siteLeaveAfter: string;
   /** Direktorga Telegram orqali kunlik hisobot (Toshkent vaqti, "20:00") */
   dailyReportEnabled: boolean;
   dailyReportTime: string;
@@ -886,6 +895,10 @@ export interface AttendanceRecord {
   outDistanceM: number | null;
   earlyLeaveMinutes: number;
   autoClosed: boolean;
+  /** Obyektdan ketgan bo'lsa — qaysi o'rnatishdan */
+  outInstallationId: string | null;
+  /** Oylik jadvalda: o'sha o'rnatish buyurtmasi raqami */
+  outOrderNumber?: string | null;
   overtimeUntil: string | null;
   overtimeReason: string | null;
   overtimeStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
@@ -894,7 +907,7 @@ export interface AttendanceRecord {
 
 export type StaffRequestKind = 'ABSENCE' | 'ADVANCE' | 'DISPUTE';
 export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
-export type DisputeTarget = 'LATE' | 'EARLY_LEAVE';
+export type DisputeTarget = 'LATE' | 'EARLY_LEAVE' | 'UNMARKED';
 
 export interface StaffRequest {
   id: string;
@@ -927,7 +940,7 @@ export interface AttendanceMonth {
   workDays: string[];
   users: Array<UserRef & {
     role: UserRole; present: number; late: number; lateMinutes: number; absent: number;
-    earlyLeaves: number; earlyLeaveMinutes: number; autoClosed: number; overtimeMinutes: number;
+    earlyLeaves: number; earlyLeaveMinutes: number; autoClosed: number; siteCheckOuts: number; overtimeMinutes: number;
   }>;
   records: AttendanceRecord[];
   pendingOvertime: Array<{ id: string; day: string; overtimeUntil: string; overtimeReason: string; checkOutAt: string | null; user: UserRef }>;
