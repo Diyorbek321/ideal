@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { inventoryApi, settingsApi, type ProductTypeInput } from '@/api';
 import type { Material, PriceListItem, ProductPriceUnit, ProductType } from '@/types';
 import { cn, formatCurrency, parseMoney } from '@/lib/utils';
@@ -30,6 +30,13 @@ function TypeRow({ t, materials, services }: { t: ProductType; materials: Materi
   const [price, setPrice] = React.useState(String(t.pricePerM2));
   const [cost, setCost] = React.useState(String(t.costPerM2));
   const save = useSaveType(t.id);
+  const toast = useToast();
+  const qc = useQueryClient();
+  const remove = useMutation({
+    mutationFn: () => settingsApi.removeProductType(t.id),
+    onSuccess: () => { toast.success('Mahsulot turi o\'chirildi'); qc.invalidateQueries({ queryKey: ['product-types'] }); },
+    onError: toast.error,
+  });
   const priceN = parseMoney(price);
   const costN = parseMoney(cost);
   const dirty = priceN !== t.pricePerM2 || costN !== t.costPerM2;
@@ -69,7 +76,11 @@ function TypeRow({ t, materials, services }: { t: ProductType; materials: Materi
             Saqlash
           </Button>
         )}
-        <Button size="sm" variant="ghost" onClick={() => save.mutate({ isActive: !t.isActive })}>{t.isActive ? 'O\'chirish' : 'Yoqish'}</Button>
+        <Button size="sm" variant="ghost" title={t.isActive ? 'Buyurtma formasida ko\'rinmaydi, lekin saqlanadi' : undefined} onClick={() => save.mutate({ isActive: !t.isActive })}>{t.isActive ? 'Yashirish' : 'Yoqish'}</Button>
+        <Button size="sm" variant="ghost" className="text-red-600" aria-label="O'chirish" isLoading={remove.isPending}
+          onClick={() => window.confirm(`«${t.name}» turini butunlay o'chirasizmi? Eski buyurtmalar o'zgarmaydi`) && remove.mutate()}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
       </td>
     </tr>
     <tr className={cn('border-b border-gray-100', !t.isActive && 'opacity-40')}>

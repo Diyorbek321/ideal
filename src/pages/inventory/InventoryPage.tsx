@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight, ClipboardCheck, Package, Plus, Search } from 'lucide-react';
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, ClipboardCheck, Package, Plus, Search, Trash2 } from 'lucide-react';
 import { inventoryApi } from '@/api';
 import type { Material, MaterialUnit } from '@/types';
 import { UNIT_LABELS, options } from '@/lib/labels';
@@ -70,6 +70,16 @@ function OpModal({ op, materials, onClose }: { op: Op | null; materials: Materia
     onError: toast.error,
   });
 
+  const remove = useMutation({
+    mutationFn: () => inventoryApi.removeMaterial((op as { material: Material }).material.id),
+    onSuccess: (r) => {
+      toast.success(r.archived ? 'Materialning harakatlari bor — arxivlandi (ro\'yxatda ko\'rinmaydi)' : 'Material o\'chirildi');
+      qc.invalidateQueries({ queryKey: ['materials'] });
+      onClose();
+    },
+    onError: toast.error,
+  });
+
   if (!op) return null;
   const titles = { in: 'Kirim qilish', out: 'Chiqim qilish', new: 'Yangi material', edit: 'Materialni tahrirlash', count: 'Inventarizatsiya', history: 'Harakatlar tarixi' };
   const unit = materials.find((m) => m.id === materialId)?.unit;
@@ -82,6 +92,12 @@ function OpModal({ op, materials, onClose }: { op: Op | null; materials: Materia
       size={op.kind === 'count' || op.kind === 'history' ? 'lg' : 'md'}
       footer={op.kind === 'history' ? undefined : (
         <>
+          {op.kind === 'edit' && (
+            <Button variant="ghost" className="mr-auto text-red-600" isLoading={remove.isPending}
+              onClick={() => window.confirm(`«${op.material.name}» ni o'chirasizmi? Harakatlari bo'lsa arxivlanadi`) && remove.mutate()}>
+              <Trash2 className="h-4 w-4" />O'chirish
+            </Button>
+          )}
           <Button variant="outline" onClick={onClose}>Bekor qilish</Button>
           <Button isLoading={save.isPending} onClick={() => save.mutate()}>Saqlash</Button>
         </>

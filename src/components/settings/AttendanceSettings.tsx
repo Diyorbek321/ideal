@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MapPin } from 'lucide-react';
+import { MapPin, Trash2 } from 'lucide-react';
 import { formatCurrency, parseMoney, toDateInput } from '@/lib/utils';
 import { settingsApi } from '@/api';
 import type { CompanySettings } from '@/types';
@@ -43,13 +43,15 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
     && unmarked !== null && Number.isInteger(siteRadius) && siteRadius >= 10 && siteRadius <= 2000 && /^\d{2}:\d{2}$/.test(f.siteAfter);
 
   const save = useMutation({
-    mutationFn: () => settingsApi.updateCompany({
-      workStartTime: f.start, workEndTime: f.end, autoCloseTime: f.close, overtimePercent: overtime, officeLat: lat, officeLng: lng, officeRadiusM: Math.round(radius),
+    mutationFn: (clearOffice: boolean = false) => settingsApi.updateCompany({
+      workStartTime: f.start, workEndTime: f.end, autoCloseTime: f.close, overtimePercent: overtime,
+      officeLat: clearOffice ? null : lat, officeLng: clearOffice ? null : lng, officeRadiusM: Math.round(radius),
       latePenalty: penalty ?? 0, lateGraceMin: grace, absenceFrom: f.from || null, selfiePercent: selfie,
       unmarkedPenalty: unmarked ?? 0, siteRadiusM: siteRadius, siteLeaveAfter: f.siteAfter,
     }),
-    onSuccess: () => {
-      toast.success('Saqlandi');
+    onSuccess: (_r, clearOffice) => {
+      if (clearOffice) setF((x) => ({ ...x, lat: '', lng: '' }));
+      toast.success(clearOffice ? 'Ofis joylashuvi o\'chirildi — belgilash endi joylashuvsiz' : 'Saqlandi');
       for (const key of ['company', 'attendance', 'payroll', 'payroll-sheet']) qc.invalidateQueries({ queryKey: [key] });
     },
     onError: toast.error,
@@ -141,8 +143,13 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
       </p>
       <div className="mt-6 flex flex-wrap justify-end gap-2">
         <Button variant="outline" isLoading={locating} onClick={here}><MapPin className="h-4 w-4" />Hozirgi joylashuv</Button>
-        {(f.lat || f.lng) && <Button variant="ghost" onClick={() => setF({ ...f, lat: '', lng: '' })}>Joylashuvni o'chirish</Button>}
-        <Button disabled={!valid} isLoading={save.isPending} onClick={() => save.mutate()}>Saqlash</Button>
+        {s.officeLat != null && (
+          <Button variant="ghost" className="text-red-600" disabled={!valid} isLoading={save.isPending && save.variables === true}
+            onClick={() => window.confirm('Ofis joylashuvini o\'chirasizmi? «Ishga keldim» va «Ketdim» joylashuv tekshirilmasdan qabul qilinadi') && save.mutate(true)}>
+            <Trash2 className="h-4 w-4" />Joylashuvni o'chirish
+          </Button>
+        )}
+        <Button disabled={!valid} isLoading={save.isPending && save.variables !== true} onClick={() => save.mutate(false)}>Saqlash</Button>
       </div>
     </Card>
   );

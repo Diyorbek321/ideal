@@ -56,6 +56,17 @@ export default function OrderDetailPage() {
     onError: toast.error,
   });
 
+  const removeOrder = useMutation({
+    mutationFn: () => ordersApi.remove(id!),
+    onSuccess: () => {
+      toast.success('Buyurtma o\'chirildi');
+      qc.removeQueries({ queryKey: ['order', id] });
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      navigate('/orders');
+    },
+    onError: toast.error,
+  });
+
   if (isLoading) return <Loading rows={8} />;
   if (error || !order) return <ErrorState error={error} onRetry={refetch} />;
 
@@ -80,6 +91,12 @@ export default function OrderDetailPage() {
             {order.status !== 'BEKOR_QILINDI' && <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Tahrirlash</Button>}
             {user.role === 'ADMIN' && (
               <Link to={`/audit?ref=${order.id}`}><Button variant="ghost"><History className="h-4 w-4" />Tarix</Button></Link>
+            )}
+            {user.role === 'ADMIN' && order.status !== 'YAKUNLANDI' && (
+              <Button variant="ghost" className="text-red-600" isLoading={removeOrder.isPending}
+                onClick={() => window.confirm(`${order.number} buyurtmasini butunlay o'chirasizmi? Dizayn, ishlab chiqarish va o'rnatish ham o'chadi. Qaytarib bo'lmaydi`) && removeOrder.mutate()}>
+                <Trash2 className="h-4 w-4" />O'chirish
+              </Button>
             )}
             <Link to={`/documents?order=${order.id}`}>
               <Button variant="outline"><FileText className="h-4 w-4" />Hujjatlar</Button>

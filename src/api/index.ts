@@ -85,6 +85,7 @@ export const usersApi = {
   list: (q: { role?: string; active?: boolean } = {}) => api.get<User[]>('/users', q),
   create: (body: Partial<User> & { password: string }) => api.post<User>('/users', body),
   update: (id: string, body: Partial<User> & { password?: string }) => api.patch<User>(`/users/${id}`, body),
+  remove: (id: string) => api.del<{ deleted?: boolean; archived?: boolean }>(`/users/${id}`),
 };
 
 export const clientsApi = {
@@ -101,6 +102,7 @@ export const ordersApi = {
   get: (id: string) => api.get<OrderDetail>(`/orders/${id}`),
   create: (body: OrderInput) => api.post<Order>('/orders', body),
   update: (id: string, body: Partial<OrderInput>) => api.patch<Order>(`/orders/${id}`, body),
+  remove: (id: string) => api.del<{ deleted: boolean }>(`/orders/${id}`),
   changeStatus: (id: string, status: OrderStatus, comment?: string) =>
     api.post<Order>(`/orders/${id}/status`, { status, comment }),
   comment: (id: string, message: string) => api.post<OrderEvent>(`/orders/${id}/comments`, { message }),
@@ -213,6 +215,7 @@ export const inventoryApi = {
     api.get<Material[]>('/inventory/materials', q),
   createMaterial: (body: Partial<Material>) => api.post<Material>('/inventory/materials', body),
   updateMaterial: (id: string, body: Partial<Material>) => api.patch<Material>(`/inventory/materials/${id}`, body),
+  removeMaterial: (id: string) => api.del<{ deleted?: boolean; archived?: boolean }>(`/inventory/materials/${id}`),
   stockIn: (body: { materialId: string; quantity: number; price?: number; supplier?: string; note?: string }) =>
     api.post('/inventory/in', body),
   stockOut: (body: { materialId: string; quantity: number; orderId?: string; note?: string }) =>
@@ -309,6 +312,7 @@ export const settingsApi = {
   productTypes: () => api.get<ProductType[]>('/settings/product-types'),
   createProductType: (body: ProductTypeInput) => api.post<ProductType>('/settings/product-types', body),
   updateProductType: (id: string, body: Partial<ProductTypeInput>) => api.patch<ProductType>(`/settings/product-types/${id}`, body),
+  removeProductType: (id: string) => api.del<{ deleted: boolean }>(`/settings/product-types/${id}`),
 };
 
 export const filesApi = {

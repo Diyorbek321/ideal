@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calculator, CheckCircle2, Pencil, Plus, XCircle } from 'lucide-react';
+import { Calculator, CheckCircle2, Pencil, Plus, Trash2, XCircle } from 'lucide-react';
 import { PayrollSheetView } from '@/components/payroll/PayrollSheetView';
 import { payrollApi, usersApi } from '@/api';
 import type { BonusUnit, PayType, PayrollEntry, User, UserRole } from '@/types';
@@ -72,13 +72,30 @@ function EmployeeModal({ user, open, onClose }: { user?: User; open: boolean; on
     onSuccess: () => { toast.success('Saqlandi'); qc.invalidateQueries({ queryKey: ['users'] }); onClose(); },
     onError: toast.error,
   });
+  const remove = useMutation({
+    mutationFn: () => usersApi.remove(user!.id),
+    onSuccess: (r) => {
+      toast.success(r.archived ? 'Xodimning tarixi bor — arxivlandi (tizimga kira olmaydi)' : 'Xodim o\'chirildi');
+      qc.invalidateQueries({ queryKey: ['users'] });
+      onClose();
+    },
+    onError: toast.error,
+  });
 
   return (
     <Modal
       open={open}
       onClose={onClose}
       title={user ? 'Xodimni tahrirlash' : 'Yangi xodim'}
-      footer={<><Button variant="outline" onClick={onClose}>Bekor qilish</Button><Button isLoading={save.isPending} onClick={() => save.mutate()}>Saqlash</Button></>}
+      footer={<>
+        {user && (
+          <Button variant="ghost" className="mr-auto text-red-600" isLoading={remove.isPending}
+            onClick={() => window.confirm(`«${user.fullName}» ni o'chirasizmi? Tarixi bo'lsa arxivlanadi va tizimga kira olmaydi`) && remove.mutate()}>
+            <Trash2 className="h-4 w-4" />O'chirish
+          </Button>
+        )}
+        <Button variant="outline" onClick={onClose}>Bekor qilish</Button><Button isLoading={save.isPending} onClick={() => save.mutate()}>Saqlash</Button>
+      </>}
     >
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2"><Input label="F.I.Sh." value={f.fullName} onChange={(e) => setF({ ...f, fullName: e.target.value })} /></div>
