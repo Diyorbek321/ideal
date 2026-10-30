@@ -9,6 +9,8 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 
+const OfficeMapPicker = React.lazy(() => import('./OfficeMapPicker'));
+
 const num = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.')));
 
 /** Ish boshlanish vaqti va ofis joylashuvi (check-in faqat ofis yonida bo'lishi uchun) */
@@ -73,6 +75,14 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
           <p className="mt-1 text-xs text-gray-500">Vaqt ish tugashiga qo'yiladi, direktorga Telegram xabar boradi. Tasdiqlangan qo'shimcha ish bo'lsa — o'sha muddatgacha kutiladi</p>
         </div>
         <Input label="Ruxsat etilgan masofa (metr)" inputMode="numeric" value={f.radius} onChange={(e) => setF({ ...f, radius: e.target.value })} />
+        <div className="md:col-span-2">
+          <p className="mb-1 text-sm font-medium text-gray-700">Ofis joylashuvi — xaritada ofisni bosing yoki belgini sudrang</p>
+          <React.Suspense fallback={<div className="h-72 w-full animate-pulse rounded-xl bg-gray-100 sm:h-80" />}>
+            <OfficeMapPicker lat={lat} lng={lng} radius={radius}
+              onChange={(la, ln) => setF((x) => ({ ...x, lat: la.toFixed(6), lng: ln.toFixed(6) }))} />
+          </React.Suspense>
+          <p className="mt-1 text-xs text-gray-500">Doira — «Ishga keldim» va «Ketdim» qabul qilinadigan masofa</p>
+        </div>
         <Input label="Ofis kengligi (lat)" inputMode="decimal" placeholder="bo'sh — joylashuv tekshirilmaydi" value={f.lat} onChange={(e) => setF({ ...f, lat: e.target.value })} />
         <Input label="Ofis uzunligi (lng)" inputMode="decimal" value={f.lng} onChange={(e) => setF({ ...f, lng: e.target.value })} />
         <div>
@@ -127,7 +137,7 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
         )}
       </div>
       <p className="mt-3 text-sm text-gray-500">
-        Ofis joylashuvi kiritilsa, «Ishga keldim» va «Ketdim» faqat ofisdan {f.radius || '…'} m ichida qabul qilinadi. Ofisda turib «Hozirgi joylashuv» ni bosing.
+        Ofis joylashuvi kiritilsa, «Ishga keldim» va «Ketdim» faqat ofisdan {f.radius || '…'} m ichida qabul qilinadi. Nuqtani xaritadan tanlang yoki ofisda turib «Hozirgi joylashuv» ni bosing.
       </p>
       <div className="mt-6 flex flex-wrap justify-end gap-2">
         <Button variant="outline" isLoading={locating} onClick={here}><MapPin className="h-4 w-4" />Hozirgi joylashuv</Button>
