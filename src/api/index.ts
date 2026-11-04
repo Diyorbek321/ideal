@@ -3,7 +3,7 @@ import type {
   Client, ClientDetail, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
   Expense, FileAsset, Installation, InstallProblem, InstallProblemType, Material, Order, OrderDetail,
   AuditLogEntry, OrderEvent, OrderSource, OrderStatus, Payment, PaymentKind, PaymentMethod, PayrollEntry, PayrollSheet, PayrollTxKind, AbsenceReason, PriceListItem,
-  PriceResult, ProductPriceUnit, ProductType, PublicApproval, QueueTask, ReportSummary, ShareInfo, SmsMessage, SmsStatusInfo, StockMovement,
+  PriceResult, ProductPriceUnit, ProductType, PublicApproval, QueueTask, ReportSummary, ShareInfo, SmsEvent, SmsMessage, SmsStatusInfo, SmsTemplatesInfo, StockMovement,
   AppNotification, ClientImportResult, TrackInfo, User, MyKpi, TeamKpi, Lead, LeadStatus, ClientType,
   FinanceAnalytics, ClientsAnalytics, InventoryAnalytics, OverdueReport, MyOverdue, AttendanceMonth, AttendanceRecord,
   Feedback, FeedbackInput, FeedbackStats, AdScreen, AdScreensOverview, AdCampaign, AdCampaignView, AdOccupancy,
@@ -323,11 +323,13 @@ export const filesApi = {
 
 export const smsApi = {
   status: () => api.get<SmsStatusInfo>('/sms/status'),
-  messages: (q: { orderId?: string; status?: string; page?: number; limit?: number } = {}) =>
+  messages: (q: { orderId?: string; status?: string; event?: string; q?: string; page?: number; limit?: number } = {}) =>
     api.page<SmsMessage[]>('/sms/messages', q),
   send: (orderId: string, text: string) => api.post<SmsMessage>('/sms/send', { orderId, text }),
   test: (phone: string) => api.post<SmsMessage>('/sms/test', { phone }),
   retry: (id: string) => api.post<SmsMessage>(`/sms/messages/${id}/retry`),
+  templates: () => api.get<SmsTemplatesInfo>('/sms/templates'),
+  submitTemplate: (event: SmsEvent) => api.post<{ event: SmsEvent; text: string }>('/sms/templates/submit', { event }),
 };
 
 export const kpiApi = {

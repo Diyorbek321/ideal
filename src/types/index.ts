@@ -630,6 +630,19 @@ export interface SmsStatusInfo {
   last30Days: Partial<Record<SmsStatus, number>>;
 }
 
+export interface SmsTemplateRow {
+  event: SmsEvent;
+  text: string;
+  /** Eskiz'dagi mos shablon; null — hali yuborilmagan */
+  template: { id: number; status: string; template: string } | null;
+}
+
+export interface SmsTemplatesInfo {
+  /** false — test rejimi, provayder shablonlarni ko'rsatmaydi */
+  supported: boolean;
+  rows: SmsTemplateRow[];
+}
+
 export interface TrackInfo {
   number: string;
   clientName: string;
