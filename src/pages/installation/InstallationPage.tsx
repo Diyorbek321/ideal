@@ -8,6 +8,7 @@ import { useUser } from '@/lib/auth';
 import { formatDateTime, toDateInput } from '@/lib/utils';
 import { InstallJobCard } from '@/components/installation/InstallJobCard';
 import { Badge } from '@/components/ui/Badge';
+import { MyTasksCard } from '@/components/tasks/MyTasksCard';
 import { MyKpiCard } from '@/components/kpi/MyKpiCard';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -40,6 +41,7 @@ function InstallerView() {
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-brand-600"><Truck className="h-6 w-6" /></div>
       </div>
       <MyKpiCard />
+      <MyTasksCard />
       <div className="grid grid-cols-2 gap-4">
         <div className="rounded-2xl border border-gray-100 bg-white p-4 text-center shadow-sm">
           <p className="text-2xl font-black text-brand-600">{open.length}</p>

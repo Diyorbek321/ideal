@@ -8,7 +8,7 @@ import { PRODUCT_UNIT_LABELS, activeOfKind } from '@/lib/pricing';
 import { ServiceChips } from '@/components/pricing/ServiceChips';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { Input, MoneyInput } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
@@ -56,8 +56,8 @@ function TypeRow({ t, materials, services }: { t: ProductType; materials: Materi
           {unitOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </td>
-      <td className="pt-3 pr-2"><input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="numeric" className={cellInput} aria-label="Narx" /></td>
-      <td className="pt-3 pr-2"><input value={cost} onChange={(e) => setCost(e.target.value)} inputMode="numeric" className={cellInput} aria-label="Tannarx" /></td>
+      <td className="pt-3 pr-2"><MoneyInput value={price} onChange={(e) => setPrice(e.target.value)} inputMode="numeric" className={cellInput} aria-label="Narx" /></td>
+      <td className="pt-3 pr-2"><MoneyInput value={cost} onChange={(e) => setCost(e.target.value)} inputMode="numeric" className={cellInput} aria-label="Tannarx" /></td>
       <td className="pt-3 pr-2 text-gray-500">{margin === null ? '—' : `${margin}%`}</td>
       <td className="pt-3 pr-2">
         <select
@@ -120,8 +120,8 @@ function AddTypeForm({ materials }: { materials: Material[] }) {
     >
       <Input label="Nomi" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Lightbox" />
       <Select label="Narx birligi" value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value as ProductPriceUnit })} options={unitOptions} />
-      <Input label={`${PRODUCT_UNIT_LABELS[f.unit]} narxi`} inputMode="numeric" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} />
-      <Input label={`${PRODUCT_UNIT_LABELS[f.unit]} tannarxi`} inputMode="numeric" value={f.cost} onChange={(e) => setF({ ...f, cost: e.target.value })} />
+      <Input label={`${PRODUCT_UNIT_LABELS[f.unit]} narxi`} money inputMode="numeric" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} />
+      <Input label={`${PRODUCT_UNIT_LABELS[f.unit]} tannarxi`} money inputMode="numeric" value={f.cost} onChange={(e) => setF({ ...f, cost: e.target.value })} />
       <Select
         label="Material"
         value={f.materialId}

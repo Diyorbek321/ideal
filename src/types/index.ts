@@ -99,6 +99,8 @@ export interface Order {
   totalAmount?: number;
   paidAmount?: number;
   discount?: number;
+  /** Menejer qo'lda kiritgan montaj summasi (jamiga kirgan) */
+  installationPrice?: number;
   remainingAmount?: number;
   deadline: string | null;
   dueDate?: string | null;

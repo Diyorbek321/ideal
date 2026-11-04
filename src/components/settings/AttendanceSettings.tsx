@@ -114,10 +114,10 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
         <p className="mb-3 text-sm font-semibold text-gray-900">Oylikka ta'siri</p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Input label="Kelmagan kunlar qaysi sanadan ayiriladi" type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />
-          <Input label="Kechikish jarimasi (so'm, har biriga)" inputMode="numeric" placeholder="0 — jarima yo'q" value={f.penalty} onChange={(e) => setF({ ...f, penalty: e.target.value })} />
+          <Input label="Kechikish jarimasi (so'm, har biriga)" money inputMode="numeric" placeholder="0 — jarima yo'q" value={f.penalty} onChange={(e) => setF({ ...f, penalty: e.target.value })} />
           <Input label="Necha daqiqadan keyin" inputMode="numeric" value={f.grace} onChange={(e) => setF({ ...f, grace: e.target.value })} />
           <div>
-            <Input label="«Ketdim» bosilmagan kun jarimasi (so'm)" inputMode="numeric" placeholder="0 — jarima yo'q" value={f.unmarked} onChange={(e) => setF({ ...f, unmarked: e.target.value })} />
+            <Input label="«Ketdim» bosilmagan kun jarimasi (so'm)" money inputMode="numeric" placeholder="0 — jarima yo'q" value={f.unmarked} onChange={(e) => setF({ ...f, unmarked: e.target.value })} />
             <p className="mt-1 text-xs text-gray-500">Ish tugashida va 30 daqiqadan keyin eslatiladi (Telegram ulangan bo'lsa). Shundan keyin ham bosilmay tizim yopgan kun uchun</p>
           </div>
           <div>

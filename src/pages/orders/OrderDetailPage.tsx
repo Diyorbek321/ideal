@@ -133,7 +133,10 @@ export default function OrderDetailPage() {
             </div>
             {finance && (
               <div className="mt-6 flex items-end justify-between border-t border-gray-100 pt-6">
-                <p className="text-sm text-gray-500">{order.discount ? `Chegirma: ${formatCurrency(order.discount)}` : ''}</p>
+                <div className="space-y-0.5 text-sm text-gray-500">
+                  {!!order.installationPrice && <p>Montaj: {formatCurrency(order.installationPrice)}</p>}
+                  {!!order.discount && <p>Chegirma: {formatCurrency(order.discount)}</p>}
+                </div>
                 <div className="text-right">
                   <p className="text-sm font-bold uppercase tracking-wider text-gray-500">Umumiy summa</p>
                   <p className="text-3xl font-black text-brand-600">{formatCurrency(order.totalAmount)}</p>

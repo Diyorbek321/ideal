@@ -74,8 +74,8 @@ function EmployeeModal({ user, open, onClose }: { user?: User; open: boolean; on
   });
   const remove = useMutation({
     mutationFn: () => usersApi.remove(user!.id),
-    onSuccess: (r) => {
-      toast.success(r.archived ? 'Xodimning tarixi bor — arxivlandi (tizimga kira olmaydi)' : 'Xodim o\'chirildi');
+    onSuccess: () => {
+      toast.success('Xodim o\'chirildi');
       qc.invalidateQueries({ queryKey: ['users'] });
       onClose();
     },
@@ -90,7 +90,7 @@ function EmployeeModal({ user, open, onClose }: { user?: User; open: boolean; on
       footer={<>
         {user && (
           <Button variant="ghost" className="mr-auto text-red-600" isLoading={remove.isPending}
-            onClick={() => window.confirm(`«${user.fullName}» ni o'chirasizmi? Tarixi bo'lsa arxivlanadi va tizimga kira olmaydi`) && remove.mutate()}>
+            onClick={() => window.confirm(`«${user.fullName}» butunlay o'chirilsinmi? Davomat va oylik yozuvlari ham o'chadi; buyurtma, to'lov va xarajatlar sizning nomingizga o'tadi. Qaytarib bo'lmaydi.`) && remove.mutate()}>
             <Trash2 className="h-4 w-4" />O'chirish
           </Button>
         )}
@@ -106,8 +106,8 @@ function EmployeeModal({ user, open, onClose }: { user?: User; open: boolean; on
         }} options={options(ROLE_LABELS)} />
         <Select label="To'lov turi" value={f.payType} onChange={(e) => setF({ ...f, payType: e.target.value as PayType })} options={[{ value: 'FIXED', label: 'Belgilangan oylik' }, { value: 'PER_M2', label: 'Har m² uchun' }]} />
         {f.payType === 'FIXED'
-          ? <Input label="Oylik (so'm)" inputMode="numeric" value={f.salary} onChange={(e) => setF({ ...f, salary: e.target.value })} />
-          : <Input label="1 m² uchun (so'm)" inputMode="numeric" value={f.ratePerM2} onChange={(e) => setF({ ...f, ratePerM2: e.target.value })} />}
+          ? <Input label="Oylik (so'm)" money inputMode="numeric" value={f.salary} onChange={(e) => setF({ ...f, salary: e.target.value })} />
+          : <Input label="1 m² uchun (so'm)" money inputMode="numeric" value={f.ratePerM2} onChange={(e) => setF({ ...f, ratePerM2: e.target.value })} />}
         <div className="col-span-2 rounded-xl border border-gray-200 p-4">
           <p className="mb-3 text-sm font-semibold text-gray-900">Bonus (oylikka qo'shimcha, ish hajmiga qarab)</p>
           <div className="grid grid-cols-2 gap-4">
@@ -118,9 +118,9 @@ function EmployeeModal({ user, open, onClose }: { user?: User; open: boolean; on
               <>
                 <p className="col-span-2 -mt-2 text-xs text-gray-500">Sanaladi: {WORK_OF[f.role][f.bonusUnit]}</p>
                 <Input label={`Chegara (${unitWord(f.bonusUnit)})`} inputMode="numeric" placeholder="masalan, 6" value={f.bonusThreshold} onChange={(e) => setF({ ...f, bonusThreshold: e.target.value })} />
-                <Input label={`Chegaragacha, 1 ${unitWord(f.bonusUnit) === 'ta' ? 'ta' : 'm²'} uchun`} inputMode="numeric" value={f.bonusRate} onChange={(e) => setF({ ...f, bonusRate: e.target.value })} />
+                <Input label={`Chegaragacha, 1 ${unitWord(f.bonusUnit) === 'ta' ? 'ta' : 'm²'} uchun`} money inputMode="numeric" value={f.bonusRate} onChange={(e) => setF({ ...f, bonusRate: e.target.value })} />
                 <div className="col-span-2">
-                  <Input label="Chegaradan keyin, har biri uchun (so'm)" inputMode="numeric" placeholder="bo'sh — yuqoridagi stavka" value={f.bonusRateOver} onChange={(e) => setF({ ...f, bonusRateOver: e.target.value })} />
+                  <Input label="Chegaradan keyin, har biri uchun (so'm)" money inputMode="numeric" placeholder="bo'sh — yuqoridagi stavka" value={f.bonusRateOver} onChange={(e) => setF({ ...f, bonusRateOver: e.target.value })} />
                 </div>
                 <p className="col-span-2 text-xs text-gray-500">
                   Masalan: chegara 6, chegaragacha 0, keyin 80 000 — oyda 9 ta o'rnatish bo'lsa, 3 × 80 000 = 240 000 so'm bonus.

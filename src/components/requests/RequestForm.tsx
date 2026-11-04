@@ -80,7 +80,7 @@ export function RequestForm() {
         )}
         {kind === 'ADVANCE' && (
           <div>
-            <Input label="Summa (so'm)" inputMode="numeric" placeholder="500 000" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
+            <Input label="Summa (so'm)" money inputMode="numeric" placeholder="500 000" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} />
             {amount ? <p className="mt-1 text-xs text-gray-500">{formatCurrency(amount)}</p> : null}
           </div>
         )}

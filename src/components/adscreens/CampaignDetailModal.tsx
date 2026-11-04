@@ -118,7 +118,7 @@ export function CampaignDetailModal({ id, onClose }: { id: string; onClose: () =
 
           {!cancelled && c.remaining > 0 && (
             <div className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-              <Input label="To'lov summasi" inputMode="numeric" placeholder={String(c.remaining)} value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <Input label="To'lov summasi" money inputMode="numeric" placeholder={String(c.remaining)} value={amount} onChange={(e) => setAmount(e.target.value)} />
               <Select label="Usul" value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} options={options(METHOD_LABELS)} />
               <Button onClick={() => pay.mutate()} isLoading={pay.isPending} disabled={!parseMoney(amount)}>Qabul qilish</Button>
             </div>
@@ -131,7 +131,7 @@ export function CampaignDetailModal({ id, onClose }: { id: string; onClose: () =
                 {c.payments.map((p) => editPay?.p.id === p.id ? (
                   <li key={p.id} className="space-y-2 bg-gray-50 px-3 py-3">
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      <Input label="Summa" inputMode="numeric" value={editPay.amount} disabled={!isAdmin}
+                      <Input label="Summa" money inputMode="numeric" value={editPay.amount} disabled={!isAdmin}
                         onChange={(e) => setEditPay({ ...editPay, amount: e.target.value })} />
                       <Select label="Usul" value={editPay.method} options={options(METHOD_LABELS)}
                         onChange={(e) => setEditPay({ ...editPay, method: e.target.value as PaymentMethod })} />

@@ -86,7 +86,7 @@ export function ExpenseFormModal({ open, onClose, expense }: ExpenseFormModalPro
       )}
     >
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
-        <Input label="Summa (so'm)" inputMode="numeric" placeholder="Masalan: 250 000" value={form.amount}
+        <Input label="Summa (so'm)" money inputMode="numeric" placeholder="Masalan: 250 000" value={form.amount}
           onChange={(e) => setForm({ ...form, amount: e.target.value })} autoFocus />
         <div className="space-y-1.5">
           <label htmlFor="exp-category" className="block text-sm font-medium text-gray-700">Nimaga</label>

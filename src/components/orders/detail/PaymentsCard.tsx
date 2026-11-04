@@ -102,7 +102,7 @@ export function PaymentsCard({ order }: { order: OrderDetail }) {
       >
         <div className="space-y-4">
           <Input
-            label={`Summa (ko'pi bilan: ${formatCurrency(maxAmount)})`}
+            label={`Summa (ko'pi bilan: ${formatCurrency(maxAmount)})`} money
             inputMode="numeric"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}

@@ -111,7 +111,7 @@ function SheetEditor({ sheet }: { sheet: PayrollSheet }) {
           ))}
         </div>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Input label="Summa" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)}
+          <Input label="Summa" money inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)}
             placeholder={kind === 'PAYMENT' ? String(sheet.entry.remaining) : ''} />
           <Input label="Sana" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           {cash && <Select label="Usul" value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} options={options(METHOD_LABELS)} />}

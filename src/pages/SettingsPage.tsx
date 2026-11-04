@@ -11,7 +11,7 @@ import { TelegramSettings } from '@/components/settings/TelegramSettings';
 import { OrderRulesSettings } from '@/components/settings/OrderRulesSettings';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { Input, MoneyInput } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
@@ -121,8 +121,8 @@ function KpiTab({ s }: { s: CompanySettings }) {
       <Card title="KPI va bonus" description="Ko'proq buyurtma va o'z vaqtida topshirish uchun avtomatik bonus. Oylik hisoblanganda qo'shiladi">
         <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-3">
           <Input label="Oylik reja (yopilgan buyurtma, ta)" inputMode="numeric" value={f.plan} onChange={(e) => setF({ ...f, plan: e.target.value })} />
-          <Input label="Rejadan oshgan har buyurtma uchun fondga (so'm)" inputMode="numeric" value={f.over} onChange={(e) => setF({ ...f, over: e.target.value })} />
-          <Input label="O'z vaqtida topshirilgan buyurtma uchun har ishtirokchiga (so'm)" inputMode="numeric" value={f.onTime} onChange={(e) => setF({ ...f, onTime: e.target.value })} />
+          <Input label="Rejadan oshgan har buyurtma uchun fondga (so'm)" money inputMode="numeric" value={f.over} onChange={(e) => setF({ ...f, over: e.target.value })} />
+          <Input label="O'z vaqtida topshirilgan buyurtma uchun har ishtirokchiga (so'm)" money inputMode="numeric" value={f.onTime} onChange={(e) => setF({ ...f, onTime: e.target.value })} />
         </div>
         <div className="mt-5 rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
           <p className="font-semibold text-gray-900">Misol</p>
@@ -165,8 +165,8 @@ function PriceRow({ p }: { p: PriceListItem }) {
           {options(PRICE_UNIT_LABELS).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </td>
-      <td className="py-2 pr-2"><input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="numeric" className="h-8 w-28 rounded border border-gray-200 px-2" aria-label="Narx" /></td>
-      <td className="py-2 pr-2"><input value={cost} onChange={(e) => setCost(e.target.value)} inputMode="numeric" className="h-8 w-28 rounded border border-gray-200 px-2" aria-label="Tannarx" /></td>
+      <td className="py-2 pr-2"><MoneyInput value={price} onChange={(e) => setPrice(e.target.value)} inputMode="numeric" className="h-8 w-28 rounded border border-gray-200 px-2" aria-label="Narx" /></td>
+      <td className="py-2 pr-2"><MoneyInput value={cost} onChange={(e) => setCost(e.target.value)} inputMode="numeric" className="h-8 w-28 rounded border border-gray-200 px-2" aria-label="Tannarx" /></td>
       <td className="whitespace-nowrap py-2 text-right">
         {dirty && <Button size="sm" disabled={priceN === null || costN === null || !name.trim()} isLoading={save.isPending} onClick={() => save.mutate({ name: name.trim(), price: priceN!, costPrice: costN! })}>Saqlash</Button>}
         <Button size="sm" variant="ghost" onClick={() => save.mutate({ isActive: !p.isActive })}>{p.isActive ? 'O\'chirish' : 'Yoqish'}</Button>
@@ -210,9 +210,9 @@ function PricesTab() {
           <div className="col-span-2"><Input label="Nomi" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
           <Select label="Turi" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as PriceKind })} options={options(PRICE_KIND_LABELS)} />
           <Select label="Birlik" value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value as PriceUnit })} options={options(PRICE_UNIT_LABELS)} />
-          <Input label="Narx" inputMode="numeric" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} />
+          <Input label="Narx" money inputMode="numeric" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} />
           <div className="flex items-end gap-2">
-            <Input label="Tannarx" inputMode="numeric" value={f.costPrice} onChange={(e) => setF({ ...f, costPrice: e.target.value })} />
+            <Input label="Tannarx" money inputMode="numeric" value={f.costPrice} onChange={(e) => setF({ ...f, costPrice: e.target.value })} />
             <Button disabled={!f.name.trim() || !f.price} isLoading={create.isPending} onClick={() => create.mutate()} aria-label="Qo'shish"><Plus className="h-4 w-4" /></Button>
           </div>
         </div>

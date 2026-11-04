@@ -78,9 +78,9 @@ export function CampaignFormModal({ screens, initialScreenId, onClose, onCreated
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Input label={`Slot (${screen?.slotSeconds ?? 15} s)`} inputMode="numeric" value={slots} onChange={(e) => setSlots(e.target.value)} />
-            <Input label="Kunlik narx / slot" inputMode="numeric" placeholder={screen ? String(screen.pricePerDay) : ''} value={price} onChange={(e) => setPrice(e.target.value)} />
+            <Input label="Kunlik narx / slot" money inputMode="numeric" placeholder={screen ? String(screen.pricePerDay) : ''} value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
-          <Input label="Chegirma, so'm" inputMode="numeric" value={discount} onChange={(e) => setDiscount(e.target.value)} />
+          <Input label="Chegirma, so'm" money inputMode="numeric" value={discount} onChange={(e) => setDiscount(e.target.value)} />
           <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />Kelishildi — darhol tasdiqlash</label>
         </div>
 

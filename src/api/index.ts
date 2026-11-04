@@ -37,6 +37,7 @@ export interface OrderInput {
   source: OrderSource;
   items: OrderItemInput[];
   discount?: number;
+  installationPrice?: number;
   deadline?: string | null;
   dueDate?: string | null;
   needsDesign?: boolean;
@@ -85,7 +86,7 @@ export const usersApi = {
   list: (q: { role?: string; active?: boolean } = {}) => api.get<User[]>('/users', q),
   create: (body: Partial<User> & { password: string }) => api.post<User>('/users', body),
   update: (id: string, body: Partial<User> & { password?: string }) => api.patch<User>(`/users/${id}`, body),
-  remove: (id: string) => api.del<{ deleted?: boolean; archived?: boolean }>(`/users/${id}`),
+  remove: (id: string) => api.del<{ deleted: boolean }>(`/users/${id}`),
 };
 
 export const clientsApi = {
@@ -293,6 +294,21 @@ export const requestsApi = {
   cancel: (id: string) => api.post<StaffRequest>(`/requests/${id}/cancel`),
   all: (status?: RequestStatus) => api.get<StaffRequest[]>('/requests', status ? { status } : undefined),
   review: (id: string, body: { approve: boolean; reviewNote?: string; method?: PaymentMethod }) => api.post<StaffRequest>(`/requests/${id}/review`, body),
+};
+
+export type TaskKind = 'ORDER' | 'DESIGN' | 'PRODUCTION' | 'INSTALLATION' | 'DEBT' | 'LEAD' | 'REQUEST';
+export interface MyTask {
+  id: string;
+  kind: TaskKind;
+  title: string;
+  subtitle: string;
+  /** null — muddat belgilanmagan */
+  dueAt: string | null;
+  link: string;
+}
+
+export const tasksApi = {
+  my: () => api.get<MyTask[]>('/tasks/my'),
 };
 
 export const reportsApi = {

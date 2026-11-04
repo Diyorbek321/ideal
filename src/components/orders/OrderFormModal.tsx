@@ -17,6 +17,9 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
+
+// Montaj narxi tanlovida "qo'lda kiritish" varianti
+const MANUAL_INSTALL = '__manual__';
 import { useToast } from '@/components/ui/Toast';
 
 // Ota komponent faqat ochiq paytda render qiladi — har ochilishda holat toza boshlanadi
@@ -97,8 +100,9 @@ export function OrderFormModal({
   const [needsDesign, setNeedsDesign] = React.useState(order?.needsDesign ?? initialNeedsDesign);
   const [designerId, setDesignerId] = React.useState(order?.designerId ?? '');
   const [needsInstallation, setNeedsInstallation] = React.useState(order?.needsInstallation ?? initialNeedsInstallation);
-  // undefined — hali tanlanmagan: eng arzon montaj narxi olinadi; '' — narxsiz
-  const [installChoice, setInstallChoice] = React.useState<string | undefined>(undefined);
+  // undefined — hali tanlanmagan: eng arzon montaj narxi olinadi; '' — narxsiz; MANUAL — summa qo'lda
+  const [installChoice, setInstallChoice] = React.useState<string | undefined>(order?.installationPrice ? MANUAL_INSTALL : undefined);
+  const [installAmount, setInstallAmount] = React.useState(order?.installationPrice ? String(order.installationPrice) : '');
   const [address, setAddress] = React.useState(order?.installationAddress ?? '');
   const [discount, setDiscount] = React.useState(order?.discount ? String(order.discount) : '');
   const [dueDate, setDueDate] = React.useState(isoToInput(order?.dueDate));
@@ -114,7 +118,9 @@ export function OrderFormModal({
   const services = activeOfKind(catalog, 'FINISHING');
   // Standart — eng arzon montaj (o'rnatish belgilansa narxsiz qolib ketmasin)
   const installPrices = [...activeOfKind(catalog, 'INSTALLATION')].sort((a, b) => a.price - b.price);
-  const installationCode = needsInstallation ? installChoice ?? installPrices[0]?.code ?? '' : '';
+  const manualInstall = needsInstallation && installChoice === MANUAL_INSTALL;
+  const installationCode = needsInstallation && !manualInstall ? installChoice ?? installPrices[0]?.code ?? '' : '';
+  const installationPrice = manualInstall ? parseMoney(installAmount) ?? 0 : 0;
   const list = items ?? [];
 
   const patchItem = (idx: number, patch: Partial<ItemDraft>) =>
@@ -129,7 +135,7 @@ export function OrderFormModal({
 
   const lineTotal = (i: ItemDraft) => (parseMoney(i.unitPrice) ?? 0) * (parseDecimal(i.quantity) ?? 0);
   const subtotal = list.reduce((s, i) => s + lineTotal(i), 0);
-  const total = Math.max(0, subtotal - (parseMoney(discount) ?? 0));
+  const total = Math.max(0, subtotal + installationPrice - (parseMoney(discount) ?? 0));
 
   // Ro'yxatdagi tur tanlansa — asosiy materiali va doimiy xizmatlari qo'yiladi, narx yana avtomatik
   const changeType = (idx: number, name: string) => {
@@ -172,6 +178,7 @@ export function OrderFormModal({
     if (!deadline) e.deadline = 'Topshirish muddatini kiriting';
     else if (deadline < toDateInput(new Date()) && deadline !== isoToInput(order?.deadline)) e.deadline = 'Muddat o\'tgan sana bo\'lishi mumkin emas';
     if (needsInstallation && !address.trim()) e.address = 'O\'rnatish manzilini kiriting';
+    if (manualInstall && !parseMoney(installAmount)) e.installAmount = 'Montaj summasini kiriting';
     if (discount.trim() && parseMoney(discount) === null) e.discount = 'Chegirmani raqam bilan kiriting';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -190,6 +197,7 @@ export function OrderFormModal({
         unitPrice: parseMoney(i.unitPrice)!,
       })),
       discount: parseMoney(discount) ?? 0,
+      installationPrice,
       deadline: keepIso(deadline, order?.deadline),
       dueDate: keepIso(dueDate, order?.dueDate),
       needsDesign,
@@ -207,11 +215,12 @@ export function OrderFormModal({
       productType: i.productType, materialId: i.materialId ?? null, widthCm: i.widthCm, heightCm: i.heightCm,
       quantity: i.quantity, finishing: i.finishing, unitPrice: i.unitPrice,
     }));
-    const { items: newItems, discount: newDiscount, ...rest } = b;
+    const { items: newItems, discount: newDiscount, installationPrice: newInstall, ...rest } = b;
     return {
       ...rest,
       ...(!same(newItems, original) && { items: newItems }),
       ...(newDiscount !== (o.discount ?? 0) && { discount: newDiscount }),
+      ...(newInstall !== (o.installationPrice ?? 0) && { installationPrice: newInstall }),
     };
   };
 
@@ -286,7 +295,7 @@ export function OrderFormModal({
                 <Input label="Soni" inputMode="numeric" value={it.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)} />
                 <div className="col-span-2 md:col-span-1">
                   <Input
-                    label={it.manual ? 'Dona narxi (qo\'lda)' : 'Dona narxi'}
+                    label={it.manual ? 'Dona narxi (qo\'lda)' : 'Dona narxi'} money
                     inputMode="numeric"
                     value={it.unitPrice}
                     // Qo'lda yozilsa avtomatik hisobdan uziladi
@@ -328,7 +337,7 @@ export function OrderFormModal({
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Input label="Topshirish muddati *" type="date" min={toDateInput(new Date())} value={deadline} onChange={(e) => setDeadline(e.target.value)} error={errors.deadline} />
-          <Input label="Chegirma (so'm)" inputMode="numeric" value={discount} onChange={(e) => setDiscount(e.target.value)} error={errors.discount} />
+          <Input label="Chegirma (so'm)" money inputMode="numeric" value={discount} onChange={(e) => setDiscount(e.target.value)} error={errors.discount} />
           <Input label="Nasiya: to'lov muddati" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </div>
 
@@ -354,14 +363,18 @@ export function OrderFormModal({
             {needsInstallation && (
               <>
                 <Input label="Manzil" value={address} onChange={(e) => setAddress(e.target.value)} error={errors.address} />
-                {installPrices.length > 0 && (
-                  <Select
-                    label="Montaj narxi"
-                    value={installationCode}
-                    onChange={(e) => setInstallChoice(e.target.value)}
-                    placeholder="Narxsiz"
-                    options={installPrices.map((p) => ({ value: p.code, label: `${p.name} — ${formatCurrency(p.price)}/${PRICE_UNIT_LABELS[p.unit]}` }))}
-                  />
+                <Select
+                  label="Montaj narxi"
+                  value={manualInstall ? MANUAL_INSTALL : installationCode}
+                  onChange={(e) => setInstallChoice(e.target.value)}
+                  placeholder="Narxsiz"
+                  options={[
+                    ...installPrices.map((p) => ({ value: p.code, label: `${p.name} — ${formatCurrency(p.price)}/${PRICE_UNIT_LABELS[p.unit]}` })),
+                    { value: MANUAL_INSTALL, label: 'Qo\'lda kiritish' },
+                  ]}
+                />
+                {manualInstall && (
+                  <Input label="Montaj summasi (so'm)" money value={installAmount} onChange={(e) => setInstallAmount(e.target.value)} error={errors.installAmount} autoFocus />
                 )}
                 {installLost && (
                   <p className="text-xs text-amber-700">Montaj narxi qo'shilmadi: mahsulotlar narxi qo'lda. Uni dona narxiga qo'shing yoki "Avtomatik narx"ni bosing</p>

@@ -107,7 +107,7 @@ export function ScreenFormModal({ screen, onClose }: Props) {
           <Input label="Rolik, soniya" inputMode="numeric" value={f.slotSeconds} onChange={set('slotSeconds')} />
           <Input label="Slotlar soni" inputMode="numeric" value={f.maxSlots} onChange={set('maxSlots')} />
         </div>
-        <Input label="1 slot kunlik narxi, so'm" inputMode="numeric" value={f.pricePerDay} onChange={set('pricePerDay')} />
+        <Input label="1 slot kunlik narxi, so'm" money inputMode="numeric" value={f.pricePerDay} onChange={set('pricePerDay')} />
         <div className="grid grid-cols-2 gap-3">
           <Input label="Ishlash boshi" type="time" value={f.workFrom} onChange={set('workFrom')} />
           <Input label="Ishlash oxiri" type="time" value={f.workTo} onChange={set('workTo')} />

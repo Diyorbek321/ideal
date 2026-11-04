@@ -11,6 +11,7 @@ import { isFinance, useUser } from '@/lib/auth';
 import { EquipmentFormModal } from '@/components/production/EquipmentFormModal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { MyTasksCard } from '@/components/tasks/MyTasksCard';
 import { MyKpiCard } from '@/components/kpi/MyKpiCard';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -131,6 +132,7 @@ export default function ProductionPage() {
         actions={user.role === 'ADMIN' ? <Button variant="outline" onClick={() => setEditEq(null)}><Plus className="h-4 w-4" />Uskuna</Button> : undefined} />
       {editEq !== undefined && <EquipmentFormModal equipment={editEq} onClose={() => setEditEq(undefined)} />}
       <MyKpiCard />
+      {user.role === 'PRINTER' && <MyTasksCard />}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {equipment?.map((eq) => (

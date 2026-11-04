@@ -107,7 +107,7 @@ function OpModal({ op, materials, onClose }: { op: Op | null; materials: Materia
         <div className="space-y-4">
           <Select label="Material" value={materialId} onChange={(e) => setMaterialId(e.target.value)} options={materials.map((m) => ({ value: m.id, label: `${m.name} (${formatNumber(m.stock, 1)} ${UNIT_LABELS[m.unit]})` }))} />
           <Input label={`Miqdor${unit ? `, ${UNIT_LABELS[unit]}` : ''}`} inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value)} autoFocus />
-          {op.kind === 'in' && <Input label="Birlik narxi (so'm)" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} />}
+          {op.kind === 'in' && <Input label="Birlik narxi (so'm)" money inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} />}
           {op.kind === 'in' && <Input label="Yetkazib beruvchi" value={supplier} onChange={(e) => setSupplier(e.target.value)} />}
           <Input label="Izoh" value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
@@ -118,7 +118,7 @@ function OpModal({ op, materials, onClose }: { op: Op | null; materials: Materia
           <Input label="Kategoriya" value={mat.category} onChange={(e) => setMat({ ...mat, category: e.target.value })} placeholder="Banner, Akril..." />
           <Select label="O'lchov birligi" value={mat.unit} onChange={(e) => setMat({ ...mat, unit: e.target.value as MaterialUnit })} options={options(UNIT_LABELS)} />
           <Input label="Minimal qoldiq" inputMode="decimal" value={mat.minStock} onChange={(e) => setMat({ ...mat, minStock: e.target.value })} />
-          <Input label="Xarid narxi" inputMode="numeric" value={mat.purchasePrice} onChange={(e) => setMat({ ...mat, purchasePrice: e.target.value })} />
+          <Input label="Xarid narxi" money inputMode="numeric" value={mat.purchasePrice} onChange={(e) => setMat({ ...mat, purchasePrice: e.target.value })} />
           {/* Material o'chirilmaydi (harakat tarixi bor) — ro'yxatdan yashiriladi */}
           {op.kind === 'edit' && (
             <label className="col-span-2 flex items-center gap-2 text-sm text-gray-700">

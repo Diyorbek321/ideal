@@ -47,6 +47,9 @@ function ItemsTable({ order }: { order: OrderDetail }) {
             <td className="border border-gray-400 px-2 py-1">{formatNumber(it.total ?? 0)}</td>
           </tr>
         ))}
+        {!!order.installationPrice && (
+          <tr><td colSpan={5} className="border border-gray-400 px-2 py-1 text-right">O'rnatish (montaj)</td><td className="border border-gray-400 px-2 py-1">{formatNumber(order.installationPrice)}</td></tr>
+        )}
         {!!order.discount && (
           <tr><td colSpan={5} className="border border-gray-400 px-2 py-1 text-right">Chegirma</td><td className="border border-gray-400 px-2 py-1">−{formatNumber(order.discount)}</td></tr>
         )}
