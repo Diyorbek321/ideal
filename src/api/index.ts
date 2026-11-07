@@ -66,6 +66,7 @@ export interface OrderFilters {
 export const authApi = {
   login: (phone: string, password: string) => api.post<{ token: string; user: User }>('/auth/login', { phone, password }),
   me: () => api.get<User>('/auth/me'),
+  switchRole: (role: string) => api.post<{ token: string; user: User }>('/auth/switch-role', { role }),
   changePassword: (currentPassword: string, newPassword: string) =>
     api.post('/auth/change-password', { currentPassword, newPassword }),
 };

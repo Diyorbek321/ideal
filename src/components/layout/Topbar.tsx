@@ -1,7 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { KeyRound, Menu, Search } from 'lucide-react';
-import { isFinance, useUser } from '@/lib/auth';
+import { Check, KeyRound, Menu, Repeat, Search } from 'lucide-react';
+import { HOME_BY_ROLE, isFinance, useAuth, useUser } from '@/lib/auth';
+import { errorMessage } from '@/api';
+import type { UserRole } from '@/types';
+import { useToast } from '@/components/ui/Toast';
 import { ROLE_LABELS } from '@/lib/labels';
 import ChangePasswordModal from './ChangePasswordModal';
 import { Logo } from './Logo';
@@ -17,6 +20,25 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
   const [q, setQ] = React.useState('');
   const [menu, setMenu] = React.useState(false);
   const [pwOpen, setPwOpen] = React.useState(false);
+  const { switchRole } = useAuth();
+  const toast = useToast();
+  const [switching, setSwitching] = React.useState(false);
+  const roles = user.roles ?? [user.role];
+
+  const changeRole = async (role: UserRole) => {
+    setMenu(false);
+    if (role === user.role || switching) return;
+    setSwitching(true);
+    try {
+      await switchRole(role);
+      navigate(HOME_BY_ROLE[role]);
+      toast.success(`Endi siz: ${ROLE_LABELS[role]}`);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +72,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
             className="flex items-center gap-3 rounded-xl p-1 text-left hover:bg-gray-100" aria-haspopup="menu" aria-expanded={menu}>
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold leading-none text-gray-900">{user.fullName}</p>
-              <p className="mt-1 text-xs text-gray-500">{ROLE_LABELS[user.role]}</p>
+              <p className="mt-1 text-xs text-gray-500">{ROLE_LABELS[user.role]}{roles.length > 1 ? ' ⇄' : ''}</p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-400 font-display text-xs font-bold text-white">
               {initials(user.fullName)}
@@ -58,6 +80,21 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           </button>
           {menu && (
             <div role="menu" className="absolute right-0 z-30 mt-2 w-60 overflow-hidden rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl">
+              {roles.length > 1 && (
+                <div className="mb-1 border-b border-gray-100 pb-1">
+                  <p className="flex items-center gap-1.5 px-3 pb-1 pt-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    <Repeat className="h-3.5 w-3.5" />Lavozimni almashtirish
+                  </p>
+                  {roles.map((r) => (
+                    <button key={r} role="menuitemradio" aria-checked={r === user.role} disabled={switching}
+                      onMouseDown={(e) => e.preventDefault()} onClick={() => changeRole(r)}
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm hover:bg-gray-100 ${r === user.role ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                      {ROLE_LABELS[r]}
+                      {r === user.role && <Check className="h-4 w-4 text-brand-500" />}
+                    </button>
+                  ))}
+                </div>
+              )}
               <button role="menuitem" onMouseDown={(e) => e.preventDefault()} onClick={() => { setMenu(false); setPwOpen(true); }}
                 className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100">
                 <KeyRound className="h-4 w-4 text-gray-400" />Parolni o'zgartirish

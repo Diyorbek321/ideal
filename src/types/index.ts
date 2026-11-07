@@ -7,7 +7,13 @@ export interface User {
   id: string;
   fullName: string;
   phone: string | null;
+  /** Sessiyada — hozirgi faol lavozim; xodimlar ro'yxatida — asosiy lavozim */
   role: UserRole;
+  /** Qo'shimcha lavozimlar (masalan menejer ham dizayner) */
+  extraRoles?: UserRole[];
+  /** Faqat /auth/me va login javobida: asosiy lavozim va almashtirish mumkin bo'lgan barcha lavozimlar */
+  primaryRole?: UserRole;
+  roles?: UserRole[];
   payType: PayType;
   salary: number | null;
   ratePerM2: number | null;

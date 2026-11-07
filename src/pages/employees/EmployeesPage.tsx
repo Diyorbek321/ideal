@@ -40,13 +40,13 @@ export function bonusRuleText(u: Pick<User, 'role' | 'bonusUnit' | 'bonusThresho
 function EmployeeModal({ user, open, onClose }: { user?: User; open: boolean; onClose: () => void }) {
   const toast = useToast();
   const qc = useQueryClient();
-  const empty = { fullName: '', phone: '+998 ', role: 'INSTALLER' as UserRole, payType: 'FIXED' as PayType, salary: '', ratePerM2: '', password: '', isActive: true, bonusUnit: 'NONE' as BonusUnit, bonusThreshold: '', bonusRate: '', bonusRateOver: '' };
+  const empty = { fullName: '', phone: '+998 ', role: 'INSTALLER' as UserRole, extraRoles: [] as UserRole[], payType: 'FIXED' as PayType, salary: '', ratePerM2: '', password: '', isActive: true, bonusUnit: 'NONE' as BonusUnit, bonusThreshold: '', bonusRate: '', bonusRateOver: '' };
   const [f, setF] = React.useState(empty);
 
   React.useEffect(() => {
     if (!open) return;
     setF(user ? {
-      fullName: user.fullName, phone: user.phone ?? '', role: user.role, payType: user.payType,
+      fullName: user.fullName, phone: user.phone ?? '', role: user.role, extraRoles: user.extraRoles ?? [], payType: user.payType,
       salary: user.salary ? String(user.salary) : '', ratePerM2: user.ratePerM2 ? String(user.ratePerM2) : '', password: '', isActive: user.isActive,
       bonusUnit: user.bonusUnit ?? 'NONE', bonusThreshold: user.bonusThreshold ? String(user.bonusThreshold) : '',
       bonusRate: user.bonusRate ? String(user.bonusRate) : '', bonusRateOver: user.bonusRateOver ? String(user.bonusRateOver) : '',
@@ -57,7 +57,8 @@ function EmployeeModal({ user, open, onClose }: { user?: User; open: boolean; on
     mutationFn: () => {
       if ([f.salary, f.ratePerM2, f.bonusThreshold, f.bonusRate, f.bonusRateOver].some((v) => Number.isNaN(n(v)))) throw new Error('Oylik, stavka yoki bonus noto\'g\'ri kiritilgan');
       const body = {
-        fullName: f.fullName.trim(), phone: f.phone, role: f.role, payType: f.payType, isActive: f.isActive,
+        fullName: f.fullName.trim(), phone: f.phone, role: f.role, extraRoles: f.extraRoles.filter((r) => r !== f.role),
+        payType: f.payType, isActive: f.isActive,
         salary: f.payType === 'FIXED' ? n(f.salary) : null,
         ratePerM2: f.payType === 'PER_M2' ? n(f.ratePerM2) : null,
         bonusUnit: f.bonusUnit,
@@ -102,12 +103,27 @@ function EmployeeModal({ user, open, onClose }: { user?: User; open: boolean; on
         <Input label="Telefon (login)" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} inputMode="tel" />
         <Select label="Lavozim" value={f.role} onChange={(e) => {
           const role = e.target.value as UserRole;
-          setF({ ...f, role, payType: role === 'DESIGNER' ? 'PER_M2' : 'FIXED' });
+          setF({ ...f, role, extraRoles: f.extraRoles.filter((r) => r !== role), payType: role === 'DESIGNER' ? 'PER_M2' : 'FIXED' });
         }} options={options(ROLE_LABELS)} />
         <Select label="To'lov turi" value={f.payType} onChange={(e) => setF({ ...f, payType: e.target.value as PayType })} options={[{ value: 'FIXED', label: 'Belgilangan oylik' }, { value: 'PER_M2', label: 'Har m² uchun' }]} />
         {f.payType === 'FIXED'
           ? <Input label="Oylik (so'm)" money inputMode="numeric" value={f.salary} onChange={(e) => setF({ ...f, salary: e.target.value })} />
           : <Input label="1 m² uchun (so'm)" money inputMode="numeric" value={f.ratePerM2} onChange={(e) => setF({ ...f, ratePerM2: e.target.value })} />}
+        <div className="col-span-2">
+          <p className="mb-1.5 text-sm font-medium text-gray-700">Qo'shimcha lavozim</p>
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(ROLE_LABELS) as UserRole[]).filter((r) => r !== f.role && r !== 'ADMIN').map((r) => {
+              const on = f.extraRoles.includes(r);
+              return (
+                <label key={r} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm ${on ? 'border-gray-900 bg-gray-50 font-medium' : 'border-gray-200 text-gray-600'}`}>
+                  <input type="checkbox" checked={on} onChange={(e) => setF({ ...f, extraRoles: e.target.checked ? [...f.extraRoles, r] : f.extraRoles.filter((x) => x !== r) })} />
+                  {ROLE_LABELS[r]}
+                </label>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 text-xs text-gray-500">Belgilansa, xodim bitta akkauntda lavozimni almashtira oladi (yuqori o'ng burchakdagi ismi ustiga bosib). Oylik asosiy lavozim bo'yicha hisoblanadi.</p>
+        </div>
         <div className="col-span-2 rounded-xl border border-gray-200 p-4">
           <p className="mb-3 text-sm font-semibold text-gray-900">Bonus (oylikka qo'shimcha, ish hajmiga qarab)</p>
           <div className="grid grid-cols-2 gap-4">
@@ -217,7 +233,12 @@ export default function EmployeesPage() {
                         <div><p className="font-bold text-gray-900">{u.fullName}</p><p className="text-xs text-gray-500">{formatPhone(u.phone)}</p></div>
                       </div>
                     </td>
-                    <td className="px-6 py-4"><Badge variant="outline">{ROLE_LABELS[u.role]}</Badge></td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="outline">{ROLE_LABELS[u.role]}</Badge>
+                        {u.extraRoles?.map((r) => <Badge key={r} variant="outline" className="opacity-70">+ {ROLE_LABELS[r]}</Badge>)}
+                      </div>
+                    </td>
                     <td className="px-6 py-4">
                       <p className="font-bold text-gray-900">{u.payType === 'FIXED' ? formatCurrency(u.salary) : `${formatCurrency(u.ratePerM2)} / m²`}</p>
                       {bonusRuleText(u) && <p className="text-xs text-gray-500">+ bonus: {bonusRuleText(u)}</p>}

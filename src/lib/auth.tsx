@@ -11,6 +11,8 @@ interface AuthState {
   reconnecting: boolean;
   login: (phone: string, password: string) => Promise<User>;
   logout: () => void;
+  /** Bir nechta lavozimli xodim faol rolini almashtiradi */
+  switchRole: (role: UserRole) => Promise<User>;
 }
 
 const AuthContext = React.createContext<AuthState | null>(null);
@@ -55,7 +57,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return u;
   }, []);
 
-  const value = React.useMemo(() => ({ user, loading, reconnecting, login, logout }), [user, loading, reconnecting, login, logout]);
+  const switchRole = React.useCallback(async (role: UserRole) => {
+    const { token, user: u } = await authApi.switchRole(role);
+    tokenStore.set(token);
+    // Avvalgi roldagi ma'lumotlar (filtrlangan ro'yxatlar, yashirilgan summalar) aralashmasin
+    queryClient.clear();
+    setUser(u);
+    return u;
+  }, [queryClient]);
+
+  const value = React.useMemo(
+    () => ({ user, loading, reconnecting, login, logout, switchRole }),
+    [user, loading, reconnecting, login, logout, switchRole],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
