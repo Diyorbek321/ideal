@@ -112,6 +112,8 @@ export interface Order {
   dueDate?: string | null;
   needsDesign: boolean;
   needsInstallation: boolean;
+  /** Faqat o'rnatish: dizayn va ishlab chiqarishsiz */
+  installationOnly?: boolean;
   installationAddress: string | null;
   managerId: string;
   designerId: string | null;
@@ -320,7 +322,22 @@ export interface StockMovement {
 }
 
 export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'TENDER';
-export type PaymentKind = 'ADVANCE' | 'PARTIAL' | 'FULL';
+export type PaymentKind = 'ADVANCE' | 'PARTIAL' | 'FULL' | 'REFUND';
+
+/** Mijozga pul qaytarish (summa musbat yuboriladi, serverda manfiy saqlanadi) */
+export interface RefundInput {
+  amount: number;
+  method: PaymentMethod;
+  note?: string;
+}
+
+export interface ClientStatement {
+  client: { id: string; name: string; type: ClientType; inn: string | null; contactPerson: string | null; phones: string[]; address: string | null };
+  works: Array<{ orderId: string; number: string; date: string; status: OrderStatus; description: string; amount: number; paid: number; cancelled: boolean }>;
+  payments: Array<{ id: string; date: string; orderNumber: string | null; amount: number; method: PaymentMethod; kind: PaymentKind; note: string | null }>;
+  totals: { works: number; paid: number; remaining: number };
+  generatedAt: string;
+}
 
 export interface Payment {
   id: string;

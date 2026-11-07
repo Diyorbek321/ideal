@@ -13,6 +13,7 @@ import LeadsPage from './pages/leads/LeadsPage';
 import KpiPage from './pages/kpi/KpiPage';
 import RequestsPage from './pages/requests/RequestsPage';
 import ClientDetailPage from './pages/clients/ClientDetailPage';
+import ClientStatementPage from './pages/clients/ClientStatementPage';
 import InventoryPage from './pages/inventory/InventoryPage';
 import FinancePage from './pages/finance/FinancePage';
 import ExpensesPage from './pages/expenses/ExpensesPage';
@@ -76,6 +77,7 @@ export default function App() {
                 <Route path="kpi" element={<KpiPage />} />
                 <Route path="requests" element={<RequestsPage />} />
                 <Route path="clients/:id" element={<RequireRole roles={[...staff]}><ClientDetailPage /></RequireRole>} />
+                <Route path="clients/:id/statement" element={<RequireRole roles={[...staff]}><ClientStatementPage /></RequireRole>} />
                 <Route path="product-types" element={<RequireRole roles={[...staff]}><ProductTypesPage /></RequireRole>} />
                 <Route path="inventory" element={<RequireRole roles={[...staff, 'PRINTER']}><InventoryPage /></RequireRole>} />
                 <Route path="finance" element={<RequireRole roles={[...staff]}><FinancePage /></RequireRole>} />

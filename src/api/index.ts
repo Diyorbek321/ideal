@@ -1,4 +1,6 @@
 import type {
+  ClientStatement,
+  RefundInput,
   RequestStatus, StaffRequest, StaffRequestInput,
   Client, ClientDetail, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
   Expense, FileAsset, Installation, InstallProblem, InstallProblemType, Material, Order, OrderDetail,
@@ -42,6 +44,7 @@ export interface OrderInput {
   dueDate?: string | null;
   needsDesign?: boolean;
   needsInstallation?: boolean;
+  installationOnly?: boolean;
   installationAddress?: string | null;
   designerId?: string | null;
   notes?: string | null;
@@ -97,6 +100,7 @@ export const clientsApi = {
   create: (body: Partial<Client>) => api.post<Client>('/clients', body),
   update: (id: string, body: Partial<Client>) => api.patch<Client>(`/clients/${id}`, body),
   remove: (id: string) => api.del<{ deleted: boolean }>(`/clients/${id}`),
+  statement: (id: string) => api.get<ClientStatement>(`/clients/${id}/statement`),
 };
 
 export const ordersApi = {
@@ -105,8 +109,8 @@ export const ordersApi = {
   create: (body: OrderInput) => api.post<Order>('/orders', body),
   update: (id: string, body: Partial<OrderInput>) => api.patch<Order>(`/orders/${id}`, body),
   remove: (id: string) => api.del<{ deleted: boolean }>(`/orders/${id}`),
-  changeStatus: (id: string, status: OrderStatus, comment?: string) =>
-    api.post<Order>(`/orders/${id}/status`, { status, comment }),
+  changeStatus: (id: string, status: OrderStatus, comment?: string, refund?: RefundInput) =>
+    api.post<Order>(`/orders/${id}/status`, { status, comment, refund }),
   comment: (id: string, message: string) => api.post<OrderEvent>(`/orders/${id}/comments`, { message }),
 };
 
@@ -236,6 +240,7 @@ export const paymentsApi = {
     api.post<Payment>('/payments', body),
   update: (id: string, body: { amount?: number; method?: PaymentMethod; note?: string | null }) => api.patch<Payment>(`/payments/${id}`, body),
   remove: (id: string) => api.del(`/payments/${id}`),
+  refund: (orderId: string, body: RefundInput) => api.post<Payment>('/payments/refund', { orderId, ...body }),
   debts: () => api.get<{ items: Debt[]; total: number }>('/payments/debts'),
   remind: (orderId: string) =>
     api.post<{ message: string; phones: string[]; telegram: string | null; smsStatus: string | null; smsError: string | null }>(`/payments/debts/${orderId}/remind`),

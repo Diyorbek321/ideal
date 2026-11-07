@@ -111,6 +111,9 @@ export default function OrderDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card title="Mahsulotlar">
+            {order.installationOnly && (
+              <p className="mb-3 rounded-lg bg-brand-50 p-3 text-sm font-medium text-brand-800">Faqat o'rnatish — mahsulot bizda chiqarilmaydi, dizayn va ishlab chiqarishsiz</p>
+            )}
             <div className="divide-y divide-gray-100">
               {order.items.map((item) => (
                 <div key={item.id} className="flex justify-between gap-4 py-4 first:pt-0 last:pb-0">
@@ -205,7 +208,8 @@ export default function OrderDetailPage() {
           <Card
             title="Fayllar"
             actions={(
-              <FileButton size="sm" variant="outline" kind="REFERENCE" orderId={order.id} onUploaded={() => qc.invalidateQueries({ queryKey: ['order', id] })}>
+              <FileButton size="sm" variant="outline" kind="REFERENCE" orderId={order.id} paste="page"
+                onUploaded={(f) => { toast.success(`Yuklandi: ${f.name}`); qc.invalidateQueries({ queryKey: ['order', id] }); }}>
                 Qo'shish
               </FileButton>
             )}
@@ -231,6 +235,7 @@ export default function OrderDetailPage() {
                 ))}
               </div>
             ) : <p className="text-center text-sm text-gray-400">Fayllar yo'q</p>}
+            <p className="mt-3 text-center text-xs text-gray-400">Skrinshotni shu sahifada <kbd className="rounded border border-gray-200 px-1">Ctrl</kbd>+<kbd className="rounded border border-gray-200 px-1">V</kbd> bilan qo'ying</p>
           </Card>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, ArchiveRestore, ArrowLeft, History, Pencil, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, ArrowLeft, FileText, History, Pencil, Trash2 } from 'lucide-react';
 import { clientsApi } from '@/api';
 import { CLIENT_TYPE_LABELS, KIND_LABELS, METHOD_LABELS, SOURCE_LABELS } from '@/lib/labels';
 import { formatCurrency, formatDate, formatPhone } from '@/lib/utils';
@@ -62,6 +62,7 @@ export default function ClientDetailPage() {
           {c.isArchived && <Badge>Arxivda</Badge>}
         </div>
         <div className="flex flex-wrap justify-end gap-2">
+          <Link to={`/clients/${c.id}/statement`}><Button><FileText className="h-4 w-4" />Hisob varag'i</Button></Link>
           <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Tahrirlash</Button>
           <Button variant="ghost" isLoading={archive.isPending} onClick={() => archive.mutate(!c.isArchived)}>
             {c.isArchived ? <><ArchiveRestore className="h-4 w-4" />Arxivdan chiqarish</> : <><Archive className="h-4 w-4" />Arxivlash</>}
@@ -115,7 +116,7 @@ export default function ClientDetailPage() {
                 {c.payments.map((p) => (
                   <div key={p.id} className="flex justify-between py-2">
                     <span className="text-gray-500">{formatDate(p.createdAt)} · {METHOD_LABELS[p.method]} · {KIND_LABELS[p.kind]}</span>
-                    <span className="font-semibold">{formatCurrency(p.amount)}</span>
+                    <span className={p.amount < 0 ? "font-semibold text-red-600" : "font-semibold"}>{formatCurrency(p.amount)}</span>
                   </div>
                 ))}
               </div>

@@ -68,7 +68,7 @@ export const METHOD_LABELS: Record<PaymentMethod, string> = {
   TENDER: 'Tender',
 };
 
-export const KIND_LABELS: Record<PaymentKind, string> = { ADVANCE: 'Avans', PARTIAL: 'Qisman', FULL: 'To\'liq' };
+export const KIND_LABELS: Record<PaymentKind, string> = { ADVANCE: 'Avans', PARTIAL: 'Qisman', FULL: 'To\'liq', REFUND: 'Qaytarildi' };
 
 export const DESIGN_STATUS_LABELS: Record<DesignStatus, string> = {
   DRAFT: 'Qoralama',

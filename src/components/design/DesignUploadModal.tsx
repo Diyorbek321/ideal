@@ -68,7 +68,8 @@ export function DesignUploadModal({ open, onClose, orderId, orderNumber, default
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-700">1. Ko'rinish rasmi (mijoz shuni ko'radi) *</p>
           <div className="flex items-center gap-3">
-            <FileButton variant="outline" size="sm" accept="image/*" kind="DESIGN" orderId={orderId} onUploaded={setPreview}>Rasm tanlash</FileButton>
+            <FileButton variant="outline" size="sm" accept="image/*" kind="DESIGN" orderId={orderId} paste="modal" onUploaded={setPreview}>Rasm tanlash</FileButton>
+            {!preview && <span className="text-xs text-gray-400">yoki skrinshotni Ctrl+V bilan qo'ying</span>}
             {preview && <span className="flex items-center text-sm text-emerald-700"><CheckCircle2 className="mr-1 h-4 w-4" />{preview.name}</span>}
           </div>
           {preview && <img src={fileUrl(preview.url)} alt="Ko'rinish" className="max-h-48 rounded-lg border border-gray-100" />}

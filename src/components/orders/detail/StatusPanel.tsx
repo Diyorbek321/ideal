@@ -2,14 +2,16 @@ import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { ApiError, ordersApi } from '@/api';
-import type { OrderDetail, OrderStatus } from '@/types';
-import { ORDER_FLOW, STATUS_LABELS } from '@/lib/labels';
+import type { OrderDetail, OrderStatus, PaymentMethod, RefundInput } from '@/types';
+import { METHOD_LABELS, ORDER_FLOW, STATUS_LABELS, options } from '@/lib/labels';
 import { isFinance, useUser } from '@/lib/auth';
-import { cn, formatHours } from '@/lib/utils';
+import { cn, formatCurrency, formatHours, parseMoney } from '@/lib/utils';
 import { invalidateOrderViews } from '@/lib/queries';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
 
@@ -20,12 +22,18 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
   const qc = useQueryClient();
   const [cancelOpen, setCancelOpen] = React.useState(false);
   const [reason, setReason] = React.useState('');
+  // Zaklat bo'lsa: to'liq qaytarildi / qisman (qolgani ushlab qolinadi) / qaytarilmadi
+  const [refundMode, setRefundMode] = React.useState<RefundMode>('full');
+  const [refundAmount, setRefundAmount] = React.useState('');
+  const [refundMethod, setRefundMethod] = React.useState<PaymentMethod>('CASH');
+  const paid = order.paidAmount ?? 0;
   // Shart bajarilmagan o'tish: direktor sabab yozib istisno qila oladi
   const [blocked, setBlocked] = React.useState<{ status: OrderStatus; unmet: string[] } | null>(null);
   const [override, setOverride] = React.useState('');
 
   const change = useMutation({
-    mutationFn: ({ status, comment }: { status: OrderStatus; comment?: string }) => ordersApi.changeStatus(order.id, status, comment),
+    mutationFn: ({ status, comment, refund }: { status: OrderStatus; comment?: string; refund?: RefundInput }) =>
+      ordersApi.changeStatus(order.id, status, comment, refund),
     onSuccess: (_, v) => {
       toast.success(`Status: ${STATUS_LABELS[v.status]}`);
       setCancelOpen(false);
@@ -84,7 +92,7 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
           </Button>
         ))}
         {canAct && order.allowedNextStatuses.includes('BEKOR_QILINDI') && (
-          <Button variant="ghost" className="text-red-600" onClick={() => setCancelOpen(true)}>Bekor qilish</Button>
+          <Button variant="ghost" className="text-red-600" onClick={() => { setRefundMode('full'); setRefundAmount(String(paid)); setCancelOpen(true); }}>Bekor qilish</Button>
         )}
       </div>
 
@@ -95,13 +103,48 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
         footer={(
           <>
             <Button variant="outline" onClick={() => setCancelOpen(false)}>Yo'q</Button>
-            <Button variant="danger" isLoading={change.isPending} onClick={() => change.mutate({ status: 'BEKOR_QILINDI', comment: reason || undefined })}>
+            <Button
+              variant="danger"
+              isLoading={change.isPending}
+              onClick={() => {
+                const refund = buildRefund(paid, refundMode, refundAmount, refundMethod);
+                if (refund === 'invalid') { toast.error(new Error(`Qaytariladigan summani 1 dan ${formatCurrency(paid)} gacha kiriting`)); return; }
+                change.mutate({ status: 'BEKOR_QILINDI', comment: reason.trim() || undefined, refund });
+              }}
+            >
               Bekor qilish
             </Button>
           </>
         )}
       >
         <p className="mb-4 text-sm text-gray-600">Ochiq ishlab chiqarish vazifalari o'chiriladi. Bu amalni qaytarib bo'lmaydi.</p>
+        {paid > 0 && (
+          <div className="mb-4 space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-900">Mijoz {formatCurrency(paid)} zaklat bergan. Pul qaytarildimi?</p>
+            <div className="flex flex-wrap gap-2">
+              {REFUND_MODES.map(([mode, label]) => (
+                <Button key={mode} type="button" size="sm" variant={refundMode === mode ? 'primary' : 'outline'} onClick={() => setRefundMode(mode)}>
+                  {label}
+                </Button>
+              ))}
+            </div>
+            {refundMode !== 'none' && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  label="Qaytarilgan summa" money inputMode="numeric"
+                  value={refundMode === 'full' ? String(paid) : refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                  disabled={refundMode === 'full'}
+                />
+                <Select label="Qanday qaytarildi" value={refundMethod} onChange={(e) => setRefundMethod(e.target.value as PaymentMethod)} options={options(METHOD_LABELS)} />
+              </div>
+            )}
+            {refundMode === 'partial' && (parseMoney(refundAmount) ?? 0) < paid && (
+              <p className="text-xs text-amber-800">Ushlab qolinadi: {formatCurrency(paid - (parseMoney(refundAmount) ?? 0))} — daromad bo'lib qoladi</p>
+            )}
+            {refundMode === 'none' && <p className="text-xs text-amber-800">Zaklat ushlab qolinadi. Keyin qaytarilsa — "To'lovlar" bo'limidagi "Pul qaytarish" tugmasi bilan kiritiladi.</p>}
+          </div>
+        )}
         <Textarea label="Sabab" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
       </Modal>
 
@@ -129,4 +172,20 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
       </Modal>
     </Card>
   );
+}
+
+type RefundMode = 'full' | 'partial' | 'none';
+
+const REFUND_MODES: ReadonlyArray<readonly [RefundMode, string]> = [
+  ['full', 'To\'liq qaytarildi'],
+  ['partial', 'Qisman qaytarildi'],
+  ['none', 'Qaytarilmadi'],
+];
+
+/** Bekor qilishdagi qaytarish: undefined — qaytarilmadi, 'invalid' — summa noto'g'ri */
+function buildRefund(paid: number, mode: RefundMode, amount: string, method: PaymentMethod): RefundInput | undefined | 'invalid' {
+  if (paid <= 0 || mode === 'none') return undefined;
+  const sum = mode === 'full' ? paid : parseMoney(amount) ?? 0;
+  if (sum <= 0 || sum > paid) return 'invalid';
+  return { amount: sum, method };
 }

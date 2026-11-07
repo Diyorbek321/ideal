@@ -97,9 +97,14 @@ export function OrderFormModal({
     if (items === null && (prices || pricesFailed)) setItems(start!.map((i) => toDraft(i, prices ?? [])));
   }, [items, prices, pricesFailed, start]);
   const [deadline, setDeadline] = React.useState(isoToInput(order?.deadline));
-  const [needsDesign, setNeedsDesign] = React.useState(order?.needsDesign ?? initialNeedsDesign);
+  const [needsDesignChoice, setNeedsDesign] = React.useState(order?.needsDesign ?? initialNeedsDesign);
+  // Faqat o'rnatish: mahsulot bizda chiqarilmaydi — dizayn va ishlab chiqarishsiz, summa = montaj narxi
+  const [installationOnly, setInstallationOnly] = React.useState(order?.installationOnly ?? false);
+  const canToggleInstallOnly = !order || order.status === 'YANGI' || order.status === 'NARX_HISOBLANDI';
   const [designerId, setDesignerId] = React.useState(order?.designerId ?? '');
-  const [needsInstallation, setNeedsInstallation] = React.useState(order?.needsInstallation ?? initialNeedsInstallation);
+  const [needsInstallationChoice, setNeedsInstallation] = React.useState(order?.needsInstallation ?? initialNeedsInstallation);
+  const needsDesign = !installationOnly && needsDesignChoice;
+  const needsInstallation = installationOnly || needsInstallationChoice;
   // undefined — hali tanlanmagan: eng arzon montaj narxi olinadi; '' — narxsiz; MANUAL — summa qo'lda
   const [installChoice, setInstallChoice] = React.useState<string | undefined>(order?.installationPrice ? MANUAL_INSTALL : undefined);
   const [installAmount, setInstallAmount] = React.useState(order?.installationPrice ? String(order.installationPrice) : '');
@@ -118,10 +123,11 @@ export function OrderFormModal({
   const services = activeOfKind(catalog, 'FINISHING');
   // Standart — eng arzon montaj (o'rnatish belgilansa narxsiz qolib ketmasin)
   const installPrices = [...activeOfKind(catalog, 'INSTALLATION')].sort((a, b) => a.price - b.price);
-  const manualInstall = needsInstallation && installChoice === MANUAL_INSTALL;
+  // Faqat o'rnatishda mahsulot yo'q — katalog montaji biror mahsulotga qo'shilolmaydi, summa qo'lda
+  const manualInstall = needsInstallation && (installationOnly || installChoice === MANUAL_INSTALL);
   const installationCode = needsInstallation && !manualInstall ? installChoice ?? installPrices[0]?.code ?? '' : '';
   const installationPrice = manualInstall ? parseMoney(installAmount) ?? 0 : 0;
-  const list = items ?? [];
+  const list = installationOnly ? [] : items ?? [];
 
   const patchItem = (idx: number, patch: Partial<ItemDraft>) =>
     setItems((l) => (l ?? []).map((it, i) => (i === idx ? { ...it, ...patch } : it)));
@@ -203,6 +209,7 @@ export function OrderFormModal({
       needsDesign,
       designerId: needsDesign && designerId ? designerId : null,
       needsInstallation,
+      installationOnly,
       installationAddress: needsInstallation ? address.trim() : null,
       notes: notes.trim() || null,
   });
@@ -258,6 +265,16 @@ export function OrderFormModal({
           <Select label="Manba" value={source} onChange={(e) => setSource(e.target.value as OrderSource)} options={options(SOURCE_LABELS)} />
         </div>
 
+        <label className={`flex items-start gap-2 rounded-xl border p-3 text-sm ${installationOnly ? 'border-brand-200 bg-brand-50' : 'border-gray-100'}`}>
+          <input type="checkbox" className="mt-0.5" checked={installationOnly} disabled={!canToggleInstallOnly}
+            onChange={(e) => setInstallationOnly(e.target.checked)} />
+          <span>
+            <span className="font-medium text-gray-900">Faqat o'rnatish</span>
+            <span className="block text-xs text-gray-500">Mahsulot bizda chiqarilmaydi (mijozniki yoki tayyor) — dizayn va ishlab chiqarishsiz to'g'ridan-to'g'ri o'rnatishga ketadi</span>
+          </span>
+        </label>
+
+        {!installationOnly && (
         <div className="space-y-3">
           <p className="text-sm font-semibold text-gray-900">Mahsulotlar</p>
           <datalist id="product-types">{productTypes?.filter((p) => p.isActive).map((p) => <option key={p.id} value={p.name} />)}</datalist>
@@ -334,6 +351,7 @@ export function OrderFormModal({
             <Plus className="h-4 w-4" /> Yana mahsulot
           </Button>
         </div>
+        )}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Input label="Topshirish muddati *" type="date" min={toDateInput(new Date())} value={deadline} onChange={(e) => setDeadline(e.target.value)} error={errors.deadline} />
@@ -344,7 +362,7 @@ export function OrderFormModal({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-3 rounded-xl border border-gray-100 p-3">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <input type="checkbox" checked={needsDesign} onChange={(e) => setNeedsDesign(e.target.checked)} /> Dizayn kerak
+              <input type="checkbox" checked={needsDesign} disabled={installationOnly} onChange={(e) => setNeedsDesign(e.target.checked)} /> Dizayn kerak
             </label>
             {needsDesign && (
               <Select
@@ -358,12 +376,12 @@ export function OrderFormModal({
           </div>
           <div className="space-y-3 rounded-xl border border-gray-100 p-3">
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <input type="checkbox" checked={needsInstallation} onChange={(e) => setNeedsInstallation(e.target.checked)} /> O'rnatish kerak
+              <input type="checkbox" checked={needsInstallation} disabled={installationOnly} onChange={(e) => setNeedsInstallation(e.target.checked)} /> O'rnatish kerak
             </label>
             {needsInstallation && (
               <>
                 <Input label="Manzil" value={address} onChange={(e) => setAddress(e.target.value)} error={errors.address} />
-                <Select
+                {!installationOnly && <Select
                   label="Montaj narxi"
                   value={manualInstall ? MANUAL_INSTALL : installationCode}
                   onChange={(e) => setInstallChoice(e.target.value)}
@@ -372,9 +390,9 @@ export function OrderFormModal({
                     ...installPrices.map((p) => ({ value: p.code, label: `${p.name} — ${formatCurrency(p.price)}/${PRICE_UNIT_LABELS[p.unit]}` })),
                     { value: MANUAL_INSTALL, label: 'Qo\'lda kiritish' },
                   ]}
-                />
+                />}
                 {manualInstall && (
-                  <Input label="Montaj summasi (so'm)" money value={installAmount} onChange={(e) => setInstallAmount(e.target.value)} error={errors.installAmount} autoFocus />
+                  <Input label="Montaj summasi (so'm)" money value={installAmount} onChange={(e) => setInstallAmount(e.target.value)} error={errors.installAmount} autoFocus={!installationOnly} />
                 )}
                 {installLost && (
                   <p className="text-xs text-amber-700">Montaj narxi qo'shilmadi: mahsulotlar narxi qo'lda. Uni dona narxiga qo'shing yoki "Avtomatik narx"ni bosing</p>
