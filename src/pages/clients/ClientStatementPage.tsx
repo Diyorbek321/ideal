@@ -17,6 +17,8 @@ export default function ClientStatementPage() {
 
   if (isLoading) return <Loading rows={8} />;
   if (error || !st) return <ErrorState error={error} onRetry={refetch} />;
+  // Oldindan to'lov bo'lgan mijozda balans bo'limi qo'shiladi va yakun balans bilan hisoblanadi
+  const hasBalance = st.balance.entries.length > 0;
 
   return (
     <div className="space-y-6">
@@ -88,13 +90,18 @@ export default function ClientStatementPage() {
           ) : <p className="text-gray-500">Ishlar yo'q</p>}
         </Section>
 
-        <Section title="4. Qolgan summa">
-          <div className="flex items-center justify-between rounded-lg border-2 border-black p-4 text-base">
-            <span>{st.totals.remaining > 0 ? 'Mijozning qarzi' : st.totals.remaining < 0 ? 'Mijozning haqi (ortiqcha to\'lov)' : 'Hisob-kitob yopilgan'}</span>
-            <span className="text-xl font-black">{formatCurrency(Math.abs(st.totals.remaining))}</span>
-          </div>
+        {hasBalance && (
+          <Section title="4. Oldindan to'lov (balans)">
+            <BalanceTable statement={st} />
+          </Section>
+        )}
+
+        <Section title={hasBalance ? '5. Qolgan summa' : '4. Qolgan summa'}>
+          <ResultBox amount={hasBalance ? st.totals.net : st.totals.remaining} />
           <p className="mt-2 text-xs text-gray-500">
-            Jami ishlar {formatCurrency(st.totals.works)} − jami to'langan {formatCurrency(st.totals.paid)} = {formatCurrency(st.totals.remaining)}
+            Jami ishlar {formatCurrency(st.totals.works)} − jami to'langan {formatCurrency(st.totals.paid)}
+            {hasBalance && <> − balansda {formatCurrency(st.totals.balance)}</>}
+            {' '}= {formatCurrency(hasBalance ? st.totals.net : st.totals.remaining)}
           </p>
         </Section>
 
@@ -104,6 +111,37 @@ export default function ClientStatementPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ResultBox({ amount }: { amount: number }) {
+  const label = amount > 0 ? 'Mijozning qarzi' : amount < 0 ? 'Mijozning haqi (oldindan to\'lov qoldig\'i)' : 'Hisob-kitob yopilgan';
+  return (
+    <div className="flex items-center justify-between rounded-lg border-2 border-black p-4 text-base">
+      <span>{label}</span>
+      <span className="text-xl font-black">{formatCurrency(Math.abs(amount))}</span>
+    </div>
+  );
+}
+
+function BalanceTable({ statement: st }: { statement: ClientStatement }) {
+  return (
+    <table className="w-full border-collapse">
+      <thead><tr className="border-b border-black text-left"><Th>Sana va vaqt</Th><Th>Harakat</Th><Th right>Summa</Th></tr></thead>
+      <tbody>
+        {st.balance.entries.map((e) => (
+          <tr key={e.id} className="border-b border-gray-200">
+            <Td>{formatDateTime(e.date)}</Td>
+            <Td>
+              {e.kind === 'BALANCE_USE' && e.orderNumber ? `№${e.orderNumber} buyurtmaga yechildi` : `${KIND_LABELS[e.kind]} · ${METHOD_LABELS[e.method]}`}
+              {e.note && e.kind !== 'BALANCE_USE' ? ` — ${e.note}` : ''}
+            </Td>
+            <Td right className={e.amount < 0 ? 'text-red-600' : ''}>{e.amount < 0 ? `− ${formatCurrency(-e.amount)}` : formatCurrency(e.amount)}</Td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot><tr className="font-bold"><Td colSpan={2}>Balansda qoldi</Td><Td right>{formatCurrency(st.totals.balance)}</Td></tr></tfoot>
+    </table>
   );
 }
 

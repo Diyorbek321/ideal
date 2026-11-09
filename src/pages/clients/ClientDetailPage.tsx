@@ -7,6 +7,7 @@ import { CLIENT_TYPE_LABELS, KIND_LABELS, METHOD_LABELS, SOURCE_LABELS } from '@
 import { formatCurrency, formatDate, formatPhone } from '@/lib/utils';
 import { useUser } from '@/lib/auth';
 import { ClientFormModal } from '@/components/clients/ClientFormModal';
+import { ClientBalanceCard } from '@/components/clients/ClientBalanceCard';
 import { StatusBadge } from '@/components/orders/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -93,6 +94,7 @@ export default function ClientDetailPage() {
           </dl>
         </Card>
         <div className="space-y-6 lg:col-span-2">
+          <ClientBalanceCard clientId={c.id} />
           <Card title={`Buyurtmalar (${c.orders.length})`}>
             {c.orders.length ? (
               <table className="w-full text-left text-sm">

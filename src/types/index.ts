@@ -322,7 +322,24 @@ export interface StockMovement {
 }
 
 export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'TENDER';
-export type PaymentKind = 'ADVANCE' | 'PARTIAL' | 'FULL' | 'REFUND';
+export type PaymentKind = 'ADVANCE' | 'PARTIAL' | 'FULL' | 'REFUND' | 'DEPOSIT' | 'BALANCE_USE' | 'FROM_BALANCE';
+
+/** Mijoz balansi (oldindan to'lov) daftaridagi yozuv: + kirim, − buyurtmaga yechilgan yoki qaytarilgan */
+export interface BalanceEntry {
+  id: string;
+  date: string;
+  kind: PaymentKind;
+  amount: number;
+  method: PaymentMethod;
+  note: string | null;
+  orderNumber: string | null;
+  user: string;
+}
+
+export interface ClientBalanceLedger {
+  balance: number;
+  entries: BalanceEntry[];
+}
 
 /** Mijozga pul qaytarish (summa musbat yuboriladi, serverda manfiy saqlanadi) */
 export interface RefundInput {
@@ -335,7 +352,10 @@ export interface ClientStatement {
   client: { id: string; name: string; type: ClientType; inn: string | null; contactPerson: string | null; phones: string[]; address: string | null };
   works: Array<{ orderId: string; number: string; date: string; status: OrderStatus; description: string; amount: number; paid: number; cancelled: boolean }>;
   payments: Array<{ id: string; date: string; orderNumber: string | null; amount: number; method: PaymentMethod; kind: PaymentKind; note: string | null }>;
-  totals: { works: number; paid: number; remaining: number };
+  /** Oldindan to'lov daftari (eng eskisi yuqorida) */
+  balance: { amount: number; entries: BalanceEntry[] };
+  /** net = qarz − balans: musbat — mijoz qarzi, manfiy — bizda mijozning puli bor */
+  totals: { works: number; paid: number; remaining: number; balance: number; net: number };
   generatedAt: string;
 }
 
@@ -348,6 +368,7 @@ export interface Payment {
   method: PaymentMethod;
   kind: PaymentKind;
   note: string | null;
+  transferId?: string | null;
   createdAt: string;
   order?: { id: string; number: string } | null;
   campaign?: { id: string; number: string; title: string } | null;
@@ -365,6 +386,8 @@ export interface Debt {
   totalAmount: number;
   paidAmount: number;
   remaining: number;
+  /** Mijozning oldindan to'lov balansi — qarz shundan yopilishi mumkin */
+  clientBalance: number;
   dueDate: string | null;
   daysOverdue: number;
   createdAt: string;

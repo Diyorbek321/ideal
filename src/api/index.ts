@@ -1,5 +1,5 @@
 import type {
-  ClientStatement,
+  ClientStatement, ClientBalanceLedger,
   RefundInput,
   RequestStatus, StaffRequest, StaffRequestInput,
   Client, ClientDetail, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
@@ -241,6 +241,11 @@ export const paymentsApi = {
   update: (id: string, body: { amount?: number; method?: PaymentMethod; note?: string | null }) => api.patch<Payment>(`/payments/${id}`, body),
   remove: (id: string) => api.del(`/payments/${id}`),
   refund: (orderId: string, body: RefundInput) => api.post<Payment>('/payments/refund', { orderId, ...body }),
+  // Mijoz balansi (oldindan to'lov)
+  balance: (clientId: string) => api.get<ClientBalanceLedger>(`/payments/balance/${clientId}`),
+  deposit: (clientId: string, body: RefundInput) => api.post<Payment>('/payments/deposit', { clientId, ...body }),
+  fromBalance: (orderId: string, amount: number) => api.post<Payment>('/payments/from-balance', { orderId, amount }),
+  balanceRefund: (clientId: string, body: RefundInput) => api.post<Payment>('/payments/balance-refund', { clientId, ...body }),
   debts: () => api.get<{ items: Debt[]; total: number }>('/payments/debts'),
   remind: (orderId: string) =>
     api.post<{ message: string; phones: string[]; telegram: string | null; smsStatus: string | null; smsError: string | null }>(`/payments/debts/${orderId}/remind`),

@@ -4,7 +4,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import { Banknote, CreditCard, DollarSign, FileSpreadsheet, Landmark, Plus, Trash2, TrendingDown } from 'lucide-react';
 import { expensesApi, paymentsApi, reportsApi } from '@/api';
 import type { PaymentMethod } from '@/types';
-import { CLIENT_TYPE_LABELS, METHOD_LABELS } from '@/lib/labels';
+import { CLIENT_TYPE_LABELS, KIND_LABELS, METHOD_LABELS } from '@/lib/labels';
 import { useUser } from '@/lib/auth';
 import { cn, copyText, formatCurrency, formatDate, telegramShareUrl } from '@/lib/utils';
 import { AccountingExportModal } from '@/components/finance/AccountingExportModal';
@@ -126,10 +126,10 @@ export default function FinancePage() {
           {recent.data?.data.items.length ? (
             <div className="space-y-3">
               {recent.data.data.items.map((p) => (
-                <Link key={p.id} to={p.orderId ? `/orders/${p.orderId}` : `/ad-screens?tab=campaigns&open=${p.campaignId}`} className="flex items-center justify-between rounded-xl border border-gray-50 p-3 hover:bg-gray-50">
+                <Link key={p.id} to={p.orderId ? `/orders/${p.orderId}` : p.campaignId ? `/ad-screens?tab=campaigns&open=${p.campaignId}` : `/clients/${p.clientId}`} className="flex items-center justify-between rounded-xl border border-gray-50 p-3 hover:bg-gray-50">
                   <div>
                     <p className={p.amount < 0 ? "text-sm font-bold text-red-600" : "text-sm font-bold text-gray-900"}>{formatCurrency(p.amount)}</p>
-                    <p className="text-[11px] text-gray-500">{p.client?.name} · {p.order?.number ?? p.campaign?.number}</p>
+                    <p className="text-[11px] text-gray-500">{p.client?.name} · {p.order?.number ?? p.campaign?.number ?? KIND_LABELS[p.kind]}</p>
                   </div>
                   <span className="text-[11px] uppercase text-gray-400">{METHOD_LABELS[p.method]}<br />{formatDate(p.createdAt)}</span>
                 </Link>
@@ -162,9 +162,12 @@ export default function FinancePage() {
                       {d.dueDate ? formatDate(d.dueDate) : '—'}{d.daysOverdue > 0 && <span className="block text-xs">{d.daysOverdue} kun o'tdi</span>}
                     </td>
                     <td className="px-4 py-3">{formatCurrency(d.totalAmount)}</td>
-                    <td className="px-4 py-3 font-black text-red-600">{formatCurrency(d.remaining)}</td>
+                    <td className="px-4 py-3 font-black text-red-600">
+                      {formatCurrency(d.remaining)}
+                      {d.clientBalance > 0 && <span className="block text-xs font-medium text-sky-700">Balansda: {formatCurrency(d.clientBalance)}</span>}
+                    </td>
                     <td className="px-4 py-3 text-right">
-                      {d.orderId && <Button variant="outline" size="sm" isLoading={remind.isPending && remind.variables === d.orderId} onClick={() => remind.mutate(d.orderId!)}>Eslatma</Button>}
+                      {d.orderId && <Button variant="outline" size="sm" isLoading={remind.isPending && remind.variables === d.orderId} onClick={() => (d.clientBalance <= 0 || window.confirm(`Mijoz balansida ${formatCurrency(d.clientBalance)} bor — avval buyurtmani balansdan yopish mumkin. Baribir eslatma yuborilsinmi?`)) && remind.mutate(d.orderId!)}>Eslatma</Button>}
                     </td>
                   </tr>
                 ))}

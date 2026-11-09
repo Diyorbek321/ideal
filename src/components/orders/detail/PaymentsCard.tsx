@@ -1,6 +1,6 @@
 import React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Plus, Trash2, Undo2 } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Pencil, Plus, Trash2, Undo2, Wallet } from 'lucide-react';
 import { paymentsApi } from '@/api';
 import type { OrderDetail, Payment, PaymentMethod } from '@/types';
 import { KIND_LABELS, METHOD_LABELS, options } from '@/lib/labels';
@@ -26,6 +26,13 @@ export function PaymentsCard({ order }: { order: OrderDetail }) {
   const [note, setNote] = React.useState('');
   // Mijozga pul qaytarish oynasi (bekor qilingan yoki ortiqcha to'langan buyurtma)
   const [refunding, setRefunding] = React.useState(false);
+  // Mijozning oldindan to'lagan pulidan (balansidan) buyurtmani yopish
+  const [fromBalance, setFromBalance] = React.useState(false);
+  const { data: ledger } = useQuery({
+    queryKey: ['client-balance', order.clientId],
+    queryFn: () => paymentsApi.balance(order.clientId),
+  });
+  const clientBalance = ledger?.balance ?? 0;
   const remaining = order.remainingAmount ?? 0;
   const paid = order.paidAmount ?? 0;
 
@@ -36,6 +43,7 @@ export function PaymentsCard({ order }: { order: OrderDetail }) {
     mutationFn: () => {
       const sum = parseMoney(amount);
       if (!sum) return Promise.reject(new Error('Summani raqam bilan kiriting'));
+      if (fromBalance) return paymentsApi.fromBalance(order.id, sum);
       if (refunding) return paymentsApi.refund(order.id, { amount: sum, method, note: note.trim() || undefined });
       if (editing) {
         return paymentsApi.update(editing.id, { ...(sum !== editing.amount && { amount: sum }), method, note: note.trim() || null });
@@ -43,7 +51,7 @@ export function PaymentsCard({ order }: { order: OrderDetail }) {
       return paymentsApi.create({ orderId: order.id, amount: sum, method, note: note || undefined });
     },
     onSuccess: () => {
-      toast.success(refunding ? 'Pul qaytarildi' : editing ? 'To\'lov tuzatildi' : 'To\'lov qabul qilindi');
+      toast.success(fromBalance ? 'Balansdan to\'landi' : refunding ? 'Pul qaytarildi' : editing ? 'To\'lov tuzatildi' : 'To\'lov qabul qilindi');
       setOpen(false);
       refresh();
     },
@@ -55,12 +63,17 @@ export function PaymentsCard({ order }: { order: OrderDetail }) {
     onError: toast.error,
   });
 
-  const openModal = () => { setRefunding(false); setEditing(null); setAmount(String(remaining)); setMethod('CASH'); setNote(''); setOpen(true); };
-  const openEdit = (p: Payment) => { setRefunding(false); setEditing(p); setAmount(String(p.amount)); setMethod(p.method); setNote(p.note ?? ''); setOpen(true); };
-  const openRefund = () => { setRefunding(true); setEditing(null); setAmount(String(paid)); setMethod('CASH'); setNote(''); setOpen(true); };
-  // Tahrirda shu to'lovning o'zi ham qoldiqqa qaytadi; qaytarishda — to'langan summagacha
-  const maxAmount = refunding ? paid : remaining + (editing?.amount ?? 0);
+  const openModal = () => { setFromBalance(false); setRefunding(false); setEditing(null); setAmount(String(remaining)); setMethod('CASH'); setNote(''); setOpen(true); };
+  const openEdit = (p: Payment) => { setFromBalance(false); setRefunding(false); setEditing(p); setAmount(String(p.amount)); setMethod(p.method); setNote(p.note ?? ''); setOpen(true); };
+  const openRefund = () => { setFromBalance(false); setRefunding(true); setEditing(null); setAmount(String(paid)); setMethod('CASH'); setNote(''); setOpen(true); };
+  const openFromBalance = () => {
+    setFromBalance(true); setRefunding(false); setEditing(null);
+    setAmount(String(Math.min(remaining, clientBalance))); setNote(''); setOpen(true);
+  };
   const canPay = remaining > 0 && order.status !== 'BEKOR_QILINDI';
+  // Tahrirda shu to'lovning o'zi ham qoldiqqa qaytadi; qaytarishda — to'langan summagacha; balansdan — qaysi biri kam bo'lsa
+  const maxAmount = fromBalance ? Math.min(remaining, clientBalance) : refunding ? paid : remaining + (editing?.amount ?? 0);
+  const canPayFromBalance = canPay && clientBalance > 0;
 
   return (
     <Card
@@ -70,6 +83,11 @@ export function PaymentsCard({ order }: { order: OrderDetail }) {
           {paid > 0 && (
             <Button size="sm" variant={order.status === 'BEKOR_QILINDI' ? 'primary' : 'ghost'} onClick={openRefund}>
               <Undo2 className="h-4 w-4" />Pul qaytarish
+            </Button>
+          )}
+          {canPayFromBalance && (
+            <Button size="sm" variant="outline" onClick={openFromBalance}>
+              <Wallet className="h-4 w-4" />Balansdan ({formatCurrency(clientBalance)})
             </Button>
           )}
           {canPay && <Button size="sm" onClick={openModal}><Plus className="h-4 w-4" />To'lov</Button>}
@@ -93,14 +111,14 @@ export function PaymentsCard({ order }: { order: OrderDetail }) {
                 <p className="text-xs text-gray-400">{formatDateTime(p.createdAt)} · {p.user?.fullName}{p.note && ` · ${p.note}`}</p>
               </div>
               <div className="flex items-center gap-3">
-                {p.kind !== 'REFUND' && (
+                {p.kind !== 'REFUND' && !p.transferId && (
                   <button onClick={() => openEdit(p)} className="text-gray-300 hover:text-gray-700" aria-label="To'lovni tahrirlash">
                     <Pencil className="h-4 w-4" />
                   </button>
                 )}
                 {isAdmin && (
                   <button
-                    onClick={() => window.confirm(p.kind === 'REFUND' ? 'Pul qaytarish yozuvini o\'chirasizmi?' : 'To\'lovni bekor qilasizmi?') && remove.mutate(p.id)}
+                    onClick={() => window.confirm(confirmText(p)) && remove.mutate(p.id)}
                     className="text-gray-300 hover:text-red-600"
                     aria-label="To'lovni bekor qilish"
                   >
@@ -116,15 +134,21 @@ export function PaymentsCard({ order }: { order: OrderDetail }) {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={refunding ? 'Mijozga pul qaytarish' : editing ? 'To\'lovni tuzatish' : 'To\'lov qabul qilish'}
+        title={fromBalance ? 'Balansdan to\'lash' : refunding ? 'Mijozga pul qaytarish' : editing ? 'To\'lovni tuzatish' : 'To\'lov qabul qilish'}
         footer={(
           <>
             <Button variant="outline" onClick={() => setOpen(false)}>Bekor qilish</Button>
-            <Button isLoading={create.isPending} onClick={() => create.mutate()}>{refunding ? 'Qaytarish' : editing ? 'Saqlash' : 'Qabul qilish'}</Button>
+            <Button isLoading={create.isPending} onClick={() => create.mutate()}>{fromBalance ? 'Balansdan to\'lash' : refunding ? 'Qaytarish' : editing ? 'Saqlash' : 'Qabul qilish'}</Button>
           </>
         )}
       >
         <div className="space-y-4">
+          {fromBalance && (
+            <p className="text-sm text-gray-600">
+              Mijoz balansida <b>{formatCurrency(clientBalance)}</b> bor. Kassaga yangi pul tushmaydi — summa oldindan to'langan puldan buyurtmaga o'tadi.
+              {clientBalance < remaining && ' Balans yetmaydi: qolgani qarz bo\'lib turadi.'}
+            </p>
+          )}
           {refunding && <p className="text-sm text-gray-600">Asl to'lov o'chmaydi — tarixda alohida "Qaytarildi" yozuvi paydo bo'ladi va kassadan ayiriladi.</p>}
           <Input
             label={`Summa (ko'pi bilan: ${formatCurrency(maxAmount)})`} money
@@ -135,10 +159,15 @@ export function PaymentsCard({ order }: { order: OrderDetail }) {
             disabled={!!editing && !isAdmin}
             autoFocus
           />
-          <Select label={refunding ? 'Qanday qaytarildi' : 'To\'lov usuli'} value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} options={options(METHOD_LABELS)} />
-          <Input label={refunding ? 'Sabab (masalan: mijoz buyurtmani bekor qildi)' : 'Izoh'} value={note} onChange={(e) => setNote(e.target.value)} />
+          {!fromBalance && <Select label={refunding ? 'Qanday qaytarildi' : 'To\'lov usuli'} value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} options={options(METHOD_LABELS)} />}
+          {!fromBalance && <Input label={refunding ? 'Sabab (masalan: mijoz buyurtmani bekor qildi)' : 'Izoh'} value={note} onChange={(e) => setNote(e.target.value)} />}
         </div>
       </Modal>
     </Card>
   );
+}
+
+function confirmText(p: Payment): string {
+  if (p.transferId) return 'Balansdan to\'lovni bekor qilasizmi? Pul mijoz balansiga qaytadi.';
+  return p.kind === 'REFUND' ? 'Pul qaytarish yozuvini o\'chirasizmi?' : 'To\'lovni bekor qilasizmi?';
 }
