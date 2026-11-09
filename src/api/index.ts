@@ -384,7 +384,7 @@ export const analyticsApi = {
 };
 
 export const attendanceApi = {
-  today: () => api.get<{ record: AttendanceRecord | null; workStartTime: string; workEndTime: string; geofence: boolean; selfieRequired: boolean; unmarkedPenalty: number }>('/attendance/me/today'),
+  today: () => api.get<{ record: AttendanceRecord | null; workStartTime: string; workEndTime: string; geofence: boolean; leavePlaces: string[]; selfieRequired: boolean; unmarkedPenalty: number }>('/attendance/me/today'),
   checkIn: (body: { lat?: number; lng?: number; selfieUrl?: string } = {}) => api.post<AttendanceRecord>('/attendance/check-in', body),
   checkOut: (body: { lat?: number; lng?: number } = {}) => api.post<AttendanceRecord>('/attendance/check-out', body),
   requestOvertime: (body: { until: string; reason: string }) => api.post<AttendanceRecord>('/attendance/overtime', body),

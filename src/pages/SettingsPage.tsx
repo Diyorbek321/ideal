@@ -7,6 +7,7 @@ import type { CompanySettings, OrderStatus, PriceKind, PriceListItem, PriceUnit 
 import { PRICE_KIND_LABELS, PRICE_UNIT_LABELS, STATUS_LABELS, options } from '@/lib/labels';
 import { cn, formatCurrency, parseDecimal, parseMoney } from '@/lib/utils';
 import { AttendanceSettings } from '@/components/settings/AttendanceSettings';
+import { LeavePlacesSettings } from '@/components/settings/LeavePlacesSettings';
 import { TelegramSettings } from '@/components/settings/TelegramSettings';
 import { OrderRulesSettings } from '@/components/settings/OrderRulesSettings';
 import { Button } from '@/components/ui/Button';
@@ -263,7 +264,7 @@ export default function SettingsPage() {
         </div>
         <div className="md:col-span-3">
           {error ? <ErrorState error={error} onRetry={refetch} /> : isLoading || !data ? <Loading /> : (
-            tab === 'company' ? <CompanyTab s={data} /> : tab === 'sla' ? <SlaTab s={data} /> : tab === 'rules' ? <OrderRulesSettings s={data} /> : tab === 'kpi' ? <KpiTab s={data} /> : tab === 'attendance' ? <AttendanceSettings s={data} /> : tab === 'telegram' ? <TelegramSettings s={data} /> : <PricesTab />
+            tab === 'company' ? <CompanyTab s={data} /> : tab === 'sla' ? <SlaTab s={data} /> : tab === 'rules' ? <OrderRulesSettings s={data} /> : tab === 'kpi' ? <KpiTab s={data} /> : tab === 'attendance' ? <div className="space-y-6"><AttendanceSettings s={data} /><LeavePlacesSettings s={data} /></div> : tab === 'telegram' ? <TelegramSettings s={data} /> : <PricesTab />
           )}
         </div>
       </div>

@@ -115,7 +115,7 @@ export function CheckInBar() {
             <Button variant="ghost" size="sm" onClick={() => setOt({ until: '20:00', reason: '' })}><Clock className="h-4 w-4" />Qolib ishlayman</Button>
           )}
           <Button variant="ghost" size="sm" isLoading={checkOut.isPending}
-            onClick={() => window.confirm(`Ish kunini yakunlaysizmi?${data.geofence ? ' (ofisda yoki bugun o\'rnatishni tugatgan joyda)' : ''}`) && checkOut.mutate()}>
+            onClick={() => window.confirm(`Ish kunini yakunlaysizmi?${data.geofence ? ` (${['ofisda', ...data.leavePlaces.map((p) => `«${p}»da`)].join(', ')} yoki bugun o'rnatishni tugatgan joyda)` : ''}`) && checkOut.mutate()}>
             <LogOut className="h-4 w-4" />Ketdim
           </Button>
         </span>

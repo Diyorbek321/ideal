@@ -566,6 +566,8 @@ export interface CompanySettings {
   officeLat: number | null;
   officeLng: number | null;
   officeRadiusM: number;
+  /** Ofisdan tashqari «Ketdim» bosiladigan joylar (sex, ombor, filial) */
+  leavePlaces: LeavePlace[];
   /** Check-in'da selfi so'rash ehtimoli, %: 0 — o'chiq, 100 — har kuni */
   selfiePercent: number;
   /** Ishlab chiqarishga o'tish uchun avans, %: 0 — tekshirilmaydi */
@@ -960,6 +962,8 @@ export interface AttendanceRecord {
   outInstallationId: string | null;
   /** Oylik jadvalda: o'sha o'rnatish buyurtmasi raqami */
   outOrderNumber?: string | null;
+  /** Qo'shimcha joydan ketgan bo'lsa — o'sha joy nomi */
+  outPlace: string | null;
   overtimeUntil: string | null;
   overtimeReason: string | null;
   overtimeStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
@@ -1093,4 +1097,11 @@ export interface AuditLogEntry {
   data: unknown;
   status: number;
   ip: string | null;
+}
+
+export interface LeavePlace {
+  name: string;
+  lat: number;
+  lng: number;
+  radiusM: number;
 }

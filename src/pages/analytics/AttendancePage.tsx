@@ -18,7 +18,7 @@ const dur = (m: number) => (m ? `${Math.floor(m / 60)} soat ${m % 60} daq` : '�
 
 function cellTitle(r: AttendanceRecord): string {
   const parts = [`Keldi ${hhmm(r.checkInAt)}`];
-  if (r.checkOutAt) parts.push(r.autoClosed ? '«Ketdim» bosilmagan — tizim yopdi' : `ketdi ${hhmm(r.checkOutAt)}${r.outInstallationId ? ` — obyektdan${r.outOrderNumber ? ` (${r.outOrderNumber})` : ''}` : ''}`);
+  if (r.checkOutAt) parts.push(r.autoClosed ? '«Ketdim» bosilmagan — tizim yopdi' : `ketdi ${hhmm(r.checkOutAt)}${r.outInstallationId ? ` — obyektdan${r.outOrderNumber ? ` (${r.outOrderNumber})` : ''}` : r.outPlace ? ` — ${r.outPlace}dan` : ''}`);
   if (r.lateMinutes) parts.push(`${r.lateMinutes} daq kech`);
   if (r.earlyLeaveMinutes) parts.push(`${r.earlyLeaveMinutes} daq erta ketdi`);
   if (r.overtimeMinutes) parts.push(`qo'shimcha ${r.overtimeMinutes} daq`);
