@@ -1,5 +1,5 @@
 import type {
-  ClientStatement, ClientBalanceLedger,
+  ClientStatement, ClientBalanceLedger, PrepaidClient,
   RefundInput,
   RequestStatus, StaffRequest, StaffRequestInput,
   Client, ClientDetail, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
@@ -248,7 +248,10 @@ export const paymentsApi = {
   refund: (orderId: string, body: RefundInput) => api.post<Payment>('/payments/refund', { orderId, ...body }),
   // Mijoz balansi (oldindan to'lov)
   balance: (clientId: string) => api.get<ClientBalanceLedger>(`/payments/balance/${clientId}`),
-  deposit: (clientId: string, body: RefundInput) => api.post<Payment>('/payments/deposit', { clientId, ...body }),
+  /** Perechisleniya: oldindan to'lov qilgan mijozlar */
+  prepaidClients: () => api.get<PrepaidClient[]>('/payments/balances'),
+  /** appliedToOrders — qarzi bor buyurtmalarga darhol avtomatik ayirilgan summa */
+  deposit: (clientId: string, body: RefundInput) => api.post<Payment & { appliedToOrders: number }>('/payments/deposit', { clientId, ...body }),
   fromBalance: (orderId: string, amount: number) => api.post<Payment>('/payments/from-balance', { orderId, amount }),
   balanceRefund: (clientId: string, body: RefundInput) => api.post<Payment>('/payments/balance-refund', { clientId, ...body }),
   debts: () => api.get<{ items: Debt[]; total: number }>('/payments/debts'),

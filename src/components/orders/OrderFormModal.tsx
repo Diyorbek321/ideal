@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, RotateCcw, Trash2 } from 'lucide-react';
-import { inventoryApi, ordersApi, settingsApi, usersApi, type OrderInput, type OrderItemInput } from '@/api';
+import { inventoryApi, ordersApi, paymentsApi, settingsApi, usersApi, type OrderInput, type OrderItemInput } from '@/api';
 import type { Client, OrderDetail, OrderSource, PriceLine, PriceListItem } from '@/types';
 import { PRICE_UNIT_LABELS, SOURCE_LABELS, options } from '@/lib/labels';
 import { toDateInput, formatCurrency, formatNumber, parseDecimal, parseMoney } from '@/lib/utils';
@@ -114,6 +114,13 @@ export function OrderFormModal({
   const [notes, setNotes] = React.useState(order?.notes ?? initialNotes);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
+  // Perechisleniya: mijozning oldindan to'lovi — buyurtma summasi shundan o'zi ayiriladi
+  const { data: clientLedger } = useQuery({
+    queryKey: ['client-balance', client?.id],
+    queryFn: () => paymentsApi.balance(client!.id),
+    enabled: open && !!client,
+  });
+  const clientBalance = clientLedger?.balance ?? 0;
   const { data: productTypes } = useQuery({ queryKey: ['product-types'], queryFn: settingsApi.productTypes, enabled: open });
   const { data: materials } = useQuery({ queryKey: ['materials'], queryFn: () => inventoryApi.materials(), enabled: open });
   const { data: designers } = useQuery({
@@ -266,7 +273,15 @@ export function OrderFormModal({
     >
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="md:col-span-2"><ClientPicker value={client} onChange={(c) => { setClient(c); if (c) setSource(c.source); }} error={errors.client} /></div>
+          <div className="md:col-span-2">
+            <ClientPicker value={client} onChange={(c) => { setClient(c); if (c) setSource(c.source); }} error={errors.client} />
+            {client && clientBalance > 0 && (
+              <p className="mt-1.5 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800">
+                Balansida <b>{formatCurrency(clientBalance)}</b> oldindan to'lov bor — {order ? 'qo\'shimcha summa' : 'buyurtma summasi'} shundan avtomatik ayiriladi
+                {!order && total > clientBalance && <>, qolgan <b>{formatCurrency(total - clientBalance)}</b> qarz bo'ladi</>}
+              </p>
+            )}
+          </div>
           <Select label="Manba" value={source} onChange={(e) => setSource(e.target.value as OrderSource)} options={options(SOURCE_LABELS)} />
         </div>
 

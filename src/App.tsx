@@ -33,6 +33,7 @@ import AdScreensPage from './pages/adscreens/AdScreensPage';
 import AuditPage from './pages/audit/AuditPage';
 import SmsPage from './pages/sms/SmsPage';
 import ProductTypesPage from './pages/products/ProductTypesPage';
+import PrepaidPage from './pages/prepaid/PrepaidPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,6 +81,7 @@ export default function App() {
                 <Route path="clients/:id/statement" element={<RequireRole roles={[...staff]}><ClientStatementPage /></RequireRole>} />
                 <Route path="product-types" element={<RequireRole roles={[...staff]}><ProductTypesPage /></RequireRole>} />
                 <Route path="inventory" element={<RequireRole roles={[...staff, 'PRINTER']}><InventoryPage /></RequireRole>} />
+                <Route path="prepaid" element={<RequireRole roles={[...staff]}><PrepaidPage /></RequireRole>} />
                 <Route path="finance" element={<RequireRole roles={[...staff]}><FinancePage /></RequireRole>} />
                 <Route path="analytics/clients" element={<RequireRole roles={[...staff]}><ClientsAnalyticsPage /></RequireRole>} />
                 <Route path="attendance" element={<RequireRole roles={[...staff]}><AttendancePage /></RequireRole>} />

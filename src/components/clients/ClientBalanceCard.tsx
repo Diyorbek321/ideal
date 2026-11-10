@@ -33,8 +33,8 @@ const MODE_TEXT: Record<Mode, { title: string; submit: string; success: string; 
 };
 
 /**
- * Mijoz balansi: tashkilot oldindan o'tkazgan pul. Buyurtmalar buyurtma sahifasidagi
- * "Balansdan" tugmasi bilan shu puldan yopiladi.
+ * Mijoz balansi: tashkilot oldindan o'tkazgan pul. Yangi buyurtma summasi shu puldan avtomatik ayiriladi,
+ * pul tushganda qarzi bor buyurtmalar eskisidan boshlab yopiladi.
  */
 export function ClientBalanceCard({ clientId }: { clientId: string }) {
   const user = useUser();
@@ -54,8 +54,11 @@ export function ClientBalanceCard({ clientId }: { clientId: string }) {
       const body = { amount: sum, method, note: note.trim() || undefined };
       return mode === 'refund' ? paymentsApi.balanceRefund(clientId, body) : paymentsApi.deposit(clientId, body);
     },
-    onSuccess: () => {
-      toast.success(MODE_TEXT[mode ?? 'deposit'].success);
+    onSuccess: (r) => {
+      const applied = 'appliedToOrders' in r ? Number(r.appliedToOrders) || 0 : 0;
+      toast.success(applied
+        ? `${MODE_TEXT.deposit.success}. Qarzi bor buyurtmalarga ${formatCurrency(applied)} avtomatik ayirildi`
+        : MODE_TEXT[mode ?? 'deposit'].success);
       setMode(null);
       invalidateOrderViews(qc);
     },
@@ -109,7 +112,7 @@ export function ClientBalanceCard({ clientId }: { clientId: string }) {
       >
         <div className="space-y-4">
           {mode === 'deposit' && (
-            <p className="text-sm text-gray-600">Pul bugungi kassaga tushum bo'lib yoziladi va mijoz balansida turadi. Buyurtmalar buyurtma sahifasidagi "Balansdan" tugmasi bilan yopiladi.</p>
+            <p className="text-sm text-gray-600">Pul bugungi kassaga tushum bo'lib yoziladi va mijoz balansida turadi. Qarzi bor buyurtmalar shu puldan darhol avtomatik yopiladi, yangi buyurtmalar ham o'zi ayiriladi.</p>
           )}
           <Input
             label={mode === 'refund' ? `Summa (ko'pi bilan: ${formatCurrency(balance)})` : 'Summa'}

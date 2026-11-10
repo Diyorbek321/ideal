@@ -1,5 +1,5 @@
 import {
-  AlarmClock, BarChart3, ClipboardList, History, Boxes, CalendarCheck, Calculator, DollarSign, FileText, Globe, LayoutDashboard, MessageSquare, MonitorPlay, Palette, Printer, Receipt, Settings, ShoppingBag,
+  AlarmClock, BarChart3, Landmark, ClipboardList, History, Boxes, CalendarCheck, Calculator, DollarSign, FileText, Globe, LayoutDashboard, MessageSquare, MonitorPlay, Palette, Printer, Receipt, Settings, ShoppingBag,
   Target, Truck, UserCheck, Users, Warehouse,
 } from 'lucide-react';
 import type { UserRole } from '@/types';
@@ -43,6 +43,7 @@ export const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
     items: [
       { path: '/kpi', label: 'KPI va bonus', short: 'KPI', icon: Target, roles: ['ADMIN', 'MANAGER', 'DESIGNER', 'PRINTER', 'INSTALLER'] },
       { path: '/requests', label: 'So\'rovlar', short: 'So\'rov', icon: ClipboardList, roles: ['ADMIN', 'MANAGER', 'DESIGNER', 'PRINTER', 'INSTALLER'], badge: 'requests' },
+      { path: '/prepaid', label: 'Perechisleniya', short: 'Perech.', icon: Landmark, roles: ['ADMIN', 'MANAGER'] },
       { path: '/finance', label: 'Moliya', short: 'Moliya', icon: DollarSign, roles: ['ADMIN', 'MANAGER'] },
       { path: '/expenses', label: 'Xarajatlar', short: 'Xarajat', icon: Receipt, roles: ['ADMIN', 'MANAGER'] },
       { path: '/employees', label: 'Xodimlar va oylik', short: 'Xodim', icon: UserCheck, roles: ['ADMIN'] },

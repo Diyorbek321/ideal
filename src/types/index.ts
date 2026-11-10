@@ -1107,3 +1107,16 @@ export interface LeavePlace {
   lng: number;
   radiusM: number;
 }
+
+/** Perechisleniya ro'yxati qatori */
+export interface PrepaidClient {
+  clientId: string;
+  name: string;
+  type: string;
+  phone: string | null;
+  deposited: number;
+  used: number;
+  refunded: number;
+  balance: number;
+  lastDepositAt: string | null;
+}
