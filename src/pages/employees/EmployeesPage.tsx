@@ -100,7 +100,7 @@ function EmployeeModal({ user, open, onClose }: { user?: User; open: boolean; on
     >
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2"><Input label="F.I.Sh." value={f.fullName} onChange={(e) => setF({ ...f, fullName: e.target.value })} /></div>
-        <Input label="Telefon (login)" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} inputMode="tel" />
+        <Input label="Telefon (login)" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} phone />
         <Select label="Lavozim" value={f.role} onChange={(e) => {
           const role = e.target.value as UserRole;
           setF({ ...f, role, extraRoles: f.extraRoles.filter((r) => r !== role), payType: role === 'DESIGNER' ? 'PER_M2' : 'FIXED' });

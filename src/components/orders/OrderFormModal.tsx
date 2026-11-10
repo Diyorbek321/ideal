@@ -144,6 +144,7 @@ export function OrderFormModal({
   const total = Math.max(0, subtotal + installationPrice - (parseMoney(discount) ?? 0));
 
   // Ro'yxatdagi tur tanlansa — asosiy materiali va doimiy xizmatlari qo'yiladi, narx yana avtomatik
+  const sumOnly = (it: ItemDraft) => !!findType(productTypes, it.productType)?.skipProduction;
   const changeType = (idx: number, name: string) => {
     const t = findType(productTypes, name);
     const it = list[idx]!;
@@ -151,7 +152,9 @@ export function OrderFormModal({
     patchItem(idx, {
       productType: name,
       ...(t && {
-        manual: false,
+        // Hajmli harf: o'lchamsiz, summa qo'lda
+        manual: t.skipProduction,
+        ...(t.skipProduction && { width: '', height: '' }),
         services: t.serviceCodes.filter((c) => active.has(c)),
         ...(t.defaultMaterialId && !it.materialId && { materialId: t.defaultMaterialId }),
       }),
@@ -172,7 +175,8 @@ export function OrderFormModal({
     if (!client) e.client = 'Mijozni tanlang';
     list.forEach((i, idx) => {
       if (!i.productType.trim()) e[`item${idx}`] = 'Mahsulot turini kiriting';
-      else if (metersToCm(i.width) === null || metersToCm(i.height) === null) e[`item${idx}`] = 'O\'lchamni metrda kiriting, masalan 1,20';
+      else if (sumOnly(i) && !parseMoney(i.unitPrice)) e[`item${idx}`] = 'Summani kiriting';
+      else if (!sumOnly(i) && (metersToCm(i.width) === null || metersToCm(i.height) === null)) e[`item${idx}`] = 'O\'lchamni metrda kiriting, masalan 1,20';
       else if (!Number.isInteger(parseDecimal(i.quantity)) || (parseDecimal(i.quantity) ?? 0) < 1) e[`item${idx}`] = 'Soni butun son bo\'lishi kerak';
       else if (!i.manual && !canAuto(i)) e[`item${idx}`] = 'Bu tur uchun narx yo\'q — dona narxini qo\'lda yozing';
       // Avtomatik narx joriy ma'lumot bo'yicha hisoblangan bo'lishi shart (eski o'lcham narxi saqlanmasin)
@@ -196,8 +200,9 @@ export function OrderFormModal({
       items: list.map((i) => ({
         productType: i.productType.trim(),
         materialId: i.materialId || null,
-        widthCm: metersToCm(i.width)!,
-        heightCm: metersToCm(i.height)!,
+        // Hajmli harf — o'lchamsiz (0), faqat summa
+        widthCm: sumOnly(i) ? 0 : metersToCm(i.width)!,
+        heightCm: sumOnly(i) ? 0 : metersToCm(i.height)!,
         quantity: parseDecimal(i.quantity)!,
         finishing: finishingNames(i, catalog),
         unitPrice: parseMoney(i.unitPrice)!,
@@ -307,12 +312,16 @@ export function OrderFormModal({
                     options={(materials ?? []).map((m) => ({ value: m.id, label: m.name }))}
                   />
                 </div>
-                <Input label="Eni, m" inputMode="decimal" placeholder="1,40" value={it.width} onChange={(e) => updateItem(idx, 'width', e.target.value)} />
-                <Input label="Bo'yi, m" inputMode="decimal" placeholder="1,20" value={it.height} onChange={(e) => updateItem(idx, 'height', e.target.value)} />
+                {sumOnly(it) ? (
+                  <p className="col-span-2 self-end pb-2 text-xs text-gray-500">O'lcham shart emas · pechatnikka bormaydi, to'g'ri o'rnatishga</p>
+                ) : (<>
+                  <Input label="Eni, m" inputMode="decimal" placeholder="1,40" value={it.width} onChange={(e) => updateItem(idx, 'width', e.target.value)} />
+                  <Input label="Bo'yi, m" inputMode="decimal" placeholder="1,20" value={it.height} onChange={(e) => updateItem(idx, 'height', e.target.value)} />
+                </>)}
                 <Input label="Soni" inputMode="numeric" value={it.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)} />
                 <div className="col-span-2 md:col-span-1">
                   <Input
-                    label={it.manual ? 'Dona narxi (qo\'lda)' : 'Dona narxi'} money
+                    label={sumOnly(it) ? 'Summa' : it.manual ? 'Dona narxi (qo\'lda)' : 'Dona narxi'} money
                     inputMode="numeric"
                     value={it.unitPrice}
                     // Qo'lda yozilsa avtomatik hisobdan uziladi

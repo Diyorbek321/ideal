@@ -1,12 +1,15 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { useMoneyFormat } from './useMoneyFormat';
+import { formatPhoneInput } from '@/lib/phoneFormat';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   /** Pul maydoni: "1 250 000" ko'rinishida, onChange'ga faqat raqamlar keladi */
   money?: boolean;
+  /** Telefon maydoni: yozish paytida "94 364 44 01" ko'rinishiga keltiriladi */
+  phone?: boolean;
 }
 
 function assignRef<T>(ref: React.ForwardedRef<T>, el: T | null) {
@@ -14,13 +17,23 @@ function assignRef<T>(ref: React.ForwardedRef<T>, el: T | null) {
   else if (ref) ref.current = el;
 }
 
-const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, label, error, id, money, value, onChange, placeholder, ...props }, ref) => {
+const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, label, error, id, money, phone, value, onChange, placeholder, ...props }, ref) => {
   const autoId = React.useId();
   const inputId = id ?? autoId;
   const fmt = useMoneyFormat(value, onChange);
   const moneyProps = money
     ? { value: fmt.displayValue, onChange: fmt.handleChange, inputMode: 'numeric' as const, placeholder: fmtPlaceholder(placeholder) }
-    : { value, onChange, placeholder };
+    : phone
+      ? {
+        value: typeof value === 'string' ? formatPhoneInput(value) : value,
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+          e.target.value = formatPhoneInput(e.target.value);
+          onChange?.(e);
+        },
+        inputMode: 'tel' as const,
+        placeholder: placeholder ?? '94 364 44 01',
+      }
+      : { value, onChange, placeholder };
   return (
     <div className="w-full space-y-1.5">
       {label && <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">{label}</label>}

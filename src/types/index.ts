@@ -535,6 +535,8 @@ export interface ProductType {
   costPerM2: number;
   /** Tur tanlanganda avtomatik belgilanadigan xizmatlar (PriceListItem.code) */
   serviceCodes: string[];
+  /** Hajmli harf kabi: eni/bo'yi shart emas (summa qo'lda), pechatnikka bormaydi — to'g'ri o'rnatishga */
+  skipProduction: boolean;
   isActive: boolean;
 }
 

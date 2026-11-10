@@ -33,6 +33,10 @@ function Cell({ r, isWorkDay, onSelfie }: { r?: AttendanceRecord; isWorkDay: boo
       {r.selfieUrl ? (
         <button type="button" className="underline decoration-dotted underline-offset-2" onClick={() => onSelfie(r)}>{hhmm(r.checkInAt)}</button>
       ) : hhmm(r.checkInAt)}
+      {/* Ketgan vaqti: tizim yopgan bo'lsa "?" — «Ketdim» bosilmagan */}
+      <span className={cn('block border-t border-black/5 font-normal', r.autoClosed ? 'text-red-500' : 'opacity-75')}>
+        {r.checkOutAt ? (r.autoClosed ? '?' : hhmm(r.checkOutAt)) : '…'}
+      </span>
       {r.outInstallationId && <span className="absolute right-0 top-0 text-[8px] leading-none text-sky-600" aria-label="Obyektdan ketdi">●</span>}
     </td>
   );
@@ -135,13 +139,13 @@ export default function AttendancePage() {
             )}
           </Card>
 
-          <Card title="Kunlik jadval" description="Yashil — vaqtida, sariq — kechikkan yoki erta ketgan, qizil — kelmagan, qizil ramka — «Ketdim» bosilmagan. Tagiga chizilgan vaqt — selfi bor, bosib ko'ring">
+          <Card title="Kunlik jadval" description="Har katakda: tepada kelgan, pastda ketgan vaqti («…» — hali ishda, «?» — «Ketdim» bosilmagan). Yashil — vaqtida, sariq — kechikkan yoki erta ketgan, qizil — kelmagan. Tagiga chizilgan vaqt — selfi bor, bosib ko'ring">
             <div className="-mx-5 overflow-x-auto sm:-mx-6">
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr>
                     <th className="sticky left-0 bg-white px-3 py-1 text-left font-semibold">Xodim</th>
-                    {days.map((d) => <th key={d} className="min-w-[34px] px-0.5 py-1 text-center font-medium text-gray-500">{Number(d.slice(8))}</th>)}
+                    {days.map((d) => <th key={d} className="min-w-[38px] px-0.5 py-1 text-center font-medium text-gray-500">{Number(d.slice(8))}</th>)}
                   </tr>
                 </thead>
                 <tbody>

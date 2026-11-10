@@ -28,5 +28,7 @@ export function formatArea(m2: number): string {
 
 /** 120, 140 → "1,2 × 1,4 m" */
 export function formatSize(widthCm: number, heightCm: number): string {
+  // Hajmli harf kabi o'lchamsiz mahsulot
+  if (!widthCm || !heightCm) return 'o\'lchamsiz';
   return `${cmToMeters(widthCm)} × ${cmToMeters(heightCm)} m`;
 }

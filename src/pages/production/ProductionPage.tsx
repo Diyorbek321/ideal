@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Download, Pencil, Play, Plus, Printer } from 'lucide-react';
+import { CheckCircle, Download, Pencil, Play, Plus, Printer, Trash2 } from 'lucide-react';
 import { equipmentApi, inventoryApi, productionApi } from '@/api';
 import type { Equipment, EquipmentStatus, QueueTask } from '@/types';
 import { EQUIPMENT_STATUS_LABELS, EQUIPMENT_TYPE_LABELS, TASK_STATUS_LABELS, UNIT_LABELS, options } from '@/lib/labels';
@@ -121,6 +121,13 @@ export default function ProductionPage() {
     onError: toast.error,
   });
 
+  const remove = useMutation({
+    mutationFn: (t: QueueTask) => productionApi.remove(t.id),
+    onSuccess: (r) => { toast.success(r.orderReady ? 'Vazifa o\'chirildi — buyurtma «Tayyor»ga o\'tdi' : 'Vazifa o\'chirildi'); refresh(); },
+    onError: toast.error,
+  });
+  const canDelete = isFinance(user.role);
+
   const active = (tasks ?? []).filter((t) => t.status !== 'DONE');
   const doneToday = (tasks ?? []).filter((t) => t.status === 'DONE');
   const wasteToday = doneToday.reduce((s, t) => s + t.wasteAmount, 0);
@@ -220,6 +227,13 @@ export default function ProductionPage() {
                         </Button>
                       )}
                       <Button size="sm" onClick={() => setFinishing(t)}><CheckCircle className="h-3 w-3" />Tayyor</Button>
+                      {canDelete && (
+                        <Button size="sm" variant="ghost" className="text-red-600" aria-label="Vazifani o'chirish"
+                          isLoading={remove.isPending && remove.variables?.id === t.id}
+                          onClick={() => window.confirm(`${t.order.number} — bu vazifani o'chirasizmi?`) && remove.mutate(t)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );

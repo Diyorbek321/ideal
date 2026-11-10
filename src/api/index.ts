@@ -31,6 +31,7 @@ export interface ProductTypeInput {
   costPerM2?: number;
   priceUnit?: ProductPriceUnit;
   serviceCodes?: string[];
+  skipProduction?: boolean;
   isActive?: boolean;
 }
 
@@ -64,6 +65,8 @@ export interface OrderFilters {
   overdueOnly?: boolean;
   search?: string;
   view?: 'table' | 'kanban';
+  /** only — yakunlangan/bekor qilinganlar (arxiv), exclude — faqat faollari */
+  archive?: 'only' | 'exclude';
 }
 
 export const authApi = {
@@ -170,6 +173,8 @@ export const productionApi = {
   start: (id: string, equipmentId?: string) => api.post(`/production/tasks/${id}/start`, { equipmentId }),
   finish: (id: string, body: { materialId?: string; materialUsed: number; wasteAmount: number; notes?: string }) =>
     api.post<{ orderReady: boolean; negativeStock: boolean }>(`/production/tasks/${id}/finish`, body),
+  /** Admin/menejer: tugamagan vazifani o'chirish */
+  remove: (id: string) => api.del<{ deleted: boolean; orderReady: boolean }>(`/production/tasks/${id}`),
 };
 
 export const equipmentApi = {
@@ -292,6 +297,9 @@ export const payrollApi = {
   /** Xodimning o'z varag'i */
   me: (period: string) => api.get<PayrollSheet>('/payroll/me', { period }),
   addTx: (body: PayrollTxInput) => api.post<PayrollSheet>('/payroll/transactions', body),
+  /** Direktor yoki menejer: joriy oyga avans */
+  giveAdvance: (body: { userId: string; amount: number; method?: PaymentMethod; reason?: string }) =>
+    api.post<{ userId: string; period: string; amount: number }>('/payroll/advances', body),
   deleteTx: (id: string) => api.del<PayrollSheet>(`/payroll/transactions/${id}`),
   excuse: (body: { userId: string; day: string; reason: AbsenceReason; note?: string }) => api.post<PayrollSheet>('/payroll/absences', body),
   removeExcuse: (id: string) => api.del<PayrollSheet>(`/payroll/absences/${id}`),

@@ -87,6 +87,11 @@ function TypeRow({ t, materials, services }: { t: ProductType; materials: Materi
       <td className="pb-3 pt-1 align-top text-xs text-gray-400">Doimiy xizmatlar:</td>
       <td colSpan={6} className="pb-3 pt-1">
         <ServiceChips services={services} value={t.serviceCodes} onChange={(serviceCodes) => save.mutate({ serviceCodes })} />
+        <label className="mt-2 flex w-fit cursor-pointer items-center gap-2 text-xs text-gray-700">
+          <input type="checkbox" className="h-4 w-4 accent-brand-400" checked={t.skipProduction}
+            onChange={(e) => save.mutate({ skipProduction: e.target.checked })} />
+          Pechatsiz (hajmli harf): eni/bo'yi shart emas, faqat summa — pechatnikka bormaydi, to'g'ri o'rnatishga
+        </label>
       </td>
     </tr>
     </>

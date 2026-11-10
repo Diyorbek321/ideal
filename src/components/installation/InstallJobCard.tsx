@@ -6,6 +6,7 @@ import type { Installation, InstallProblemType } from '@/types';
 import { INSTALL_STATUS_LABELS, PROBLEM_LABELS, options } from '@/lib/labels';
 import { cn, fileUrl, formatDateTime, formatPhone } from '@/lib/utils';
 import { invalidateOrderViews } from '@/lib/queries';
+import { useAuth } from '@/lib/auth';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -42,6 +43,8 @@ interface Props {
 export function InstallJobCard({ job, variant = 'mine' }: Props) {
   const toast = useToast();
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const iAmIn = !!user && job.team.some((t) => t.id === user.id);
   const [problemOpen, setProblemOpen] = React.useState(false);
   const [pType, setPType] = React.useState<InstallProblemType>('WRONG_SIZE');
   const [pText, setPText] = React.useState('');
@@ -107,11 +110,18 @@ export function InstallJobCard({ job, variant = 'mine' }: Props) {
           <p>{job.team.length ? `Jamoa: ${job.team.map((t) => t.fullName).join(', ')}` : 'Hali hech kim qo\'shilmagan'}</p>
         </div>
 
-        {variant === 'open' && (
+        {variant === 'open' && (iAmIn ? (
+          <div className="flex items-center gap-2">
+            <p className="flex h-12 flex-1 items-center justify-center rounded-xl bg-emerald-50 text-sm font-semibold text-emerald-700">Siz ham borasiz ✓</p>
+            <Button variant="outline" className="h-12" isLoading={act.isPending} onClick={() => run(() => installationsApi.leave(job.id), 'Jamoadan chiqdingiz')}>
+              Chiqish
+            </Button>
+          </div>
+        ) : (
           <Button className="h-12 w-full" isLoading={act.isPending} onClick={() => run(() => installationsApi.join(job.id), 'Siz jamoaga qo\'shildingiz')}>
-            Men boraman
+            {job.team.length ? 'Men ham boraman' : 'Men boraman'}
           </Button>
-        )}
+        ))}
 
         <a href={mapLink(job)} target="_blank" rel="noreferrer" className="block">
           <Button variant="outline" className="h-12 w-full border-gray-200 bg-gray-50"><Navigation className="h-4 w-4 text-brand-600" />Xaritada ochish</Button>

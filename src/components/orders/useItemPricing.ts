@@ -28,6 +28,8 @@ interface Options {
 /** Avtomatik hisoblab bo'ladigan mahsulot uchun kalkulyator so'rovi; aks holda null */
 export function priceInputFor(it: PricedDraft, withInstallation: boolean, o: Options): PriceInput | null {
   const type = findType(o.types, it.productType);
+  // Pechatsiz tur (hajmli harf) — o'lcham yo'q, summa doim qo'lda
+  if (type?.skipProduction) return null;
   const priced = (type?.pricePerM2 ?? 0) > 0;
   const materialCode = o.prices ? materialCodeFor(o.prices, it.materialId || type?.defaultMaterialId) : undefined;
   const w = metersToCm(it.width), h = metersToCm(it.height), q = parseDecimal(it.quantity) ?? 0;

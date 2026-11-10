@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, CalendarCheck, DollarSign, Plus, Send, ShieldCheck, Target, Timer } from 'lucide-react';
+import { Building2, CalendarCheck, DollarSign, MapPin, Plus, Send, ShieldCheck, Target, Timer } from 'lucide-react';
 import { settingsApi } from '@/api';
 import type { CompanySettings, OrderStatus, PriceKind, PriceListItem, PriceUnit } from '@/types';
 import { PRICE_KIND_LABELS, PRICE_UNIT_LABELS, STATUS_LABELS, options } from '@/lib/labels';
@@ -18,7 +18,7 @@ import { ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
 
 const SLA_STATUSES: OrderStatus[] = ['YANGI', 'NARX_HISOBLANDI', 'DIZAYNDA', 'TASDIQDA', 'ISHLAB_CHIQARISHDA', 'TAYYOR', 'ORNATISHDA', 'YETKAZISHDA'];
-type Tab = 'company' | 'prices' | 'sla' | 'rules' | 'kpi' | 'attendance' | 'telegram';
+type Tab = 'company' | 'prices' | 'sla' | 'rules' | 'kpi' | 'attendance' | 'places' | 'telegram';
 
 function CompanyTab({ s }: { s: CompanySettings }) {
   const toast = useToast();
@@ -43,7 +43,7 @@ function CompanyTab({ s }: { s: CompanySettings }) {
         <Input label="Bank nomi" value={f.bankName ?? ''} onChange={set('bankName')} />
         <Input label="MFO" value={f.mfo ?? ''} onChange={set('mfo')} />
         <Input label="Hisob raqami" value={f.bankAccount ?? ''} onChange={set('bankAccount')} />
-        <Input label="Telefon" value={f.phone ?? ''} onChange={set('phone')} />
+        <Input label="Telefon" value={f.phone ?? ''} onChange={set('phone')} phone />
         <Input label="Direktor F.I.Sh." value={f.directorName ?? ''} onChange={set('directorName')} />
         <Input label="Manzil" value={f.address ?? ''} onChange={set('address')} />
       </div>
@@ -244,6 +244,7 @@ export default function SettingsPage() {
     { id: 'rules', label: 'Buyurtma qoidalari', icon: ShieldCheck },
     { id: 'kpi', label: 'KPI va bonus', icon: Target },
     { id: 'attendance', label: 'Davomat', icon: CalendarCheck },
+    { id: 'places', label: 'Ketish joylari', icon: MapPin },
     { id: 'telegram', label: 'Telegram bot', icon: Send },
   ];
 
@@ -264,7 +265,7 @@ export default function SettingsPage() {
         </div>
         <div className="md:col-span-3">
           {error ? <ErrorState error={error} onRetry={refetch} /> : isLoading || !data ? <Loading /> : (
-            tab === 'company' ? <CompanyTab s={data} /> : tab === 'sla' ? <SlaTab s={data} /> : tab === 'rules' ? <OrderRulesSettings s={data} /> : tab === 'kpi' ? <KpiTab s={data} /> : tab === 'attendance' ? <div className="space-y-6"><AttendanceSettings s={data} /><LeavePlacesSettings s={data} /></div> : tab === 'telegram' ? <TelegramSettings s={data} /> : <PricesTab />
+            tab === 'company' ? <CompanyTab s={data} /> : tab === 'sla' ? <SlaTab s={data} /> : tab === 'rules' ? <OrderRulesSettings s={data} /> : tab === 'kpi' ? <KpiTab s={data} /> : tab === 'attendance' ? <AttendanceSettings s={data} /> : tab === 'places' ? <LeavePlacesSettings s={data} /> : tab === 'telegram' ? <TelegramSettings s={data} /> : <PricesTab />
           )}
         </div>
       </div>

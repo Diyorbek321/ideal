@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { RequestForm } from '@/components/requests/RequestForm';
 import { RequestList } from '@/components/requests/RequestList';
+import { GiveAdvanceCard } from '@/components/requests/GiveAdvanceCard';
 import { cn } from '@/lib/utils';
 
 function MyRequests() {
@@ -24,14 +25,17 @@ function MyRequests() {
 
 const FILTERS: Array<RequestStatus | 'ALL'> = ['PENDING', 'APPROVED', 'REJECTED', 'ALL'];
 
-function ReviewRequests() {
+function ReviewRequests({ advanceOnly = false }: { advanceOnly?: boolean }) {
   const [status, setStatus] = React.useState<RequestStatus | 'ALL'>('PENDING');
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['requests', 'all', status],
     queryFn: () => requestsApi.all(status === 'ALL' ? undefined : status),
   });
   return (
-    <Card title="Xodimlar so'rovlari" description="Tasdiqlansa darhol kuchga kiradi: javob kunlari sababli bo'ladi, avans oylik daftariga yoziladi, e'tirozda belgi olib tashlanadi">
+    <Card title={advanceOnly ? 'Avans so\'rovlari' : 'Xodimlar so\'rovlari'}
+      description={advanceOnly
+        ? 'Tasdiqlansa avans shu oy oyligidan ushlanadi. Javob va davomat e\'tirozlarini direktor ko\'radi'
+        : 'Tasdiqlansa darhol kuchga kiradi: javob kunlari sababli bo\'ladi, avans oylik daftariga yoziladi, e\'tirozda belgi olib tashlanadi'}>
       <div className="mt-2 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <button key={f} type="button" onClick={() => setStatus(f)}
@@ -50,10 +54,15 @@ function ReviewRequests() {
 export default function RequestsPage() {
   const user = useUser();
   const director = user.role === 'ADMIN';
+  const manager = user.role === 'MANAGER';
   return (
     <div className="space-y-6">
       <PageHeader title="So'rovlar" subtitle={director ? 'Javob, ta\'til, avans va davomatga e\'tirozlar' : 'Javob yoki ta\'til, avans so\'rash, davomatga e\'tiroz'} />
-      {director ? <ReviewRequests /> : <MyRequests />}
+      {(director || manager) && <GiveAdvanceCard />}
+      {director ? <ReviewRequests /> : (<>
+        {manager && <ReviewRequests advanceOnly />}
+        <MyRequests />
+      </>)}
     </div>
   );
 }

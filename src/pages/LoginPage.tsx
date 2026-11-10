@@ -64,7 +64,8 @@ export default function LoginPage() {
             autoComplete="username"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="+998 90 123 45 67"
+            placeholder="94 364 44 01"
+            phone
             required
           />
           <Input

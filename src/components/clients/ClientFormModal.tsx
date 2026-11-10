@@ -99,7 +99,7 @@ export function ClientFormModal({ open, onClose, client, initialName, onSaved }:
         <div className="md:col-span-2"><Input label="Nomi / F.I.Sh. *" value={form.name} onChange={set('name')} autoFocus error={errors.name} /></div>
         <Select label="Turi" value={form.type} onChange={set('type')} options={options(CLIENT_TYPE_LABELS)} />
         <Select label="Qayerdan keldi" value={form.source} onChange={set('source')} options={options(SOURCE_LABELS)} />
-        <Input label="Telefon(lar) * — vergul bilan" value={form.phones} onChange={set('phones')} placeholder="90 123 45 67, 91 ..." inputMode="tel" error={errors.phones} />
+        <Input label="Telefon(lar) * — vergul bilan" value={form.phones} onChange={set('phones')} phone placeholder="94 364 44 01, 91 ..." error={errors.phones} />
         <Input label="Telegram" value={form.telegram} onChange={set('telegram')} placeholder="@username" />
         {isOrg && <Input label="Mas'ul shaxs" value={form.contactPerson} onChange={set('contactPerson')} />}
         {isOrg && <Input label="STIR (INN)" value={form.inn} onChange={set('inn')} inputMode="numeric" maxLength={14} error={errors.inn} />}

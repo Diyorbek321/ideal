@@ -84,7 +84,7 @@ export function SmsOverview() {
       </p>
       {isAdmin && (
         <form className="mt-6 flex items-end gap-2" onSubmit={(e) => { e.preventDefault(); test.mutate(); }}>
-          <Input label="Test SMS" value={testPhone} onChange={(e) => setTestPhone(e.target.value)} inputMode="tel" />
+          <Input label="Test SMS" value={testPhone} onChange={(e) => setTestPhone(e.target.value)} phone />
           <Button type="submit" isLoading={test.isPending}>Yuborish</Button>
         </form>
       )}

@@ -158,7 +158,7 @@ export function InstallationCard({ order }: { order: OrderDetail }) {
             <Input label="Vaqt" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
             <div className="md:col-span-2"><Input label="Manzil" value={address} onChange={(e) => setAddress(e.target.value)} /></div>
             <Input label="Xarita havolasi (Google/Yandex)" value={mapUrl} onChange={(e) => setMapUrl(e.target.value)} placeholder="https://" />
-            <Input label="Joyidagi aloqa telefoni" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
+            <Input label="Joyidagi aloqa telefoni" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} phone />
             <Input label="Mahkamlash turi" value={mountingType} onChange={(e) => setMountingType(e.target.value)} placeholder="Devorga, dyubel" />
             <Input label="Aniq o'lchamlar" value={sizesNote} onChange={(e) => setSizesNote(e.target.value)} />
             <div className="md:col-span-2"><Input label="Olib ketiladigan narsalar (vergul bilan)" value={requiredItems} onChange={(e) => setRequiredItems(e.target.value)} placeholder="Narvon, perforator, silikon" /></div>

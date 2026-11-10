@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Calendar, ChevronLeft, ChevronRight, LayoutGrid, List, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, Archive, Calendar, ChevronLeft, ChevronRight, LayoutGrid, List, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { ordersApi } from '@/api';
 import { CLIENT_TYPE_LABELS, SOURCE_LABELS, STATUS_LABELS, options } from '@/lib/labels';
 import { cn, formatCurrency, formatDate, formatHours } from '@/lib/utils';
@@ -16,6 +16,7 @@ import { Select } from '@/components/ui/Select';
 import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
 
 const LIMIT = 25;
+const FINISHED = new Set(['YAKUNLANDI', 'BEKOR_QILINDI']);
 
 export default function OrdersPage() {
   const navigate = useNavigate();
@@ -27,7 +28,10 @@ export default function OrdersPage() {
 
   const view = (params.get('view') as 'table' | 'kanban') ?? 'table';
   const page = Number(params.get('page') ?? 1);
+  // Yakunlangan va bekor qilingan buyurtmalar "Arxiv"da; kanban faqat faollarni ko'rsatadi
+  const archived = view === 'table' && params.get('archive') === '1';
   const filters = {
+    archive: (archived ? 'only' : 'exclude') as 'only' | 'exclude',
     status: params.get('status') ?? undefined,
     source: params.get('source') ?? undefined,
     clientType: params.get('clientType') ?? undefined,
@@ -58,7 +62,15 @@ export default function OrdersPage() {
     placeholderData: keepPreviousData,
   });
 
-  const activeFilters = Object.values(filters).filter(Boolean).length;
+  const activeFilters = [filters.status, filters.source, filters.clientType, filters.debtOnly, filters.overdueOnly].filter(Boolean).length;
+  const statusOptions = options(STATUS_LABELS).filter((o) => FINISHED.has(o.value) === archived);
+  const setArchived = (on: boolean) => {
+    const next = new URLSearchParams(params);
+    if (on) next.set('archive', '1'); else next.delete('archive');
+    next.delete('status');
+    next.delete('page');
+    setParams(next, { replace: true });
+  };
   const orders = data?.data ?? [];
   const meta = data?.meta;
   const pages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
@@ -76,7 +88,7 @@ export default function OrdersPage() {
                   key={v}
                   onClick={() => {
                     const next = new URLSearchParams(params);
-                    if (v === 'kanban') { next.set('view', 'kanban'); next.delete('status'); } else next.delete('view');
+                    if (v === 'kanban') { next.set('view', 'kanban'); next.delete('status'); next.delete('archive'); } else next.delete('view');
                     next.delete('page');
                     setParams(next, { replace: true });
                   }}
@@ -94,6 +106,18 @@ export default function OrdersPage() {
         )}
       />
 
+      {view === 'table' && (
+        <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1 sm:w-fit" role="tablist">
+          {([[false, 'Faol buyurtmalar'], [true, 'Arxiv']] as const).map(([on, label]) => (
+            <button key={label} type="button" role="tab" aria-selected={archived === on} onClick={() => setArchived(on)}
+              className={cn('flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none',
+                archived === on ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100')}>
+              {on && <Archive className="h-4 w-4" />}{label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
         <div className="flex gap-2 md:col-span-2">
           <div className="relative flex-1">
@@ -107,7 +131,7 @@ export default function OrdersPage() {
         </div>
         <div className={cn('grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-4 md:grid-cols-4', !filtersOpen && 'hidden md:grid')}>
         {view === 'table' && (
-          <Select value={filters.status ?? ''} onChange={(e) => setParam('status', e.target.value)} placeholder="Barcha statuslar" options={options(STATUS_LABELS)} />
+          <Select value={filters.status ?? ''} onChange={(e) => setParam('status', e.target.value)} placeholder="Barcha statuslar" options={statusOptions} />
         )}
         <Select value={filters.source ?? ''} onChange={(e) => setParam('source', e.target.value)} placeholder="Barcha manbalar" options={options(SOURCE_LABELS)} />
         <Select value={filters.clientType ?? ''} onChange={(e) => setParam('clientType', e.target.value)} placeholder="Mijoz turi" options={options(CLIENT_TYPE_LABELS)} />
@@ -129,7 +153,7 @@ export default function OrdersPage() {
         <Card className="overflow-hidden">
           {orders.length === 0 ? (
             <div>
-              <Empty text={activeFilters || debounced ? 'Bu filtr bo\'yicha buyurtma topilmadi' : 'Hali buyurtma yo\'q'} />
+              <Empty text={activeFilters || debounced ? 'Bu filtr bo\'yicha buyurtma topilmadi' : archived ? 'Arxiv bo\'sh — yakunlangan buyurtma yo\'q' : 'Faol buyurtma yo\'q'} />
               {(activeFilters > 0 || debounced) && (
                 <div className="-mt-6 pb-8 text-center">
                   <Button variant="outline" size="sm" onClick={() => { setSearch(''); setParams({}, { replace: true }); }}>Filtrlarni tozalash</Button>
