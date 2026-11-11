@@ -1,5 +1,5 @@
 import type {
-  ClientStatement, ClientBalanceLedger, PrepaidClient,
+  UserRole, ClientStatement, ClientBalanceLedger, PrepaidClient,
   RefundInput,
   RequestStatus, StaffRequest, StaffRequestInput,
   Client, ClientDetail, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
@@ -281,6 +281,19 @@ export const expensesApi = {
   remove: (id: string) => api.del(`/expenses/${id}`),
 };
 
+export interface AdvanceRow {
+  id: string;
+  userId: string;
+  userName: string;
+  role: UserRole;
+  amount: number;
+  method: PaymentMethod | null;
+  reason: string | null;
+  date: string;
+  createdByName: string | null;
+}
+export type AdvanceList = { period: string; total: number; rows: AdvanceRow[] };
+
 type PayrollList = { period: string; entries: PayrollEntry[]; total: number; paid: number; advances: number };
 
 export interface PayrollTxInput {
@@ -303,6 +316,8 @@ export const payrollApi = {
   /** Direktor yoki menejer: joriy oyga avans */
   giveAdvance: (body: { userId: string; amount: number; method?: PaymentMethod; reason?: string }) =>
     api.post<{ userId: string; period: string; amount: number }>('/payroll/advances', body),
+  /** Direktor yoki menejer: oy bo'yicha berilgan avanslar */
+  advances: (period: string) => api.get<AdvanceList>('/payroll/advances', { period }),
   deleteTx: (id: string) => api.del<PayrollSheet>(`/payroll/transactions/${id}`),
   excuse: (body: { userId: string; day: string; reason: AbsenceReason; note?: string }) => api.post<PayrollSheet>('/payroll/absences', body),
   removeExcuse: (id: string) => api.del<PayrollSheet>(`/payroll/absences/${id}`),

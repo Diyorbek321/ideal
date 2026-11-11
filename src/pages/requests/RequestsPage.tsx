@@ -9,6 +9,7 @@ import { ErrorState, Loading, PageHeader } from '@/components/ui/States';
 import { RequestForm } from '@/components/requests/RequestForm';
 import { RequestList } from '@/components/requests/RequestList';
 import { GiveAdvanceCard } from '@/components/requests/GiveAdvanceCard';
+import { AdvancesListCard } from '@/components/requests/AdvancesListCard';
 import { cn } from '@/lib/utils';
 
 function MyRequests() {
@@ -59,6 +60,7 @@ export default function RequestsPage() {
     <div className="space-y-6">
       <PageHeader title="So'rovlar" subtitle={director ? 'Javob, ta\'til, avans va davomatga e\'tirozlar' : 'Javob yoki ta\'til, avans so\'rash, davomatga e\'tiroz'} />
       {(director || manager) && <GiveAdvanceCard />}
+      {(director || manager) && <AdvancesListCard />}
       {director ? <ReviewRequests /> : (<>
         {manager && <ReviewRequests advanceOnly />}
         <MyRequests />
