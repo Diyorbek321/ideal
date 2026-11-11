@@ -137,7 +137,7 @@ export const pricingApi = {
 
 export const designsApi = {
   tasks: (designerId?: string) => api.get<DesignTask[]>('/designs/tasks', { designerId }),
-  create: (body: { orderId: string; fileUrl: string; previewUrl: string; areaM2?: number; note?: string }) =>
+  create: (body: { orderId: string; fileUrl: string; previewUrl: string; extraPreviewUrls?: string[]; areaM2?: number; note?: string }) =>
     api.post<DesignVersion>('/designs', body),
   send: (id: string) => api.post<ShareInfo>(`/designs/${id}/send`),
   share: (id: string) => api.get<ShareInfo>(`/designs/${id}/share`),

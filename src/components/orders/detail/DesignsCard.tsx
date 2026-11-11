@@ -74,13 +74,23 @@ export function DesignsCard({ order }: { order: OrderDetail }) {
               <a href={fileUrl(v.previewUrl)} target="_blank" rel="noreferrer" className="block aspect-video bg-gray-50">
                 <img src={fileUrl(v.previewUrl)} alt={`Dizayn v${v.version}`} className="h-full w-full object-contain" />
               </a>
+              {v.extraPreviewUrls?.length > 0 && (
+                <div className="flex gap-1 overflow-x-auto border-t border-gray-100 p-1">
+                  {v.extraPreviewUrls.map((u, i) => (
+                    <a key={u} href={fileUrl(u)} target="_blank" rel="noreferrer" className="shrink-0">
+                      <img src={fileUrl(u)} alt={`Dizayn v${v.version} — ${i + 2}`} className="h-14 w-20 rounded object-cover" />
+                    </a>
+                  ))}
+                </div>
+              )}
               <div className="space-y-2 p-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-gray-900">v{v.version} · {v.areaM2} m²</span>
+                  <span className="font-bold text-gray-900">v{v.version} · {v.areaM2} m²{v.extraPreviewUrls?.length ? ` · ${v.extraPreviewUrls.length + 1} rasm` : ''}</span>
                   <Badge variant={DESIGN_VARIANT[v.status]}>{DESIGN_STATUS_LABELS[v.status]}</Badge>
                 </div>
                 <p className="text-xs text-gray-400">{v.designer?.fullName} · {formatDateTime(v.createdAt)}</p>
                 {v.clientComment && <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-800">Mijoz: “{v.clientComment}”</p>}
+                {v.clientMarkupUrl && <a href={fileUrl(v.clientMarkupUrl)} target="_blank" rel="noreferrer" className="block text-xs text-brand-600 underline">Mijoz belgilagan rasm</a>}
                 <div className="flex flex-wrap gap-2">
                   <a href={fileUrl(v.fileUrl)} target="_blank" rel="noreferrer"><Button size="sm" variant="outline"><Download className="h-3 w-3" /></Button></a>
                   {v.status === 'DRAFT' && canUpload && (

@@ -177,6 +177,7 @@ export interface DesignVersion {
   version: number;
   fileUrl: string;
   previewUrl: string;
+  extraPreviewUrls: string[];
   areaM2: number;
   designerId: string;
   status: DesignStatus;
@@ -629,10 +630,22 @@ export interface DesignerStat {
   avgApprovalHours: number | null;
 }
 
+export interface PublicDesignHistory {
+  version: number;
+  status: DesignStatus;
+  images: string[];
+  clientComment: string | null;
+  clientMarkupUrl: string | null;
+  sentAt: string | null;
+  decidedAt: string | null;
+}
+
 export interface PublicApproval {
   version: number;
   status: DesignStatus;
   previewUrl: string;
+  images: string[];
+  history: PublicDesignHistory[];
   note: string | null;
   sentAt: string | null;
   decidedAt: string | null;

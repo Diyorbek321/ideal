@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/Card';
 import { ErrorState } from '@/components/ui/States';
 import { formatSize } from '@/lib/size';
 import { TelegramOptIn } from '@/components/public/TelegramOptIn';
+import type { PublicDesignHistory } from '@/types';
 
 // Mijoz uchun ochiq sahifa — login talab qilinmaydi
 export default function PublicApprovalPage() {
@@ -88,14 +89,24 @@ export default function PublicApprovalPage() {
 
       <main className="mx-auto mt-8 grid max-w-5xl grid-cols-1 gap-8 px-4 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Card title={`Dizayn — ${data.version}-variant`} description="Kattalashtirish uchun rasm ustiga bosing">
-            <a href={fileUrl(data.previewUrl)} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-gray-100 bg-white">
-              <img src={fileUrl(data.previewUrl)} alt="Dizayn" className="h-auto w-full cursor-zoom-in" />
-            </a>
-            {data.note && <p className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">{data.note}</p>}
-            <div className="mt-6 flex justify-center">
-              <a href={fileUrl(data.previewUrl)} download><Button variant="outline"><Download className="h-4 w-4" />Yuklab olish</Button></a>
+          <Card
+            title={`Dizayn — ${data.version}-variant`}
+            description={data.images.length > 1 ? `${data.images.length} ta rasm · kattalashtirish uchun rasm ustiga bosing` : 'Kattalashtirish uchun rasm ustiga bosing'}
+          >
+            <div className="space-y-4">
+              {data.images.map((url, i) => (
+                <div key={url}>
+                  {data.images.length > 1 && <p className="mb-1 text-xs font-bold uppercase tracking-widest text-gray-400">{i + 1}-rasm</p>}
+                  <a href={fileUrl(url)} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-gray-100 bg-white">
+                    <img src={fileUrl(url)} alt={`Dizayn ${i + 1}`} className="h-auto w-full cursor-zoom-in" />
+                  </a>
+                  <div className="mt-2 flex justify-end">
+                    <a href={fileUrl(url)} download><Button variant="outline" size="sm"><Download className="h-4 w-4" />Yuklab olish</Button></a>
+                  </div>
+                </div>
+              ))}
             </div>
+            {data.note && <p className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">{data.note}</p>}
           </Card>
 
           {mode === 'revision' && data.canDecide && (
@@ -122,6 +133,7 @@ export default function PublicApprovalPage() {
               </div>
             </Card>
           )}
+          {data.history.length > 0 && <PreviousVersions history={data.history} />}
         </div>
 
         <div className="space-y-6">
@@ -181,5 +193,35 @@ export default function PublicApprovalPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+// Oldingi variantlar — yangi dizaynni eskisi va o'z izohi bilan solishtirish uchun
+function PreviousVersions({ history }: { history: PublicDesignHistory[] }) {
+  return (
+    <Card title="Oldingi variantlar" description="Yangi variantni oldingisi bilan solishtiring">
+      <div className="space-y-5">
+        {history.map((h) => (
+          <div key={h.version} className="rounded-xl border border-gray-100 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-bold text-gray-900">{h.version}-variant</span>
+              <Badge variant="outline">{DESIGN_STATUS_LABELS[h.status]}</Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {h.images.map((url, i) => (
+                <a key={url} href={fileUrl(url)} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
+                  <img src={fileUrl(url)} alt={`${h.version}-variant, ${i + 1}-rasm`} className="h-32 w-full object-contain" loading="lazy" />
+                </a>
+              ))}
+            </div>
+            {h.clientComment && <p className="mt-2 rounded-lg bg-amber-50 p-2 text-sm text-amber-800">Sizning izohingiz: “{h.clientComment}”</p>}
+            {h.clientMarkupUrl && (
+              <a href={fileUrl(h.clientMarkupUrl)} target="_blank" rel="noreferrer" className="mt-1 block text-sm text-brand-600 underline">Siz belgilagan rasm</a>
+            )}
+            {h.decidedAt && <p className="mt-1 text-xs text-gray-400">{formatDate(h.decidedAt)}</p>}
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
