@@ -111,7 +111,9 @@ export const ordersApi = {
   get: (id: string) => api.get<OrderDetail>(`/orders/${id}`),
   create: (body: OrderInput) => api.post<Order>('/orders', body),
   update: (id: string, body: Partial<OrderInput>) => api.patch<Order>(`/orders/${id}`, body),
-  remove: (id: string) => api.del<{ deleted: boolean }>(`/orders/${id}`),
+  remove: (id: string) => api.del<{ deleted: boolean; cashRemoved: number; toBalance: number }>(`/orders/${id}`),
+  /** Direktor: eski buyurtmalarni belgilab o'chirish */
+  bulkRemove: (ids: string[]) => api.post<{ deleted: number; failed: Array<{ id: string; error: string }> }>('/orders/bulk-delete', { ids }),
   changeStatus: (id: string, status: OrderStatus, comment?: string, refund?: RefundInput) =>
     api.post<Order>(`/orders/${id}/status`, { status, comment, refund }),
   comment: (id: string, message: string) => api.post<OrderEvent>(`/orders/${id}/comments`, { message }),
@@ -290,6 +292,7 @@ export interface AdvanceRow {
   method: PaymentMethod | null;
   reason: string | null;
   date: string;
+  createdById: string | null;
   createdByName: string | null;
 }
 export type AdvanceList = { period: string; total: number; rows: AdvanceRow[] };
@@ -318,6 +321,9 @@ export const payrollApi = {
     api.post<{ userId: string; period: string; amount: number }>('/payroll/advances', body),
   /** Direktor yoki menejer: oy bo'yicha berilgan avanslar */
   advances: (period: string) => api.get<AdvanceList>('/payroll/advances', { period }),
+  /** Adashib yozilgan avansni tuzatish (naqd ↔ karta, summa, izoh). Menejer faqat o'zi yozganini */
+  updateAdvance: (id: string, body: { amount?: number; method?: PaymentMethod; reason?: string | null }) =>
+    api.patch<{ id: string; amount: number; method: PaymentMethod; reason: string | null }>(`/payroll/advances/${id}`, body),
   deleteTx: (id: string) => api.del<PayrollSheet>(`/payroll/transactions/${id}`),
   excuse: (body: { userId: string; day: string; reason: AbsenceReason; note?: string }) => api.post<PayrollSheet>('/payroll/absences', body),
   removeExcuse: (id: string) => api.del<PayrollSheet>(`/payroll/absences/${id}`),

@@ -8,6 +8,7 @@ import { PRICE_UNIT_LABELS, SOURCE_LABELS, options } from '@/lib/labels';
 import { toDateInput, formatCurrency, formatNumber, parseDecimal, parseMoney } from '@/lib/utils';
 import { areaFromMeters, cmToMeters, formatArea, metersToCm } from '@/lib/size';
 import { activeOfKind, findType, productPriceLabel } from '@/lib/pricing';
+import { confirmBigAmount } from '@/lib/bigAmount';
 import { ServiceChips } from '@/components/pricing/ServiceChips';
 import { installationIndex, priceInputFor, useItemPricing, type ItemPrice, type PricedDraft } from './useItemPricing';
 import { invalidateOrderViews } from '@/lib/queries';
@@ -255,7 +256,15 @@ export function OrderFormModal({
     onError: toast.error,
   });
 
-  const submit = () => items !== null && validate() && save.mutate();
+  // Butun partiya narxi dona narxi o'rniga yozilsa summa son baravar oshib ketadi (ID-2026-0036: 1040 × 524 000)
+  const confirmTotal = () => {
+    const biggest = [...list].sort((a, b) => lineTotal(b) - lineTotal(a))[0];
+    const detail = biggest && (parseDecimal(biggest.quantity) ?? 0) > 1
+      ? `Eng katta qator: ${biggest.productType || 'mahsulot'} — ${biggest.quantity} dona × ${formatCurrency(parseMoney(biggest.unitPrice) ?? 0)}. «Narx» bitta dona uchun yoziladi, butun partiya uchun emas.`
+      : undefined;
+    return confirmBigAmount(total, 'Buyurtma summasi', detail);
+  };
+  const submit = () => items !== null && validate() && confirmTotal() && save.mutate();
 
   return (
     <Modal

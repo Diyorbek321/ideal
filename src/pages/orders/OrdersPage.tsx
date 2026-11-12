@@ -1,10 +1,11 @@
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Archive, Calendar, ChevronLeft, ChevronRight, LayoutGrid, List, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AlertTriangle, Archive, Calendar, ChevronLeft, ChevronRight, LayoutGrid, List, Plus, Search, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { ordersApi } from '@/api';
 import { CLIENT_TYPE_LABELS, SOURCE_LABELS, STATUS_LABELS, options } from '@/lib/labels';
 import { cn, formatCurrency, formatDate, formatHours } from '@/lib/utils';
+import { useUser } from '@/lib/auth';
 import { useDebounced } from '@/components/clients/ClientPicker';
 import { OrderFormModal } from '@/components/orders/OrderFormModal';
 import { OrdersKanban } from '@/components/orders/OrdersKanban';
@@ -14,13 +15,20 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Empty, ErrorState, Loading, PageHeader } from '@/components/ui/States';
+import { useToast } from '@/components/ui/Toast';
 
 const LIMIT = 25;
 const FINISHED = new Set(['YAKUNLANDI', 'BEKOR_QILINDI']);
 
 export default function OrdersPage() {
   const navigate = useNavigate();
+  const me = useUser();
+  const toast = useToast();
+  const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
+  // Direktor eski buyurtmalarni belgilab, birdaniga o'chiradi
+  const canBulkDelete = me.role === 'ADMIN';
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [creating, setCreating] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [search, setSearch] = React.useState(params.get('search') ?? '');
@@ -72,6 +80,31 @@ export default function OrdersPage() {
     setParams(next, { replace: true });
   };
   const orders = data?.data ?? [];
+
+  React.useEffect(() => { setSelected(new Set()); }, [params.toString()]);
+  const toggle = (id: string) => setSelected((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const allSelected = orders.length > 0 && orders.every((o) => selected.has(o.id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(orders.map((o) => o.id)));
+  const bulkRemove = useMutation({
+    mutationFn: () => ordersApi.bulkRemove([...selected]),
+    onSuccess: (r) => {
+      if (r.failed.length) toast.error(`${r.deleted} ta o'chirildi, ${r.failed.length} tasi o'chmadi: ${r.failed[0].error}`);
+      else toast.success(`${r.deleted} ta buyurtma o'chirildi`);
+      setSelected(new Set());
+      for (const key of ['orders', 'summary', 'payments', 'debts']) void qc.invalidateQueries({ queryKey: [key] });
+    },
+    onError: toast.error,
+  });
+  const confirmBulkRemove = () => {
+    const picked = orders.filter((o) => selected.has(o.id));
+    const paid = picked.reduce((sum, o) => sum + (o.paidAmount ?? 0), 0);
+    const money = paid > 0 ? `\n\nUlarda ${formatCurrency(paid)} to'lov bor — to'lovlar ham o'chadi va kassa hisobotidan chiqadi (balansdan to'langani mijoz balansiga qaytadi).` : '';
+    if (window.confirm(`${picked.length} ta buyurtmani butunlay o'chirasizmi? Dizayn, ishlab chiqarish va o'rnatish ham o'chadi. Qaytarib bo'lmaydi.${money}`)) bulkRemove.mutate();
+  };
   const meta = data?.meta;
   const pages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
 
@@ -186,10 +219,27 @@ export default function OrdersPage() {
                 </li>
               ))}
             </ul>
+            {canBulkDelete && selected.size > 0 && (
+              <div className="hidden items-center justify-between gap-3 border-b border-gray-200 bg-red-50 px-5 py-2.5 text-sm md:flex">
+                <span className="font-medium text-gray-900">{selected.size} ta tanlandi</span>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setSelected(new Set())}>Bekor</Button>
+                  <Button size="sm" variant="danger" isLoading={bulkRemove.isPending} onClick={confirmBulkRemove}>
+                    <Trash2 className="h-4 w-4" />O'chirish
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
+                    {canBulkDelete && (
+                      <th className="w-10 pl-5 py-3">
+                        <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Sahifadagi hammasini tanlash"
+                          className="h-4 w-4 rounded border-gray-300 accent-brand-400" />
+                      </th>
+                    )}
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">ID / Sana</th>
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Mijoz</th>
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Summa</th>
@@ -200,7 +250,13 @@ export default function OrdersPage() {
                 </thead>
                 <tbody>
                   {orders.map((o) => (
-                    <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} className="cursor-pointer border-b border-gray-100 transition-colors last:border-0 hover:bg-brand-50">
+                    <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} className={cn('cursor-pointer border-b border-gray-100 transition-colors last:border-0 hover:bg-brand-50', selected.has(o.id) && 'bg-brand-50')}>
+                      {canBulkDelete && (
+                        <td className="w-10 pl-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                          <input type="checkbox" checked={selected.has(o.id)} onChange={() => toggle(o.id)} aria-label={`${o.number} ni tanlash`}
+                            className="h-4 w-4 rounded border-gray-300 accent-brand-400" />
+                        </td>
+                      )}
                       <td className="px-5 py-3.5">
                         <p className="font-semibold text-gray-900">{o.number}</p>
                         <p className="mt-1 text-xs text-gray-500">{formatDate(o.createdAt)}</p>

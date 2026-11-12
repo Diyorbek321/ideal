@@ -7,6 +7,7 @@ import { KIND_LABELS, METHOD_LABELS, options } from '@/lib/labels';
 import { useUser } from '@/lib/auth';
 import { formatCurrency, formatDateTime, parseMoney } from '@/lib/utils';
 import { invalidateOrderViews } from '@/lib/queries';
+import { confirmBigAmount } from '@/lib/bigAmount';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -138,7 +139,7 @@ export function PaymentsCard({ order }: { order: OrderDetail }) {
         footer={(
           <>
             <Button variant="outline" onClick={() => setOpen(false)}>Bekor qilish</Button>
-            <Button isLoading={create.isPending} onClick={() => create.mutate()}>{fromBalance ? 'Balansdan to\'lash' : refunding ? 'Qaytarish' : editing ? 'Saqlash' : 'Qabul qilish'}</Button>
+            <Button isLoading={create.isPending} onClick={() => (refunding || confirmBigAmount(parseMoney(amount) ?? 0, 'To\'lov summasi')) && create.mutate()}>{fromBalance ? 'Balansdan to\'lash' : refunding ? 'Qaytarish' : editing ? 'Saqlash' : 'Qabul qilish'}</Button>
           </>
         )}
       >
