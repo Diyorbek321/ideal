@@ -27,7 +27,7 @@ export default function OrdersPage() {
   const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
   // Direktor eski buyurtmalarni belgilab, birdaniga o'chiradi
-  const canBulkDelete = me.role === 'ADMIN';
+  const canBulkDelete = me.role === 'ADMIN' || me.role === 'MANAGER';
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [creating, setCreating] = React.useState(false);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
@@ -102,7 +102,9 @@ export default function OrdersPage() {
   const confirmBulkRemove = () => {
     const picked = orders.filter((o) => selected.has(o.id));
     const paid = picked.reduce((sum, o) => sum + (o.paidAmount ?? 0), 0);
-    const money = paid > 0 ? `\n\nUlarda ${formatCurrency(paid)} to'lov bor — to'lovlar ham o'chadi va kassa hisobotidan chiqadi (balansdan to'langani mijoz balansiga qaytadi).` : '';
+    const money = paid > 0 && me.role !== 'ADMIN'
+      ? '\n\nTo\'lovi bor buyurtmalar o\'chmaydi — ularni faqat admin o\'chira oladi.'
+      : paid > 0 ? `\n\nUlarda ${formatCurrency(paid)} to'lov bor — to'lovlar ham o'chadi va kassa hisobotidan chiqadi (balansdan to'langani mijoz balansiga qaytadi).` : '';
     if (window.confirm(`${picked.length} ta buyurtmani butunlay o'chirasizmi? Dizayn, ishlab chiqarish va o'rnatish ham o'chadi. Qaytarib bo'lmaydi.${money}`)) bulkRemove.mutate();
   };
   const meta = data?.meta;

@@ -93,7 +93,7 @@ export default function OrderDetailPage() {
             {user.role === 'ADMIN' && (
               <Link to={`/audit?ref=${order.id}`}><Button variant="ghost"><History className="h-4 w-4" />Tarix</Button></Link>
             )}
-            {user.role === 'ADMIN' && (
+            {(user.role === 'ADMIN' || (user.role === 'MANAGER' && (order.paidAmount ?? 0) === 0)) && (
               <Button variant="ghost" className="text-red-600" isLoading={removeOrder.isPending}
                 onClick={() => window.confirm(`${order.number} buyurtmasini butunlay o'chirasizmi? Dizayn, ishlab chiqarish va o'rnatish ham o'chadi. Qaytarib bo'lmaydi.${
                   (order.paidAmount ?? 0) > 0 ? `\n\nBuyurtmada ${formatCurrency(order.paidAmount ?? 0)} to'lov bor — to'lovlar ham o'chadi va kassa hisobotidan chiqadi (balansdan to'langani mijoz balansiga qaytadi).` : ''}`) && removeOrder.mutate()}>
