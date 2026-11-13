@@ -17,13 +17,13 @@ const num = (s: string) => (s.trim() === '' ? null : Number(s.replace(',', '.'))
 export function AttendanceSettings({ s }: { s: CompanySettings }) {
   const toast = useToast();
   const qc = useQueryClient();
-  const [f, setF] = React.useState({ start: '', end: '', close: '', overtime: '', lat: '', lng: '', radius: '', penalty: '', grace: '', from: '', selfie: '', unmarked: '', siteRadius: '', siteAfter: '' });
+  const [f, setF] = React.useState({ start: '', end: '', close: '', overtime: '', lat: '', lng: '', radius: '', penalty: '', grace: '', from: '', selfie: '', unmarked: '', siteRadius: '', siteAfter: '', nightGrace: '' });
   const [locating, setLocating] = React.useState(false);
   React.useEffect(() => {
     setF({
       start: s.workStartTime, end: s.workEndTime, close: s.autoCloseTime, overtime: String(s.overtimePercent), lat: s.officeLat == null ? '' : String(s.officeLat), lng: s.officeLng == null ? '' : String(s.officeLng), radius: String(s.officeRadiusM),
       penalty: String(s.latePenalty), grace: String(s.lateGraceMin), from: s.absenceFrom ?? '', selfie: String(s.selfiePercent),
-      unmarked: String(s.unmarkedPenalty), siteRadius: String(s.siteRadiusM), siteAfter: s.siteLeaveAfter,
+      unmarked: String(s.unmarkedPenalty), siteRadius: String(s.siteRadiusM), siteAfter: s.siteLeaveAfter, nightGrace: String(s.nightGraceHours ?? 3),
     });
   }, [s]);
 
@@ -34,17 +34,19 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
   const grace = Number(f.grace);
   const selfie = f.selfie.trim() === '' ? 0 : Number(f.selfie);
   const overtime = f.overtime.trim() === '' ? 0 : Number(f.overtime);
+  const nightGrace = f.nightGrace.trim() === '' ? 0 : Number(f.nightGrace);
   const unmarked = f.unmarked.trim() ? parseMoney(f.unmarked) : 0;
   const siteRadius = Number(f.siteRadius);
   const valid = /^\d{2}:\d{2}$/.test(f.start) && /^\d{2}:\d{2}$/.test(f.end) && /^\d{2}:\d{2}$/.test(f.close) && f.start < f.end && f.end < f.close && (lat == null) === (lng == null) && !Number.isNaN(lat) && !Number.isNaN(lng) && radius >= 20
     && penalty !== null && Number.isInteger(grace) && grace >= 0
     && Number.isInteger(selfie) && selfie >= 0 && selfie <= 100
     && Number.isInteger(overtime) && overtime >= 0 && overtime <= 500
+    && Number.isInteger(nightGrace) && nightGrace >= 0 && nightGrace <= 12
     && unmarked !== null && Number.isInteger(siteRadius) && siteRadius >= 10 && siteRadius <= 2000 && /^\d{2}:\d{2}$/.test(f.siteAfter);
 
   const save = useMutation({
     mutationFn: (clearOffice: boolean = false) => settingsApi.updateCompany({
-      workStartTime: f.start, workEndTime: f.end, autoCloseTime: f.close, overtimePercent: overtime,
+      workStartTime: f.start, workEndTime: f.end, autoCloseTime: f.close, overtimePercent: overtime, nightGraceHours: nightGrace,
       officeLat: clearOffice ? null : lat, officeLng: clearOffice ? null : lng, officeRadiusM: Math.round(radius),
       latePenalty: penalty ?? 0, lateGraceMin: grace, absenceFrom: f.from || null, selfiePercent: selfie,
       unmarkedPenalty: unmarked ?? 0, siteRadiusM: siteRadius, siteLeaveAfter: f.siteAfter,
@@ -124,6 +126,12 @@ export function AttendanceSettings({ s }: { s: CompanySettings }) {
             <Input label="Qo'shimcha ish haqi (%)" inputMode="numeric" placeholder="0 — to'lanmaydi" value={f.overtime} onChange={(e) => setF({ ...f, overtime: e.target.value })} />
             <p className="mt-1 text-xs text-gray-500">
               {overtime ? `Tasdiqlangan qo'shimcha soat — soatbay stavkaning ${overtime}% i (${(overtime / 100).toLocaleString('ru-RU')} baravar). Faqat fiks oylikdagilarga` : 'Qo\'shimcha ish to\'lanmaydi, faqat hisobotda'}
+            </p>
+          </div>
+          <div>
+            <Input label="Tungi ishdan keyin — kechikish kechiriladi (soat)" inputMode="numeric" placeholder="0 — kechirilmaydi" value={f.nightGrace} onChange={(e) => setF({ ...f, nightGrace: e.target.value })} />
+            <p className="mt-1 text-xs text-gray-500">
+              {nightGrace ? `Tasdiqlangan qo'shimcha ish yarim tundan keyin tugagan bo'lsa — ertasi kuni ${nightGrace} soatgacha kechikish yozilmaydi` : 'Tunda ishlagan xodim ham ertasi kuni vaqtida kelishi kerak'}
             </p>
           </div>
         </div>

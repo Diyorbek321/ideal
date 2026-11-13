@@ -1,12 +1,13 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarCheck, Check, UserCheck, X } from 'lucide-react';
+import { CalendarCheck, Check, Moon, UserCheck, X } from 'lucide-react';
 import { attendanceApi } from '@/api';
 import type { AttendanceRecord } from '@/types';
 import { ROLE_LABELS } from '@/lib/labels';
 import { cn, currentPeriod, fileUrl, formatDateTime, toDateInput } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import { ManualMarkModal, type ManualMarkPreset } from '@/components/attendance/ManualMarkModal';
+import { NightWorkModal, type NightWorkPreset } from '@/components/attendance/NightWorkModal';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
@@ -17,6 +18,8 @@ import { MonthInput, periodLabel, usePdfExport } from '@/components/reports/Repo
 
 const hhmm = (iso: string) => formatDateTime(iso).slice(-5);
 const dur = (m: number) => (m ? `${Math.floor(m / 60)} soat ${m % 60} daq` : '—');
+// Tasdiqlangan qo'shimcha ish yarim tundan keyin tugagan — tunda ishlagan
+const isNight = (r: AttendanceRecord) => r.overtimeStatus === 'APPROVED' && !!r.overtimeUntil && toDateInput(new Date(r.overtimeUntil)) > r.day;
 
 function cellTitle(r: AttendanceRecord): string {
   const parts = [`Keldi ${hhmm(r.checkInAt)}`];
@@ -24,6 +27,7 @@ function cellTitle(r: AttendanceRecord): string {
   if (r.lateMinutes) parts.push(`${r.lateMinutes} daq kech`);
   if (r.earlyLeaveMinutes) parts.push(`${r.earlyLeaveMinutes} daq erta ketdi`);
   if (r.overtimeMinutes) parts.push(`qo'shimcha ${r.overtimeMinutes} daq`);
+  if (isNight(r)) parts.push(`tunda ishladi — ${hhmm(r.overtimeUntil!)} gacha${r.overtimeReason ? ` (${r.overtimeReason})` : ''}`);
   if (r.markedById) parts.push(`qo'lda belgiladi: ${r.markedByName ?? 'rahbar'} — ${r.markNote ?? ''}`);
   return parts.join(', ');
 }
@@ -34,9 +38,11 @@ interface CellProps {
   onSelfie: (r: AttendanceRecord) => void;
   /** Bo'sh katak bosilsa — kelishni qo'lda belgilash (faqat ruxsat etilgan kunlar) */
   onMark?: () => void;
+  /** «?» (Ketdim bosilmagan) bosilsa — tungi ishni belgilash */
+  onNight?: () => void;
 }
 
-function Cell({ r, isWorkDay, onSelfie, onMark }: CellProps) {
+function Cell({ r, isWorkDay, onSelfie, onMark, onNight }: CellProps) {
   if (!r) {
     return (
       <td className={cn('border border-gray-100 p-0 text-center text-[10px]', isWorkDay ? 'bg-red-50 text-red-400' : 'bg-gray-50 text-gray-300')}>
@@ -56,9 +62,10 @@ function Cell({ r, isWorkDay, onSelfie, onMark }: CellProps) {
       ) : hhmm(r.checkInAt)}
       {/* Ketgan vaqti: tizim yopgan bo'lsa "?" — «Ketdim» bosilmagan */}
       <span className={cn('block border-t border-black/5 font-normal', r.autoClosed ? 'text-red-500' : 'opacity-75')}>
-        {r.checkOutAt ? (r.autoClosed ? '?' : hhmm(r.checkOutAt)) : '…'}
+        {r.checkOutAt ? (r.autoClosed ? (onNight ? <button type="button" onClick={onNight} title="Tunda ishlagan bo'lsa — belgilang" className="w-full font-semibold hover:underline">?</button> : '?') : hhmm(r.checkOutAt)) : '…'}
       </span>
       {r.outInstallationId && <span className="absolute right-0 top-0 text-[8px] leading-none text-sky-600" aria-label="Obyektdan ketdi">●</span>}
+      {isNight(r) && <span className="absolute bottom-0 right-0 text-[8px] leading-none text-indigo-600" aria-label="Tunda ishladi">☾</span>}
       {r.markedById && <span className="absolute left-0 top-0 text-[8px] leading-none text-violet-600" aria-label="Qo'lda belgilangan">✎</span>}
     </td>
   );
@@ -69,6 +76,7 @@ export default function AttendancePage() {
   const pdf = usePdfExport(`davomat_${period}`);
   const [selfie, setSelfie] = React.useState<AttendanceRecord | null>(null);
   const [mark, setMark] = React.useState<ManualMarkPreset | null>(null);
+  const [night, setNight] = React.useState<NightWorkPreset | null>(null);
   const { user } = useAuth();
   const today = toDateInput(new Date());
   const markFrom = toDateInput(new Date(Date.now() - 7 * 24 * 3600_000));
@@ -101,6 +109,7 @@ export default function AttendancePage() {
         actions={(
           <div className="flex flex-wrap gap-2" data-pdf-hide>
             <Button variant="outline" onClick={() => setMark({})} disabled={!data}><UserCheck className="h-4 w-4" />Kelishni belgilash</Button>
+            <Button variant="outline" onClick={() => setNight({})} disabled={!data}><Moon className="h-4 w-4" />Tungi ish</Button>
             <MonthInput value={period} onChange={setPeriod} />{pdf.button}
           </div>
         )} />
@@ -171,7 +180,7 @@ export default function AttendancePage() {
             )}
           </Card>
 
-          <Card title="Kunlik jadval" description="Har katakda: tepada kelgan, pastda ketgan vaqti («…» — hali ishda, «?» — «Ketdim» bosilmagan). Yashil — vaqtida, sariq — kechikkan yoki erta ketgan, qizil — kelmagan. Tagiga chizilgan vaqt — selfi bor, bosib ko'ring. ✎ — rahbar qo'lda belgilagan. Bo'sh katakni bosib kelishni belgilash mumkin (oxirgi 7 kun)">
+          <Card title="Kunlik jadval" description="Har katakda: tepada kelgan, pastda ketgan vaqti («…» — hali ishda, «?» — «Ketdim» bosilmagan). Yashil — vaqtida, sariq — kechikkan yoki erta ketgan, qizil — kelmagan. Tagiga chizilgan vaqt — selfi bor, bosib ko'ring. ✎ — rahbar qo'lda belgilagan, ☾ — tunda ishlagan («?» ni bosib tungi ishni belgilash mumkin). Bo'sh katakni bosib kelishni belgilash mumkin (oxirgi 7 kun)">
             <div className="-mx-5 overflow-x-auto sm:-mx-6">
               <table className="w-full border-collapse text-xs">
                 <thead>
@@ -186,7 +195,8 @@ export default function AttendancePage() {
                       <td className="sticky left-0 whitespace-nowrap bg-white px-3 py-1 font-medium">{u.fullName}</td>
                       {days.map((d) => (
                         <Cell key={d} isWorkDay={data.workDays.includes(d)} r={data.records.find((r) => r.userId === u.id && r.day === d)} onSelfie={setSelfie}
-                          onMark={canMark(u.id, d) ? () => setMark({ userId: u.id, day: d }) : undefined} />
+                          onMark={canMark(u.id, d) ? () => setMark({ userId: u.id, day: d }) : undefined}
+                          onNight={canMark(u.id, d) ? () => setNight({ userId: u.id, day: d }) : undefined} />
                       ))}
                     </tr>
                   ))}
@@ -194,6 +204,8 @@ export default function AttendancePage() {
               </table>
             </div>
           </Card>
+          <NightWorkModal preset={night} onClose={() => setNight(null)} users={data.users} selfId={user?.id}
+            workEndTime={data.workEndTime} nightGraceHours={data.nightGraceHours} />
           <ManualMarkModal preset={mark} onClose={() => setMark(null)} users={data.users} selfId={user?.id}
             workStartTime={data.workStartTime} workEndTime={data.workEndTime} />
           <Modal open={!!selfie} onClose={() => setSelfie(null)}

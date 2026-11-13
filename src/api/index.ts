@@ -425,6 +425,8 @@ export const attendanceApi = {
   reviewOvertime: (id: string, approve: boolean) => api.post<AttendanceRecord>(`/attendance/${id}/overtime`, { approve }),
   month: (period: string) => api.get<AttendanceMonth>('/attendance', { period }),
   /** Rahbar xodimning kelishini qo'lda belgilaydi (ishxonada tunab qolgan va h.k.) */
+  /** Rahbar tungi ishni keyin belgilaydi: kun yopiladi, soatlar qo'shimcha ish, ertasi kun kechiriladi */
+  markNight: (body: { userId: string; day: string; until: string; note: string }) => api.post<AttendanceRecord>('/attendance/night', body),
   markManual: (body: { userId: string; day: string; time: string; outTime?: string; note: string }) => api.post<AttendanceRecord>('/attendance/manual', body),
   /** Xodimning o'z davomati — e'tiroz uchun */
   mine: (period: string) => api.get<AttendanceRecord[]>('/attendance/me', { period }),

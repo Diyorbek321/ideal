@@ -566,6 +566,8 @@ export interface CompanySettings {
   workEndTime: string;
   autoCloseTime: string;
   overtimePercent: number;
+  /** Tunda ishlagandan keyin ertasi kungi kechikish shu soatgacha kechiriladi (0 — o'chiq) */
+  nightGraceHours: number;
   officeLat: number | null;
   officeLng: number | null;
   officeRadiusM: number;
@@ -1022,6 +1024,7 @@ export interface AttendanceMonth {
   period: string;
   workStartTime: string;
   workEndTime: string;
+  nightGraceHours: number;
   workDays: string[];
   users: Array<UserRef & {
     role: UserRole; present: number; late: number; lateMinutes: number; absent: number;
