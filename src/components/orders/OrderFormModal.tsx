@@ -45,15 +45,32 @@ interface ItemDraft extends PricedDraft {
   /** Tahrirdagi asl ro'yxat: tarkib o'zgarmasa aynan shu yuboriladi */
   initialFinishing?: string[];
   unitPrice: string;
+  /** Bitta mahsulotning o'lchamlari bir guruh: tur, material, xizmatlar umumiy */
+  group: string;
+  /** Qo'lda yozilgan qator summasi ('' — dona narxi × soni) */
+  sum: string;
 }
 
-const blankItem = (): ItemDraft => ({
+/** Bitta mahsulotga "+" bilan qo'shiladigan o'lchamlar soni */
+const MAX_SIZES = 5;
+let groupSeq = 0;
+const newGroup = () => `g${++groupSeq}`;
+
+const blankItem = (group = newGroup()): ItemDraft => ({
   productType: '', materialId: '', width: '', height: '', quantity: '1', services: [], extraFinishing: [], unitPrice: '', manual: false,
+  group, sum: '',
 });
 
+/** Saqlangan qatorning summasi dona narxi × sonidan farq qilsa — u qo'lda yozilgan */
+const manualTotal = (i: { unitPrice?: number; quantity: number; total?: number }): number | undefined =>
+  i.total !== undefined && i.unitPrice !== undefined && i.total !== i.unitPrice * i.quantity ? i.total : undefined;
+
+type SourceItem = Omit<OrderItemInput, 'unitPrice'> & { unitPrice?: number };
+
 // Tahrirdagi va kalkulyatordan kelgan narx tayyor — qayta hisoblanmaydi (manual)
-const toDraft = (i: Omit<OrderItemInput, 'unitPrice'> & { unitPrice?: number }, catalog: PriceListItem[]): ItemDraft => {
+const toDraft = (i: SourceItem, catalog: PriceListItem[], group: string): ItemDraft => {
   const byName = (n: string) => catalog.find((c) => c.kind === 'FINISHING' && c.name.toLowerCase() === n.trim().toLowerCase());
+  const sum = manualTotal(i);
   return {
     productType: i.productType, materialId: i.materialId ?? '', width: cmToMeters(i.widthCm), height: cmToMeters(i.heightCm),
     quantity: String(i.quantity),
@@ -62,8 +79,30 @@ const toDraft = (i: Omit<OrderItemInput, 'unitPrice'> & { unitPrice?: number }, 
     initialFinishing: i.finishing,
     unitPrice: String(i.unitPrice ?? ''),
     manual: true,
+    group,
+    sum: sum === undefined ? '' : String(sum),
   };
 };
+
+// Ketma-ket kelgan bir xil mahsulot (tur, material, xizmatlar) qatorlari bitta kartada o'lcham sifatida ko'rinadi
+const toDrafts = (list: SourceItem[], catalog: PriceListItem[]): ItemDraft[] => {
+  const sig = (i: SourceItem) => JSON.stringify([i.productType, i.materialId ?? null, i.finishing]);
+  const out: ItemDraft[] = [];
+  list.forEach((i, idx) => {
+    const prev = out[idx - 1];
+    const size = prev ? out.filter((d) => d.group === prev.group).length : 0;
+    const same = prev && sig(list[idx - 1]!) === sig(i) && size < MAX_SIZES;
+    out.push(toDraft(i, catalog, same ? prev.group : newGroup()));
+  });
+  return out;
+};
+
+/** Guruhlar tartibi bo'yicha: [guruh, [qatorning umumiy ro'yxatdagi indekslari]] */
+function groupsOf(list: ItemDraft[]): Array<[string, number[]]> {
+  const map = new Map<string, number[]>();
+  list.forEach((it, idx) => map.set(it.group, [...(map.get(it.group) ?? []), idx]));
+  return [...map.entries()];
+}
 
 function finishingNames(it: ItemDraft, catalog: PriceListItem[]): string[] {
   const names = [...it.services.map((c) => catalog.find((p) => p.code === c)?.name ?? c), ...it.extraFinishing];
@@ -95,7 +134,7 @@ export function OrderFormModal({
   const [items, setItems] = React.useState<ItemDraft[] | null>(start?.length ? null : [blankItem()]);
   React.useEffect(() => {
     // Narxlar yuklanmasa ham forma ochilsin — pardozlash nomlari "Boshqa" sifatida saqlanadi
-    if (items === null && (prices || pricesFailed)) setItems(start!.map((i) => toDraft(i, prices ?? [])));
+    if (items === null && (prices || pricesFailed)) setItems(toDrafts(start!, prices ?? []));
   }, [items, prices, pricesFailed, start]);
   const [deadline, setDeadline] = React.useState(isoToInput(order?.deadline));
   const [needsDesignChoice, setNeedsDesign] = React.useState(order?.needsDesign ?? initialNeedsDesign);
@@ -139,7 +178,31 @@ export function OrderFormModal({
 
   const patchItem = (idx: number, patch: Partial<ItemDraft>) =>
     setItems((l) => (l ?? []).map((it, i) => (i === idx ? { ...it, ...patch } : it)));
-  const updateItem = (idx: number, k: 'materialId' | 'width' | 'height' | 'quantity', v: string) => patchItem(idx, { [k]: v });
+  const updateItem = (idx: number, k: 'width' | 'height', v: string) => patchItem(idx, { [k]: v });
+  // Tur, material, xizmatlar — mahsulotning barcha o'lchamlariga umumiy
+  const patchGroup = (group: string, patch: (it: ItemDraft) => Partial<ItemDraft>) =>
+    setItems((l) => (l ?? []).map((it) => (it.group === group ? { ...it, ...patch(it) } : it)));
+  // Summa qo'lda yozilgan bo'lsa soni o'zgarganda summa saqlanadi, dona narxi qayta bo'linadi
+  const changeQuantity = (idx: number, v: string) => {
+    const it = list[idx]!;
+    const sum = parseMoney(it.sum), q = parseDecimal(v);
+    patchItem(idx, { quantity: v, ...(it.sum && sum !== null && q && q > 0 && { unitPrice: String(Math.round(sum / q)) }) });
+  };
+  const changeSum = (idx: number, v: string) => {
+    const sum = parseMoney(v), q = parseDecimal(list[idx]!.quantity);
+    patchItem(idx, {
+      sum: v, manual: true,
+      ...(sum !== null && q && q > 0 && { unitPrice: String(Math.round(sum / q)) }),
+    });
+  };
+  const addSize = (group: string) => setItems((l) => {
+    const cur = l ?? [];
+    const last = cur.map((it) => it.group).lastIndexOf(group);
+    const base = cur[last]!;
+    // Tur, material va xizmatlar ko'chiriladi, o'lcham va narx — yangidan
+    const size: ItemDraft = { ...blankItem(group), productType: base.productType, materialId: base.materialId, services: base.services, extraFinishing: base.extraFinishing, initialFinishing: base.initialFinishing, manual: base.manual && sumOnly(base) };
+    return [...cur.slice(0, last + 1), size, ...cur.slice(last + 1)];
+  });
 
   const pricing = { types: productTypes, prices, needsDesign, installationCode };
   const results = useItemPricing(list, pricing, (idx, unitPrice) =>
@@ -147,26 +210,26 @@ export function OrderFormModal({
   const canAuto = (it: ItemDraft) => priceInputFor({ ...it, manual: false }, false, pricing) !== null;
   const installLost = !!installationCode && installationIndex(list, pricing) === -1;
 
-  const lineTotal = (i: ItemDraft) => (parseMoney(i.unitPrice) ?? 0) * (parseDecimal(i.quantity) ?? 0);
+  const lineTotal = (i: ItemDraft) =>
+    i.sum.trim() ? parseMoney(i.sum) ?? 0 : (parseMoney(i.unitPrice) ?? 0) * (parseDecimal(i.quantity) ?? 0);
   const subtotal = list.reduce((s, i) => s + lineTotal(i), 0);
   const total = Math.max(0, subtotal + installationPrice - (parseMoney(discount) ?? 0));
 
   // Ro'yxatdagi tur tanlansa — asosiy materiali va doimiy xizmatlari qo'yiladi, narx yana avtomatik
   const sumOnly = (it: ItemDraft) => !!findType(productTypes, it.productType)?.skipProduction;
-  const changeType = (idx: number, name: string) => {
+  const changeType = (group: string, name: string) => {
     const t = findType(productTypes, name);
-    const it = list[idx]!;
     const active = new Set(services.map((x) => x.code));
-    patchItem(idx, {
+    patchGroup(group, (it) => ({
       productType: name,
       ...(t && {
         // Hajmli harf: o'lchamsiz, summa qo'lda
-        manual: t.skipProduction,
-        ...(t.skipProduction && { width: '', height: '' }),
+        manual: t.skipProduction || !!it.sum,
+        ...(t.skipProduction && { width: '', height: '', sum: '' }),
         services: t.serviceCodes.filter((c) => active.has(c)),
         ...(t.defaultMaterialId && !it.materialId && { materialId: t.defaultMaterialId }),
       }),
-    });
+    }));
   };
 
   const addType = useMutation({
@@ -186,6 +249,7 @@ export function OrderFormModal({
       else if (sumOnly(i) && !parseMoney(i.unitPrice)) e[`item${idx}`] = 'Summani kiriting';
       else if (!sumOnly(i) && (metersToCm(i.width) === null || metersToCm(i.height) === null)) e[`item${idx}`] = 'O\'lchamni metrda kiriting, masalan 1,20';
       else if (!Number.isInteger(parseDecimal(i.quantity)) || (parseDecimal(i.quantity) ?? 0) < 1) e[`item${idx}`] = 'Soni butun son bo\'lishi kerak';
+      else if (i.sum.trim() && parseMoney(i.sum) === null) e[`item${idx}`] = 'Summani raqam bilan kiriting';
       else if (!i.manual && !canAuto(i)) e[`item${idx}`] = 'Bu tur uchun narx yo\'q — dona narxini qo\'lda yozing';
       // Avtomatik narx joriy ma'lumot bo'yicha hisoblangan bo'lishi shart (eski o'lcham narxi saqlanmasin)
       else if (!i.manual && typeof results[idx] === 'string') e[`item${idx}`] = results[idx] as string;
@@ -214,6 +278,7 @@ export function OrderFormModal({
         quantity: parseDecimal(i.quantity)!,
         finishing: finishingNames(i, catalog),
         unitPrice: parseMoney(i.unitPrice)!,
+        ...(i.sum.trim() && { total: parseMoney(i.sum)! }),
       })),
       discount: parseMoney(discount) ?? 0,
       installationPrice,
@@ -231,10 +296,14 @@ export function OrderFormModal({
   // muddati yoki izohini menejer ham o'zgartira olsin (tarkibini faqat admin)
   const changesOnly = (o: OrderDetail, b: OrderInput): Partial<OrderInput> => {
     const same = (x: unknown, y: unknown) => JSON.stringify(x) === JSON.stringify(y);
-    const original = o.items.map((i) => ({
-      productType: i.productType, materialId: i.materialId ?? null, widthCm: i.widthCm, heightCm: i.heightCm,
-      quantity: i.quantity, finishing: i.finishing, unitPrice: i.unitPrice,
-    }));
+    const original = o.items.map((i) => {
+      const total = manualTotal(i);
+      return {
+        productType: i.productType, materialId: i.materialId ?? null, widthCm: i.widthCm, heightCm: i.heightCm,
+        quantity: i.quantity, finishing: i.finishing, unitPrice: i.unitPrice,
+        ...(total !== undefined && { total }),
+      };
+    });
     const { items: newItems, discount: newDiscount, installationPrice: newInstall, ...rest } = b;
     return {
       ...rest,
@@ -308,75 +377,122 @@ export function OrderFormModal({
           <p className="text-sm font-semibold text-gray-900">Mahsulotlar</p>
           <datalist id="product-types">{productTypes?.filter((p) => p.isActive).map((p) => <option key={p.id} value={p.name} />)}</datalist>
           {items === null && <p className="text-sm text-gray-500">Yuklanmoqda…</p>}
-          {list.map((it, idx) => {
-            const t = findType(productTypes, it.productType);
+          {groupsOf(list).map(([group, idxs]) => {
+            const head = list[idxs[0]!]!;
+            const t = findType(productTypes, head.productType);
+            const noSize = sumOnly(head);
             return (
-            <div key={idx} className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">
+            <div key={group} className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-8">
-                <div className="col-span-2">
-                  <Input label="Turi" list="product-types" value={it.productType} onChange={(e) => changeType(idx, e.target.value)} />
+                <div className="col-span-2 md:col-span-4">
+                  <Input label="Turi" list="product-types" value={head.productType} onChange={(e) => changeType(group, e.target.value)} />
                   {t && productPriceLabel(t) && <p className="mt-1 text-xs text-gray-500">{productPriceLabel(t)}</p>}
-                  {it.productType.trim() && productTypes && !t && (
+                  {head.productType.trim() && productTypes && !t && (
                     <button
                       type="button"
                       disabled={addType.isPending}
-                      onClick={() => addType.mutate(it)}
+                      onClick={() => addType.mutate(head)}
                       className="mt-1 text-xs font-semibold text-brand-700 hover:underline"
                     >
                       + Ro'yxatga qo'shish
                     </button>
                   )}
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-2 md:col-span-3">
                   <Select
                     label="Material"
-                    value={it.materialId}
-                    onChange={(e) => updateItem(idx, 'materialId', e.target.value)}
+                    value={head.materialId}
+                    onChange={(e) => patchGroup(group, () => ({ materialId: e.target.value }))}
                     placeholder="—"
                     options={(materials ?? []).map((m) => ({ value: m.id, label: m.name }))}
                   />
                 </div>
-                {sumOnly(it) ? (
-                  <p className="col-span-2 self-end pb-2 text-xs text-gray-500">O'lcham shart emas · pechatnikka bormaydi, to'g'ri o'rnatishga</p>
-                ) : (<>
-                  <Input label="Eni, m" inputMode="decimal" placeholder="1,40" value={it.width} onChange={(e) => updateItem(idx, 'width', e.target.value)} />
-                  <Input label="Bo'yi, m" inputMode="decimal" placeholder="1,20" value={it.height} onChange={(e) => updateItem(idx, 'height', e.target.value)} />
-                </>)}
-                <Input label="Soni" inputMode="numeric" value={it.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)} />
-                <div className="col-span-2 md:col-span-1">
-                  <Input
-                    label={sumOnly(it) ? 'Summa' : it.manual ? 'Dona narxi (qo\'lda)' : 'Dona narxi'} money
-                    inputMode="numeric"
-                    value={it.unitPrice}
-                    // Qo'lda yozilsa avtomatik hisobdan uziladi
-                    onChange={(e) => patchItem(idx, { unitPrice: e.target.value, manual: true })}
-                  />
-                </div>
-                <div className="col-span-2 md:col-span-6">
-                  <p className="mb-1.5 text-xs font-medium text-gray-500">Xizmatlar</p>
-                  <ServiceChips services={services} value={it.services} onChange={(codes) => patchItem(idx, { services: codes })} showPrice />
-                  {it.extraFinishing.length > 0 && <p className="mt-1 text-xs text-gray-400">Boshqa: {it.extraFinishing.join(', ')}</p>}
-                </div>
-                <div className="col-span-2 flex items-end justify-end gap-3 pb-2">
-                  {it.manual && canAuto(it) && (
-                    <button
-                      type="button"
-                      onClick={() => patchItem(idx, { manual: false })}
-                      title="Narx qo'lda — o'lcham, xizmat yoki montaj o'zgarsa qayta hisoblanmaydi"
-                      className="flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline"
-                    >
-                      <RotateCcw className="h-3 w-3" />Avtomatik narx
-                    </button>
-                  )}
-                  {list.length > 1 && (
-                    <button type="button" onClick={() => setItems((l) => (l ?? []).filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700" aria-label="O'chirish">
+                <div className="col-span-2 flex items-end justify-end pb-2 md:col-span-1">
+                  {groupsOf(list).length > 1 && (
+                    <button type="button" onClick={() => setItems((l) => (l ?? []).filter((x) => x.group !== group))} className="text-red-500 hover:text-red-700" aria-label="Mahsulotni o'chirish" title="Mahsulotni o'chirish">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
                 </div>
               </div>
-              <ItemSummary it={it} total={lineTotal(it)} res={results[idx] ?? null} auto={!it.manual && canAuto(it)} canAutoHint={canAuto(it)} />
-              {errors[`item${idx}`] && <p className="mt-2 text-xs text-red-500">{errors[`item${idx}`]}</p>}
+
+              <div className="mt-3 space-y-2">
+                {idxs.map((idx, n) => {
+                  const it = list[idx]!;
+                  return (
+                  <div key={idx} className={idxs.length > 1 ? 'rounded-lg border border-gray-100 bg-white p-2' : ''}>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-12">
+                      {noSize ? (
+                        <p className="col-span-2 self-end pb-2 text-xs text-gray-500 md:col-span-4">O'lcham shart emas · pechatnikka bormaydi, to'g'ri o'rnatishga</p>
+                      ) : (<>
+                        <div className="md:col-span-2">
+                          <Input label={idxs.length > 1 ? `${n + 1}. Eni, m` : 'Eni, m'} inputMode="decimal" placeholder="1,40" value={it.width} onChange={(e) => updateItem(idx, 'width', e.target.value)} />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Input label="Bo'yi, m" inputMode="decimal" placeholder="1,20" value={it.height} onChange={(e) => updateItem(idx, 'height', e.target.value)} />
+                        </div>
+                      </>)}
+                      <div className="md:col-span-2">
+                        <Input label="Soni" inputMode="numeric" value={it.quantity} onChange={(e) => changeQuantity(idx, e.target.value)} />
+                      </div>
+                      <div className="md:col-span-3">
+                        <Input
+                          label={noSize ? 'Summa (dona)' : it.manual ? 'Dona narxi (qo\'lda)' : 'Dona narxi'} money
+                          inputMode="numeric"
+                          value={it.unitPrice}
+                          // Qo'lda yozilsa avtomatik hisobdan uziladi; qator summasi dona narxidan qayta hisoblanadi
+                          onChange={(e) => patchItem(idx, { unitPrice: e.target.value, manual: true, sum: '' })}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Input
+                          label={it.sum ? 'Summa (qo\'lda)' : 'Summa'} money
+                          inputMode="numeric"
+                          value={it.sum || (lineTotal(it) ? String(lineTotal(it)) : '')}
+                          onChange={(e) => changeSum(idx, e.target.value)}
+                        />
+                      </div>
+                      <div className="col-span-2 flex items-end justify-end gap-3 pb-2 md:col-span-1">
+                        {it.manual && canAuto(it) && (
+                          <button
+                            type="button"
+                            onClick={() => patchItem(idx, { manual: false, sum: '' })}
+                            title="Avtomatik narx — narx qo'lda yozilgan, o'lcham yoki xizmat o'zgarsa qayta hisoblanmaydi"
+                            aria-label="Avtomatik narx"
+                            className="text-brand-700 hover:text-brand-900"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </button>
+                        )}
+                        {idxs.length > 1 && (
+                          <button type="button" onClick={() => setItems((l) => (l ?? []).filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700" aria-label="O'lchamni o'chirish" title="O'lchamni o'chirish">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <ItemSummary it={it} total={lineTotal(it)} res={results[idx] ?? null} auto={!it.manual && canAuto(it)} canAutoHint={canAuto(it)} />
+                    {errors[`item${idx}`] && <p className="mt-2 text-xs text-red-500">{errors[`item${idx}`]}</p>}
+                  </div>
+                  );
+                })}
+                {!noSize && idxs.length < MAX_SIZES && (
+                  <button type="button" onClick={() => addSize(group)} className="flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline">
+                    <Plus className="h-3.5 w-3.5" /> O'lcham qo'shish ({idxs.length}/{MAX_SIZES})
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-3">
+                <p className="mb-1.5 text-xs font-medium text-gray-500">Xizmatlar</p>
+                <ServiceChips services={services} value={head.services} onChange={(codes) => patchGroup(group, () => ({ services: codes }))} showPrice />
+                {head.extraFinishing.length > 0 && <p className="mt-1 text-xs text-gray-400">Boshqa: {head.extraFinishing.join(', ')}</p>}
+              </div>
+              {idxs.length > 1 && (
+                <p className="mt-2 text-right text-sm text-gray-600">
+                  Mahsulot jami: <b className="text-gray-900">{formatCurrency(idxs.reduce((s, i) => s + lineTotal(list[i]!), 0))}</b>
+                </p>
+              )}
             </div>
             );
           })}

@@ -1,10 +1,12 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarCheck, Check, X } from 'lucide-react';
+import { CalendarCheck, Check, UserCheck, X } from 'lucide-react';
 import { attendanceApi } from '@/api';
 import type { AttendanceRecord } from '@/types';
 import { ROLE_LABELS } from '@/lib/labels';
-import { cn, currentPeriod, fileUrl, formatDateTime } from '@/lib/utils';
+import { cn, currentPeriod, fileUrl, formatDateTime, toDateInput } from '@/lib/utils';
+import { useAuth } from '@/lib/auth';
+import { ManualMarkModal, type ManualMarkPreset } from '@/components/attendance/ManualMarkModal';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
@@ -22,11 +24,30 @@ function cellTitle(r: AttendanceRecord): string {
   if (r.lateMinutes) parts.push(`${r.lateMinutes} daq kech`);
   if (r.earlyLeaveMinutes) parts.push(`${r.earlyLeaveMinutes} daq erta ketdi`);
   if (r.overtimeMinutes) parts.push(`qo'shimcha ${r.overtimeMinutes} daq`);
+  if (r.markedById) parts.push(`qo'lda belgiladi: ${r.markedByName ?? 'rahbar'} — ${r.markNote ?? ''}`);
   return parts.join(', ');
 }
 
-function Cell({ r, isWorkDay, onSelfie }: { r?: AttendanceRecord; isWorkDay: boolean; onSelfie: (r: AttendanceRecord) => void }) {
-  if (!r) return <td className={cn('border border-gray-100 p-0 text-center text-[10px]', isWorkDay ? 'bg-red-50 text-red-400' : 'bg-gray-50 text-gray-300')}>{isWorkDay ? '✕' : ''}</td>;
+interface CellProps {
+  r?: AttendanceRecord;
+  isWorkDay: boolean;
+  onSelfie: (r: AttendanceRecord) => void;
+  /** Bo'sh katak bosilsa — kelishni qo'lda belgilash (faqat ruxsat etilgan kunlar) */
+  onMark?: () => void;
+}
+
+function Cell({ r, isWorkDay, onSelfie, onMark }: CellProps) {
+  if (!r) {
+    return (
+      <td className={cn('border border-gray-100 p-0 text-center text-[10px]', isWorkDay ? 'bg-red-50 text-red-400' : 'bg-gray-50 text-gray-300')}>
+        {onMark ? (
+          <button type="button" onClick={onMark} title="Kelishni qo'lda belgilash" className="h-full min-h-[30px] w-full hover:bg-brand-50 hover:text-brand-700">
+            {isWorkDay ? '✕' : '+'}
+          </button>
+        ) : isWorkDay ? '✕' : ''}
+      </td>
+    );
+  }
   return (
     <td className={cn('relative border border-gray-100 px-0.5 py-1 text-center text-[10px] tabular-nums', r.lateMinutes || r.earlyLeaveMinutes ? 'bg-amber-50 font-semibold text-amber-800' : 'bg-emerald-50 text-emerald-800', r.autoClosed && 'outline outline-1 -outline-offset-1 outline-red-400')}
       title={cellTitle(r)}>
@@ -38,6 +59,7 @@ function Cell({ r, isWorkDay, onSelfie }: { r?: AttendanceRecord; isWorkDay: boo
         {r.checkOutAt ? (r.autoClosed ? '?' : hhmm(r.checkOutAt)) : '…'}
       </span>
       {r.outInstallationId && <span className="absolute right-0 top-0 text-[8px] leading-none text-sky-600" aria-label="Obyektdan ketdi">●</span>}
+      {r.markedById && <span className="absolute left-0 top-0 text-[8px] leading-none text-violet-600" aria-label="Qo'lda belgilangan">✎</span>}
     </td>
   );
 }
@@ -46,6 +68,11 @@ export default function AttendancePage() {
   const [period, setPeriod] = React.useState(currentPeriod());
   const pdf = usePdfExport(`davomat_${period}`);
   const [selfie, setSelfie] = React.useState<AttendanceRecord | null>(null);
+  const [mark, setMark] = React.useState<ManualMarkPreset | null>(null);
+  const { user } = useAuth();
+  const today = toDateInput(new Date());
+  const markFrom = toDateInput(new Date(Date.now() - 7 * 24 * 3600_000));
+  const canMark = (userId: string, day: string) => userId !== user?.id && day <= today && day >= markFrom;
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['attendance', 'month', period], queryFn: () => attendanceApi.month(period) });
   const qc = useQueryClient();
   const toast = useToast();
@@ -71,7 +98,12 @@ export default function AttendancePage() {
   return (
     <div ref={pdf.ref} className="space-y-6 bg-gray-50">
       <PageHeader title="Davomat" subtitle={`Xodimlar ishga kelgan vaqti (check-in) · ${periodLabel(period)}`}
-        actions={<div className="flex flex-wrap gap-2" data-pdf-hide><MonthInput value={period} onChange={setPeriod} />{pdf.button}</div>} />
+        actions={(
+          <div className="flex flex-wrap gap-2" data-pdf-hide>
+            <Button variant="outline" onClick={() => setMark({})} disabled={!data}><UserCheck className="h-4 w-4" />Kelishni belgilash</Button>
+            <MonthInput value={period} onChange={setPeriod} />{pdf.button}
+          </div>
+        )} />
       {isLoading ? <Loading rows={6} /> : error || !data || !totals ? <ErrorState error={error} onRetry={refetch} /> : (
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -139,7 +171,7 @@ export default function AttendancePage() {
             )}
           </Card>
 
-          <Card title="Kunlik jadval" description="Har katakda: tepada kelgan, pastda ketgan vaqti («…» — hali ishda, «?» — «Ketdim» bosilmagan). Yashil — vaqtida, sariq — kechikkan yoki erta ketgan, qizil — kelmagan. Tagiga chizilgan vaqt — selfi bor, bosib ko'ring">
+          <Card title="Kunlik jadval" description="Har katakda: tepada kelgan, pastda ketgan vaqti («…» — hali ishda, «?» — «Ketdim» bosilmagan). Yashil — vaqtida, sariq — kechikkan yoki erta ketgan, qizil — kelmagan. Tagiga chizilgan vaqt — selfi bor, bosib ko'ring. ✎ — rahbar qo'lda belgilagan. Bo'sh katakni bosib kelishni belgilash mumkin (oxirgi 7 kun)">
             <div className="-mx-5 overflow-x-auto sm:-mx-6">
               <table className="w-full border-collapse text-xs">
                 <thead>
@@ -152,13 +184,18 @@ export default function AttendancePage() {
                   {data.users.map((u) => (
                     <tr key={u.id}>
                       <td className="sticky left-0 whitespace-nowrap bg-white px-3 py-1 font-medium">{u.fullName}</td>
-                      {days.map((d) => <Cell key={d} isWorkDay={data.workDays.includes(d)} r={data.records.find((r) => r.userId === u.id && r.day === d)} onSelfie={setSelfie} />)}
+                      {days.map((d) => (
+                        <Cell key={d} isWorkDay={data.workDays.includes(d)} r={data.records.find((r) => r.userId === u.id && r.day === d)} onSelfie={setSelfie}
+                          onMark={canMark(u.id, d) ? () => setMark({ userId: u.id, day: d }) : undefined} />
+                      ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </Card>
+          <ManualMarkModal preset={mark} onClose={() => setMark(null)} users={data.users} selfId={user?.id}
+            workStartTime={data.workStartTime} workEndTime={data.workEndTime} />
           <Modal open={!!selfie} onClose={() => setSelfie(null)}
             title={selfie ? `${data.users.find((u) => u.id === selfie.userId)?.fullName ?? ''} · ${selfie.day.split('-').reverse().join('.')} ${hhmm(selfie.checkInAt)}` : ''}>
             {selfie?.selfieUrl && <img src={fileUrl(selfie.selfieUrl)} alt="Check-in selfisi" className="mx-auto max-h-[70dvh] rounded-2xl object-contain" />}

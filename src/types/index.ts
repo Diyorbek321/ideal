@@ -983,6 +983,11 @@ export interface AttendanceRecord {
   overtimeReason: string | null;
   overtimeStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
   overtimeMinutes: number;
+  /** Rahbar qo'lda belgilagan bo'lsa — kim va nega */
+  markedById?: string | null;
+  markNote?: string | null;
+  /** Oylik jadvalda: belgilagan rahbar ismi */
+  markedByName?: string | null;
 }
 
 export type StaffRequestKind = 'ABSENCE' | 'ADVANCE' | 'DISPUTE';

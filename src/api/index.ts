@@ -22,6 +22,8 @@ export interface OrderItemInput {
   quantity: number;
   finishing: string[];
   unitPrice: number;
+  /** Qo'lda yozilgan qator summasi — dona narxi × soni o'rniga */
+  total?: number;
 }
 
 export interface ProductTypeInput {
@@ -422,6 +424,8 @@ export const attendanceApi = {
   requestOvertime: (body: { until: string; reason: string }) => api.post<AttendanceRecord>('/attendance/overtime', body),
   reviewOvertime: (id: string, approve: boolean) => api.post<AttendanceRecord>(`/attendance/${id}/overtime`, { approve }),
   month: (period: string) => api.get<AttendanceMonth>('/attendance', { period }),
+  /** Rahbar xodimning kelishini qo'lda belgilaydi (ishxonada tunab qolgan va h.k.) */
+  markManual: (body: { userId: string; day: string; time: string; outTime?: string; note: string }) => api.post<AttendanceRecord>('/attendance/manual', body),
   /** Xodimning o'z davomati — e'tiroz uchun */
   mine: (period: string) => api.get<AttendanceRecord[]>('/attendance/me', { period }),
 };
