@@ -1,10 +1,10 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, RotateCcw, Send } from 'lucide-react';
-import { smsApi } from '@/api';
+import { Copy, FileText, RotateCcw, Send, X } from 'lucide-react';
+import { paymentsApi, settingsApi, smsApi } from '@/api';
 import type { OrderDetail, SmsStatus } from '@/types';
 import { SMS_EVENT_LABELS, SMS_STATUS_LABELS } from '@/lib/labels';
-import { copyText, formatDateTime } from '@/lib/utils';
+import { copyText, formatCurrency, formatDateTime } from '@/lib/utils';
 import { Badge, type BadgeProps } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -15,6 +15,8 @@ export const SMS_VARIANT: Record<SmsStatus, NonNullable<BadgeProps['variant']>> 
 };
 
 const MAX_LEN = 300;
+// Backend sms.templates.ts dagi fmt bilan bir xil: "1 250 000"
+const smsMoney = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
 export function SmsCard({ order }: { order: OrderDetail }) {
   const toast = useToast();
@@ -33,6 +35,23 @@ export function SmsCard({ order }: { order: OrderDetail }) {
     },
     onError: toast.error,
   });
+  const remaining = Math.max(0, (order.totalAmount ?? 0) - (order.paidAmount ?? 0));
+  const canRemind = remaining > 0 && order.status !== 'BEKOR_QILINDI';
+  const [debtOpen, setDebtOpen] = React.useState(false);
+  const { data: company } = useQuery({ queryKey: ['settings', 'company'], queryFn: settingsApi.company, enabled: debtOpen, staleTime: 300_000 });
+  const debtPreview = `${company?.name ?? 'Ideal Dizayn'}: ${order.number} bo'yicha qoldiq to'lov ${smsMoney(remaining)} so'm. `
+    + `To'lovni amalga oshirishingizni so'raymiz.${company?.phone ? ` Tel: ${company.phone}` : ''}`;
+  const remind = useMutation({
+    mutationFn: () => paymentsApi.remind(order.id),
+    onSuccess: (r) => {
+      setDebtOpen(false);
+      refresh();
+      qc.invalidateQueries({ queryKey: ['order', order.id] });
+      if (r.smsStatus && r.smsStatus !== 'FAILED' && r.smsStatus !== 'SKIPPED') toast.success('Qarz eslatmasi yuborildi');
+      else toast.error(new Error(r.smsError ?? `SMS holati: ${r.smsStatus ?? 'yuborilmadi'}`));
+    },
+    onError: toast.error,
+  });
   const retry = useMutation({ mutationFn: smsApi.retry, onSuccess: refresh, onError: toast.error });
 
   const trackLink = order.trackingToken ? `${window.location.origin}/t/${order.trackingToken}` : null;
@@ -46,6 +65,24 @@ export function SmsCard({ order }: { order: OrderDetail }) {
         </Button>
       ) : undefined}
     >
+      {canRemind && (
+        <div className="mb-3">
+          {debtOpen ? (
+            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="text-xs font-medium text-amber-800">Qarz eslatmasi (tasdiqlangan shablon)</p>
+              <p className="text-sm text-gray-700">{debtPreview}</p>
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="outline" onClick={() => setDebtOpen(false)}><X className="h-3 w-3" />Bekor</Button>
+                <Button size="sm" isLoading={remind.isPending} onClick={() => remind.mutate()}><Send className="h-3 w-3" />Yuborish</Button>
+              </div>
+            </div>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => setDebtOpen(true)}>
+              <FileText className="h-3 w-3" />Qarz eslatmasi · {formatCurrency(remaining)}
+            </Button>
+          )}
+        </div>
+      )}
       <form className="mb-4 space-y-2" onSubmit={(e) => { e.preventDefault(); if (text.trim().length >= 3) send.mutate(); }}>
         <textarea
           value={text}
