@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Banknote, CreditCard, DollarSign, FileSpreadsheet, Landmark, Plus, Trash2, TrendingDown } from 'lucide-react';
+import { Banknote, CreditCard, DollarSign, FileSpreadsheet, Landmark, Plus, Send, Trash2, TrendingDown } from 'lucide-react';
 import { expensesApi, paymentsApi, reportsApi } from '@/api';
 import type { PaymentMethod } from '@/types';
 import { CLIENT_TYPE_LABELS, KIND_LABELS, METHOD_LABELS } from '@/lib/labels';
@@ -50,6 +50,15 @@ export default function FinancePage() {
   });
 
   const remind = useMutation({ mutationFn: paymentsApi.remind, onSuccess: setReminder, onError: toast.error });
+  const remindAll = useMutation({
+    mutationFn: paymentsApi.remindAll,
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['sms'] });
+      toast.success(`SMS yuborildi: ${r.queued} ta` + (r.skipped ? ` · bugun eslatilgan ${r.skipped} ta o'tkazildi` : '') + (r.failed ? ` · ${r.failed} ta raqam yo'q/noto'g'ri` : ''));
+    },
+    onError: toast.error,
+  });
+  const orderDebts = debts.data?.items.filter((d) => d.orderId) ?? [];
   const delExpense = useMutation({
     mutationFn: expensesApi.remove,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['summary'] }); },
@@ -139,7 +148,16 @@ export default function FinancePage() {
         </Card>
       </div>
 
-      <Card title="Qarzdorlar (nasiya)" description="Muddati o'tganlar birinchi">
+      <Card
+        title="Qarzdorlar (nasiya)"
+        description="Muddati o'tganlar birinchi"
+        actions={orderDebts.length ? (
+          <Button size="sm" isLoading={remindAll.isPending}
+            onClick={() => window.confirm(`${orderDebts.length} ta qarzdor buyurtma bo'yicha mijozlarga SMS eslatma yuborilsinmi? Bugun eslatilganlarga qayta yuborilmaydi.`) && remindAll.mutate()}>
+            <Send className="h-4 w-4" />Hammasiga SMS
+          </Button>
+        ) : undefined}
+      >
         {debts.isLoading ? <Loading /> : !debts.data?.items.length ? <Empty text="Qarzdorlar yo'q" /> : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

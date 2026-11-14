@@ -259,6 +259,7 @@ export const paymentsApi = {
   fromBalance: (orderId: string, amount: number) => api.post<Payment>('/payments/from-balance', { orderId, amount }),
   balanceRefund: (clientId: string, body: RefundInput) => api.post<Payment>('/payments/balance-refund', { clientId, ...body }),
   debts: () => api.get<{ items: Debt[]; total: number }>('/payments/debts'),
+  remindAll: () => api.post<{ queued: number; skipped: number; failed: number; total: number }>('/payments/debts/remind-all'),
   remind: (orderId: string) =>
     api.post<{ message: string; phones: string[]; telegram: string | null; smsStatus: string | null; smsError: string | null }>(`/payments/debts/${orderId}/remind`),
 };

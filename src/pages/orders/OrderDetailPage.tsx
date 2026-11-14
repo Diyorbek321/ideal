@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileText, History, MapPin, Paperclip, Pencil, Phone, Printer, Trash2, User } from 'lucide-react';
+import { ArrowLeft, FileText, History, MapPin, Paperclip, MessageSquare, Pencil, Phone, Printer, Trash2, User } from 'lucide-react';
 import { filesApi, ordersApi, usersApi } from '@/api';
 import { CLIENT_TYPE_LABELS, SOURCE_LABELS, TASK_STATUS_LABELS } from '@/lib/labels';
 import { isFinance, useUser } from '@/lib/auth';
@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { FileButton } from '@/components/ui/FileButton';
+import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { ErrorState, Loading } from '@/components/ui/States';
 import { useToast } from '@/components/ui/Toast';
@@ -32,6 +33,7 @@ export default function OrderDetailPage() {
   const qc = useQueryClient();
   const finance = isFinance(user.role);
   const [editing, setEditing] = React.useState(false);
+  const [smsOpen, setSmsOpen] = React.useState(false);
 
   const { data: order, isLoading, error, refetch } = useQuery({
     queryKey: ['order', id],
@@ -90,6 +92,7 @@ export default function OrderDetailPage() {
         {finance && (
           <div className="flex flex-wrap gap-2">
             {order.status !== 'BEKOR_QILINDI' && <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Tahrirlash</Button>}
+            <Button variant="outline" onClick={() => setSmsOpen(true)}><MessageSquare className="h-4 w-4" />SMS</Button>
             {user.role === 'ADMIN' && (
               <Link to={`/audit?ref=${order.id}`}><Button variant="ghost"><History className="h-4 w-4" />Tarix</Button></Link>
             )}
@@ -106,6 +109,11 @@ export default function OrderDetailPage() {
           </div>
         )}
         {editing && <OrderFormModal open onClose={() => setEditing(false)} order={order} />}
+        {smsOpen && (
+          <Modal open onClose={() => setSmsOpen(false)} title={`${order.number} · ${order.client.name}`}>
+            <SmsCard order={order} />
+          </Modal>
+        )}
       </div>
 
       <StatusPanel order={order} />
