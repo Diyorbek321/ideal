@@ -6,6 +6,7 @@ import type { Client } from '@/types';
 import { CLIENT_TYPE_LABELS } from '@/lib/labels';
 import { formatPhone } from '@/lib/utils';
 import { ClientFormModal } from './ClientFormModal';
+import { useDebounced } from '@/lib/useDebounced';
 
 interface Props {
   value: Pick<Client, 'id' | 'name'> | null;
@@ -13,14 +14,7 @@ interface Props {
   error?: string;
 }
 
-export function useDebounced<T>(value: T, ms = 300) {
-  const [v, setV] = React.useState(value);
-  React.useEffect(() => {
-    const t = setTimeout(() => setV(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return v;
-}
+export { useDebounced };
 
 // Nom, STIR yoki telefon bo'yicha qidiradi; topilmasa shu yerning o'zida yangi mijoz yaratiladi
 export function ClientPicker({ value, onChange, error }: Props) {

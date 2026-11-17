@@ -115,6 +115,7 @@ export interface Order {
   /** Faqat o'rnatish: dizayn va ishlab chiqarishsiz */
   installationOnly?: boolean;
   installationAddress: string | null;
+  prepayPercent: number | null;
   managerId: string;
   designerId: string | null;
   revisionCount: number;
@@ -166,6 +167,8 @@ export interface OrderDetail extends Omit<Order, 'client'> {
   payments?: Payment[];
   files: FileAsset[];
   allowedNextStatuses: OrderStatus[];
+  /** Pechatga o'tish uchun amaldagi avans foizi (buyurtma tanlovi yoki umumiy sozlama) */
+  effectivePrepayPercent: number;
   feedback: Omit<Feedback, 'client' | 'order'> | null;
 }
 
@@ -1140,4 +1143,13 @@ export interface PrepaidClient {
   refunded: number;
   balance: number;
   lastDepositAt: string | null;
+}
+
+/** Oldin kiritilgan mijoz: phone/inn — aniq takror (saqlanmaydi), name — faqat ogohlantirish */
+export interface ClientDuplicate {
+  id: string;
+  name: string;
+  phones: string[];
+  isArchived: boolean;
+  match: 'phone' | 'inn' | 'name';
 }

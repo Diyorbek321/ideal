@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, Undo2, XCircle } from 'lucide-react';
 import { ApiError, ordersApi } from '@/api';
 import type { OrderDetail, OrderStatus, PaymentMethod, RefundInput } from '@/types';
 import { METHOD_LABELS, ORDER_FLOW, STATUS_LABELS, options } from '@/lib/labels';
@@ -51,8 +51,15 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
   const flow = order.status === 'YETKAZISHDA' ? ORDER_FLOW.map((s) => (s === 'ORNATISHDA' ? 'YETKAZISHDA' : s)) : ORDER_FLOW;
   const idx = flow.indexOf(order.status);
   const finished = order.status === 'YAKUNLANDI';
-  const next = order.allowedNextStatuses.filter((s) => s !== 'BEKOR_QILINDI');
+  const allowed = order.allowedNextStatuses.filter((s) => s !== 'BEKOR_QILINDI');
+  // Oqimda oldingi bosqich — orqaga qaytarish (sabab bilan, alohida tugma)
+  const isBack = (s: OrderStatus) => flow.indexOf(s) >= 0 && flow.indexOf(s) < idx;
+  const next = allowed.filter((s) => !isBack(s));
+  const back = allowed.filter(isBack);
   const canAct = isFinance(user.role);
+  const [backOpen, setBackOpen] = React.useState(false);
+  const [backTo, setBackTo] = React.useState<OrderStatus | ''>('');
+  const [backReason, setBackReason] = React.useState('');
 
   return (
     <Card className="p-6">
@@ -91,6 +98,11 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
             → {STATUS_LABELS[s]}
           </Button>
         ))}
+        {canAct && back.length > 0 && (
+          <Button variant="outline" onClick={() => { setBackTo(back[0]); setBackReason(''); setBackOpen(true); }}>
+            <Undo2 className="mr-1 h-4 w-4" />Orqaga qaytarish
+          </Button>
+        )}
         {canAct && order.allowedNextStatuses.includes('BEKOR_QILINDI') && (
           <Button variant="ghost" className="text-red-600" onClick={() => { setRefundMode('full'); setRefundAmount(String(paid)); setCancelOpen(true); }}>Bekor qilish</Button>
         )}
@@ -146,6 +158,36 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
           </div>
         )}
         <Textarea label="Sabab" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
+      </Modal>
+
+      <Modal
+        open={backOpen}
+        onClose={() => setBackOpen(false)}
+        title="Bosqichni orqaga qaytarish"
+        footer={(
+          <>
+            <Button variant="outline" onClick={() => setBackOpen(false)}>Bekor</Button>
+            <Button
+              isLoading={change.isPending}
+              disabled={!backTo || !backReason.trim()}
+              onClick={() => backTo && change.mutate({ status: backTo, comment: backReason.trim() }, { onSuccess: () => setBackOpen(false) })}
+            >
+              Qaytarish
+            </Button>
+          </>
+        )}
+      >
+        <div className="space-y-4">
+          <Select
+            label="Qaysi bosqichga"
+            value={backTo}
+            onChange={(e) => setBackTo(e.target.value as OrderStatus)}
+            options={back.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
+          />
+          {order.status === 'TAYYOR' && <p className="text-sm text-amber-700">Ochiq o'rnatish ustanovkachilar ro'yxatidan olinadi, mahsulot qaytadan pechat navbatiga tushadi.</p>}
+          {order.status === 'ISHLAB_CHIQARISHDA' && <p className="text-sm text-amber-700">Tugamagan pechat vazifalari navbatdan olinadi.</p>}
+          <Textarea label="Sabab (jurnalga yoziladi) *" value={backReason} onChange={(e) => setBackReason(e.target.value)} rows={2} />
+        </div>
       </Modal>
 
       <Modal

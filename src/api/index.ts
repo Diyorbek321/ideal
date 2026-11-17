@@ -2,7 +2,7 @@ import type {
   UserRole, ClientStatement, ClientBalanceLedger, PrepaidClient,
   RefundInput,
   RequestStatus, StaffRequest, StaffRequestInput,
-  Client, ClientDetail, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
+  Client, ClientDetail, ClientDuplicate, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
   Expense, FileAsset, Installation, InstallProblem, InstallProblemType, Material, Order, OrderDetail,
   AuditLogEntry, OrderEvent, OrderSource, OrderStatus, Payment, PaymentKind, PaymentMethod, PayrollEntry, PayrollSheet, PayrollTxKind, AbsenceReason, PriceListItem,
   PriceResult, ProductPriceUnit, ProductType, PublicApproval, QueueTask, ReportSummary, ShareInfo, SmsEvent, SmsMessage, SmsStatusInfo, SmsTemplatesInfo, StockMovement,
@@ -51,6 +51,8 @@ export interface OrderInput {
   installationAddress?: string | null;
   designerId?: string | null;
   notes?: string | null;
+  /** Pechatga o'tish uchun avans foizi: null — umumiy sozlama, 0 — avanssiz */
+  prepayPercent?: number | null;
 }
 
 export interface OrderFilters {
@@ -106,6 +108,9 @@ export const clientsApi = {
   update: (id: string, body: Partial<Client>) => api.patch<Client>(`/clients/${id}`, body),
   remove: (id: string) => api.del<{ deleted: boolean }>(`/clients/${id}`),
   statement: (id: string) => api.get<ClientStatement>(`/clients/${id}/statement`),
+  // Oldin kiritilgan mijozni topish (telefon/STIR — aniq takror, nom — ogohlantirish)
+  duplicates: (q: { phones?: string; inn?: string; name?: string; excludeId?: string }) =>
+    api.get<ClientDuplicate[]>('/clients/duplicates', q),
 };
 
 export const ordersApi = {

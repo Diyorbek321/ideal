@@ -153,6 +153,19 @@ export function OrderFormModal({
   const [dueDate, setDueDate] = React.useState(isoToInput(order?.dueDate));
   const [notes, setNotes] = React.useState(order?.notes ?? initialNotes);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  // Avans talabi (buyurtma bo'yicha tanlov): tegilmasa — umumiy sozlama amal qiladi (null)
+  const { data: company } = useQuery({ queryKey: ['settings', 'company'], queryFn: settingsApi.company, enabled: open && !order, staleTime: 300_000 });
+  const defaultPrepay = order ? order.effectivePrepayPercent : company?.prepayPercent ?? 0;
+  const [prepayTouched, setPrepayTouched] = React.useState(order?.prepayPercent != null);
+  const [prepayOnChoice, setPrepayOn] = React.useState((order?.prepayPercent ?? 0) > 0);
+  const [prepayPct, setPrepayPct] = React.useState(String(order?.prepayPercent || order?.effectivePrepayPercent || 50));
+  const prepayOn = prepayTouched ? prepayOnChoice : defaultPrepay > 0;
+  const prepayEditable = !order || ['YANGI', 'NARX_HISOBLANDI', 'DIZAYNDA', 'TASDIQDA'].includes(order.status);
+  const togglePrepay = (on: boolean) => {
+    setPrepayTouched(true);
+    setPrepayOn(on);
+    if (on && !parseDecimal(prepayPct)) setPrepayPct(String(defaultPrepay || 50));
+  };
 
   // Perechisleniya: mijozning oldindan to'lovi — buyurtma summasi shundan o'zi ayiriladi
   const { data: clientLedger } = useQuery({
@@ -262,6 +275,8 @@ export function OrderFormModal({
     if (needsInstallation && !address.trim()) e.address = 'O\'rnatish manzilini kiriting';
     if (manualInstall && !parseMoney(installAmount)) e.installAmount = 'Montaj summasini kiriting';
     if (discount.trim() && parseMoney(discount) === null) e.discount = 'Chegirmani raqam bilan kiriting';
+    const pct = parseDecimal(prepayPct);
+    if (prepayTouched && prepayOn && (pct === null || !Number.isInteger(pct) || pct < 1 || pct > 100)) e.prepay = 'Foizni 1 dan 100 gacha kiriting';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -290,6 +305,8 @@ export function OrderFormModal({
       installationOnly,
       installationAddress: needsInstallation ? address.trim() : null,
       notes: notes.trim() || null,
+      // Tegilmagan bo'lsa yuborilmaydi — umumiy sozlama (byudjet/harbiy ozodligi bilan) amal qiladi
+      ...(prepayTouched && { prepayPercent: prepayOn ? parseDecimal(prepayPct)! : 0 }),
   });
 
   // Tahrirda tarkib/chegirma o'zgarmagan bo'lsa yuborilmaydi — ishlab chiqarishdagi buyurtmaning
@@ -550,6 +567,29 @@ export function OrderFormModal({
             )}
           </div>
         </div>
+
+        {prepayEditable && !installationOnly && (
+          <div className={`space-y-2 rounded-xl border p-3 ${prepayOn ? 'border-amber-200 bg-amber-50' : 'border-gray-100'}`}>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <input type="checkbox" checked={prepayOn} onChange={(e) => togglePrepay(e.target.checked)} />
+              Avans to'lanmaguncha pechatga (ishlab chiqarishga) o'tmasin
+            </label>
+            {prepayOn && (
+              <div className="flex items-end gap-3">
+                <div className="w-32">
+                  <Input label="Avans, %" inputMode="numeric" value={prepayTouched ? prepayPct : String(defaultPrepay)}
+                    onChange={(e) => { setPrepayTouched(true); setPrepayOn(true); setPrepayPct(e.target.value); }} error={errors.prepay} />
+                </div>
+                {total > 0 && parseDecimal(prepayTouched ? prepayPct : String(defaultPrepay)) ? (
+                  <p className="pb-2 text-sm text-gray-600">
+                    Kamida {formatCurrency(Math.ceil((total * parseDecimal(prepayTouched ? prepayPct : String(defaultPrepay))!) / 100))} to'lansin
+                  </p>
+                ) : null}
+              </div>
+            )}
+            {!prepayTouched && <p className="text-xs text-gray-500">Umumiy sozlama bo'yicha{defaultPrepay > 0 ? ` (${defaultPrepay}%)` : ' — avans talab qilinmaydi'}. Belgini o'zgartirsangiz, shu buyurtma uchun alohida saqlanadi.</p>}
+          </div>
+        )}
 
         <Textarea label="Izoh" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
       </div>

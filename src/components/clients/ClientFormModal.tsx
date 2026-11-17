@@ -1,7 +1,10 @@
 import React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import { clientsApi } from '@/api';
-import type { Client, ClientType, OrderSource } from '@/types';
+import type { Client, ClientDuplicate, ClientType, OrderSource } from '@/types';
+import { useDebounced } from '@/lib/useDebounced';
 import { CLIENT_TYPE_LABELS, SOURCE_LABELS, options } from '@/lib/labels';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -82,6 +85,28 @@ export function ClientFormModal({ open, onClose, client, initialName, onSaved }:
 
   const isOrg = form.type !== 'INDIVIDUAL';
 
+  // Yozish paytida "oldin kiritilgan" tekshiruvi: telefon/STIR — aniq takror, nom — ogohlantirish
+  const dupQuery = useDebounced({
+    phones: form.phones.split(',').map((p) => p.replace(/\D/g, '')).filter((p) => p.length >= 9).join(','),
+    inn: /^\d{9}$|^\d{14}$/.test(form.inn.trim()) ? form.inn.trim() : '',
+    name: form.name.trim().length >= 3 ? form.name.trim() : '',
+  }, 400);
+  const { data: dups } = useQuery({
+    queryKey: ['client-duplicates', dupQuery, client?.id],
+    queryFn: () => clientsApi.duplicates({
+      phones: dupQuery.phones || undefined, inn: dupQuery.inn || undefined, name: dupQuery.name || undefined, excludeId: client?.id,
+    }),
+    enabled: open && !!(dupQuery.phones || dupQuery.inn || dupQuery.name),
+  });
+  const exact = (dups ?? []).filter((d) => d.match !== 'name');
+  const byName = exact.length ? [] : (dups ?? []).filter((d) => d.match === 'name');
+
+  const pick = useMutation({
+    mutationFn: (d: ClientDuplicate) => clientsApi.get(d.id),
+    onSuccess: (c) => { onSaved?.(c); onClose(); },
+    onError: toast.error,
+  });
+
   return (
     <Modal
       open={open}
@@ -91,10 +116,33 @@ export function ClientFormModal({ open, onClose, client, initialName, onSaved }:
       footer={(
         <>
           <Button variant="outline" onClick={onClose}>Bekor qilish</Button>
-          <Button isLoading={save.isPending} onClick={submit}>Saqlash</Button>
+          <Button isLoading={save.isPending} disabled={exact.length > 0} onClick={submit}>Saqlash</Button>
         </>
       )}
     >
+      {(exact.length > 0 || byName.length > 0) && (
+        <div className={`mb-4 rounded-xl border p-3 text-sm ${exact.length ? 'border-red-200 bg-red-50 text-red-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+          <p className="mb-2 flex items-center gap-2 font-semibold">
+            <AlertTriangle className="h-4 w-4" />
+            {exact.length ? 'Bu mijoz oldin kiritilgan' : 'Shu nomli mijoz bor — oldin kiritilgan bo\'lishi mumkin'}
+          </p>
+          <ul className="space-y-1.5">
+            {(exact.length ? exact : byName).map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{d.name}</span>
+                <span className="text-xs opacity-80">{d.phones.join(', ')}</span>
+                <span className="text-xs opacity-80">{d.match === 'phone' ? '· telefon mos' : d.match === 'inn' ? '· STIR mos' : '· nom mos'}</span>
+                {d.isArchived && <span className="rounded bg-white/70 px-1.5 text-xs">arxivda</span>}
+                {onSaved && !d.isArchived ? (
+                  <Button size="sm" variant="outline" isLoading={pick.isPending && pick.variables?.id === d.id} onClick={() => pick.mutate(d)}>Shu mijozni tanlash</Button>
+                ) : (
+                  <Link to={`/clients/${d.id}`} onClick={onClose} className="text-xs font-semibold underline">Ochish</Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <form className="grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <div className="md:col-span-2"><Input label="Nomi / F.I.Sh. *" value={form.name} onChange={set('name')} autoFocus error={errors.name} /></div>
         <Select label="Turi" value={form.type} onChange={set('type')} options={options(CLIENT_TYPE_LABELS)} />
