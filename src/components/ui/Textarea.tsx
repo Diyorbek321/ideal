@@ -4,9 +4,11 @@ import { cn } from '@/lib/utils';
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
+  /** Xato bo'lmaganda maydon ostida kulrang izoh */
+  hint?: string;
 }
 
-const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, label, error, id, ...props }, ref) => {
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, label, error, hint, id, ...props }, ref) => {
   const autoId = React.useId();
   const areaId = id ?? autoId;
   return (
@@ -23,7 +25,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ classNa
         )}
         {...props}
       />
-      {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+      {error ? <p className="text-xs font-medium text-red-600">{error}</p> : hint && <p className="text-xs text-gray-500">{hint}</p>}
     </div>
   );
 });

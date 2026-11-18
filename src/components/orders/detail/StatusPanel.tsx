@@ -15,6 +15,15 @@ import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
 
+// Istisno va orqaga qaytarish sababi: server ham kamida 10 belgi talab qiladi ("." sabab emas)
+const MIN_REASON_LENGTH = 10;
+const reasonLength = (s: string) => s.trim().replace(/\s+/g, ' ').length;
+const reasonOk = (s: string) => reasonLength(s) >= MIN_REASON_LENGTH;
+const reasonHint = (s: string) => {
+  const left = MIN_REASON_LENGTH - reasonLength(s);
+  return left > 0 ? `Kamida ${MIN_REASON_LENGTH} belgi — yana ${left} ta` : undefined;
+};
+
 // Faqat server ruxsat bergan keyingi bosqichlar tugma sifatida chiqadi
 export function StatusPanel({ order }: { order: OrderDetail }) {
   const user = useUser();
@@ -169,7 +178,7 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
             <Button variant="outline" onClick={() => setBackOpen(false)}>Bekor</Button>
             <Button
               isLoading={change.isPending}
-              disabled={!backTo || !backReason.trim()}
+              disabled={!backTo || !reasonOk(backReason)}
               onClick={() => backTo && change.mutate({ status: backTo, comment: backReason.trim() }, { onSuccess: () => setBackOpen(false) })}
             >
               Qaytarish
@@ -186,7 +195,8 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
           />
           {order.status === 'TAYYOR' && <p className="text-sm text-amber-700">Ochiq o'rnatish ustanovkachilar ro'yxatidan olinadi, mahsulot qaytadan pechat navbatiga tushadi.</p>}
           {order.status === 'ISHLAB_CHIQARISHDA' && <p className="text-sm text-amber-700">Tugamagan pechat vazifalari navbatdan olinadi.</p>}
-          <Textarea label="Sabab (jurnalga yoziladi) *" value={backReason} onChange={(e) => setBackReason(e.target.value)} rows={2} />
+          <Textarea label="Sabab (jurnalga yoziladi) *" value={backReason} onChange={(e) => setBackReason(e.target.value)} rows={2}
+            hint={reasonHint(backReason)} />
         </div>
       </Modal>
 
@@ -199,7 +209,7 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
             <Button variant="outline" onClick={() => setBlocked(null)}>Bekor</Button>
             <Button
               isLoading={change.isPending}
-              disabled={!override.trim()}
+              disabled={!reasonOk(override)}
               onClick={() => blocked && change.mutate({ status: blocked.status, comment: override.trim() })}
             >
               Istisno sifatida o'tkazish
@@ -210,7 +220,8 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
         <ul className="mb-4 list-disc space-y-1 pl-5 text-sm text-red-700">
           {blocked?.unmet.map((u) => <li key={u}>{u}</li>)}
         </ul>
-        <Textarea label="Sabab (jurnalga yoziladi)" value={override} onChange={(e) => setOverride(e.target.value)} rows={2} />
+        <Textarea label="Sabab (jurnalga yoziladi) *" value={override} onChange={(e) => setOverride(e.target.value)} rows={2}
+          hint={reasonHint(override)} />
       </Modal>
     </Card>
   );
