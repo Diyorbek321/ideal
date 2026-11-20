@@ -58,7 +58,7 @@ export default function FinancePage() {
     },
     onError: toast.error,
   });
-  const orderDebts = debts.data?.items.filter((d) => d.orderId) ?? [];
+  const orderDebts = debts.data?.items.filter((d) => d.orderId || d.legacyDebtId) ?? [];
   const delExpense = useMutation({
     mutationFn: expensesApi.remove,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); qc.invalidateQueries({ queryKey: ['summary'] }); },
@@ -138,7 +138,7 @@ export default function FinancePage() {
                 <Link key={p.id} to={p.orderId ? `/orders/${p.orderId}` : p.campaignId ? `/ad-screens?tab=campaigns&open=${p.campaignId}` : `/clients/${p.clientId}`} className="flex items-center justify-between rounded-xl border border-gray-50 p-3 hover:bg-gray-50">
                   <div>
                     <p className={p.amount < 0 ? "text-sm font-bold text-red-600" : "text-sm font-bold text-gray-900"}>{formatCurrency(p.amount)}</p>
-                    <p className="text-[11px] text-gray-500">{p.client?.name} · {p.order?.number ?? p.campaign?.number ?? KIND_LABELS[p.kind]}</p>
+                    <p className="text-[11px] text-gray-500">{p.client?.name} · {p.order?.number ?? p.campaign?.number ?? p.legacyDebt?.number ?? KIND_LABELS[p.kind]}</p>
                   </div>
                   <span className="text-[11px] uppercase text-gray-400">{METHOD_LABELS[p.method]}<br />{formatDate(p.createdAt)}</span>
                 </Link>
@@ -150,13 +150,18 @@ export default function FinancePage() {
 
       <Card
         title="Qarzdorlar (nasiya)"
-        description="Muddati o'tganlar birinchi"
-        actions={orderDebts.length ? (
-          <Button size="sm" isLoading={remindAll.isPending}
-            onClick={() => window.confirm(`${orderDebts.length} ta qarzdor buyurtma bo'yicha mijozlarga SMS eslatma yuborilsinmi? Bugun eslatilganlarga qayta yuborilmaydi.`) && remindAll.mutate()}>
-            <Send className="h-4 w-4" />Hammasiga SMS
-          </Button>
-        ) : undefined}
+        description="Muddati o'tganlar birinchi · eski qarzlar ham shu yerda"
+        actions={(
+          <div className="flex items-center gap-3">
+            {orderDebts.length > 0 && (
+              <Button size="sm" isLoading={remindAll.isPending}
+                onClick={() => window.confirm(`${orderDebts.length} ta qarz bo'yicha mijozlarga SMS eslatma yuborilsinmi? Bugun eslatilganlarga qayta yuborilmaydi.`) && remindAll.mutate()}>
+                <Send className="h-4 w-4" />Hammasiga SMS
+              </Button>
+            )}
+            <Link to="/debts" className="text-sm font-semibold text-gray-900 underline-offset-4 hover:underline">Hammasi →</Link>
+          </div>
+        )}
       >
         {debts.isLoading ? <Loading /> : !debts.data?.items.length ? <Empty text="Qarzdorlar yo'q" /> : (
           <div className="overflow-x-auto">
@@ -170,11 +175,12 @@ export default function FinancePage() {
               </thead>
               <tbody>
                 {debts.data.items.map((d) => (
-                  <tr key={d.orderId ?? d.campaignId} className="border-b border-gray-50 hover:bg-gray-50/50">
+                  <tr key={d.orderId ?? d.campaignId ?? d.legacyDebtId} className="border-b border-gray-50 hover:bg-gray-50/50">
                     <td className="px-4 py-3"><p className="font-medium">{d.client.name}</p><p className="text-xs text-gray-400">{CLIENT_TYPE_LABELS[d.client.type]}</p></td>
                     <td className="px-4 py-3">
-                      <Link to={d.orderId ? `/orders/${d.orderId}` : `/ad-screens?tab=campaigns&open=${d.campaignId}`} className="font-bold text-brand-600 hover:underline">{d.orderNumber}</Link>
+                      <Link to={d.orderId ? `/orders/${d.orderId}` : d.campaignId ? `/ad-screens?tab=campaigns&open=${d.campaignId}` : '/debts'} className="font-bold text-brand-600 hover:underline">{d.orderNumber}</Link>
                       {d.campaignId && <span className="block text-xs text-gray-400">LED reklama</span>}
+                      {d.legacyDebtId && <span className="block text-xs text-amber-700">Eski qarz</span>}
                     </td>
                     <td className={cn('px-4 py-3', d.daysOverdue > 0 ? 'font-bold text-red-600' : 'text-gray-500')}>
                       {d.dueDate ? formatDate(d.dueDate) : '—'}{d.daysOverdue > 0 && <span className="block text-xs">{d.daysOverdue} kun o'tdi</span>}

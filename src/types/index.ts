@@ -50,6 +50,8 @@ export interface Client {
   totalOrdered?: number;
   totalPaid?: number;
   debt?: number;
+  /** shundan ERP'dan oldingi eski qarz */
+  legacyDebt?: number;
   ordersCount?: number;
 }
 
@@ -354,7 +356,7 @@ export interface RefundInput {
 
 export interface ClientStatement {
   client: { id: string; name: string; type: ClientType; inn: string | null; contactPerson: string | null; phones: string[]; address: string | null };
-  works: Array<{ orderId: string; number: string; date: string; status: OrderStatus; description: string; amount: number; paid: number; cancelled: boolean }>;
+  works: Array<{ orderId: string; number: string; date: string; status: OrderStatus | 'ESKI_QARZ'; description: string; amount: number; paid: number; cancelled: boolean; legacy?: boolean }>;
   payments: Array<{ id: string; date: string; orderNumber: string | null; amount: number; method: PaymentMethod; kind: PaymentKind; note: string | null }>;
   /** Oldindan to'lov daftari (eng eskisi yuqorida) */
   balance: { amount: number; entries: BalanceEntry[] };
@@ -376,6 +378,8 @@ export interface Payment {
   createdAt: string;
   order?: { id: string; number: string } | null;
   campaign?: { id: string; number: string; title: string } | null;
+  legacyDebt?: { id: string; number: string } | null;
+  legacyDebtId?: string | null;
   client?: { id: string; name: string };
   user?: UserRef;
 }
@@ -384,6 +388,9 @@ export interface Debt {
   /** Buyurtma qarzi — orderId, LED reklama qarzi — campaignId */
   orderId: string | null;
   campaignId: string | null;
+  /** ERP'dan oldingi eski qarz */
+  legacyDebtId: string | null;
+  legacyNote: string | null;
   orderNumber: string;
   status: string;
   client: Pick<Client, 'id' | 'name' | 'type' | 'phones' | 'telegram'>;
@@ -1152,4 +1159,62 @@ export interface ClientDuplicate {
   phones: string[];
   isArchived: boolean;
   match: 'phone' | 'inn' | 'name';
+}
+
+export interface LegacyDebt {
+  id: string;
+  number: string;
+  clientId: string;
+  amount: number;
+  paidAmount: number;
+  debtDate: string;
+  dueDate: string | null;
+  note: string | null;
+}
+
+export interface LegacyDebtInput {
+  clientId: string;
+  amount: number;
+  debtDate: string;
+  dueDate?: string | null;
+  note?: string | null;
+}
+
+export type DefectStage = 'DESIGN' | 'PRINT' | 'PRODUCTION' | 'INSTALLATION' | 'OTHER';
+
+export interface Defect {
+  id: string;
+  userId: string;
+  orderId: string | null;
+  stage: DefectStage;
+  description: string;
+  lossAmount: number;
+  deductAmount: number;
+  photoUrl: string | null;
+  occurredAt: string;
+  payrollTxId: string | null;
+  createdById: string;
+  createdAt: string;
+  user: { id: string; fullName: string; role: UserRole };
+  order: { id: string; number: string } | null;
+  createdBy: { id: string; fullName: string };
+}
+
+export interface DefectInput {
+  userId: string;
+  orderId?: string | null;
+  stage: DefectStage;
+  description: string;
+  lossAmount: number;
+  deductAmount: number;
+  photoUrl?: string | null;
+  occurredAt: string;
+}
+
+export interface DefectWorkerStat { userId: string; fullName: string; count: number; loss: number; deducted: number }
+
+export interface DefectList {
+  items: Defect[];
+  workers: DefectWorkerStat[];
+  totals: { count: number; loss: number; deducted: number };
 }

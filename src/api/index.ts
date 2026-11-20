@@ -1,5 +1,5 @@
 import type {
-  UserRole, ClientStatement, ClientBalanceLedger, PrepaidClient,
+  UserRole, LegacyDebt, LegacyDebtInput, Defect, DefectInput, DefectList, DefectStage, ClientStatement, ClientBalanceLedger, PrepaidClient,
   RefundInput,
   RequestStatus, StaffRequest, StaffRequestInput,
   Client, ClientDetail, ClientDuplicate, CompanySettings, Dashboard, Debt, DesignerStat, DesignTask, DesignVersion, Equipment,
@@ -266,7 +266,22 @@ export const paymentsApi = {
   debts: () => api.get<{ items: Debt[]; total: number }>('/payments/debts'),
   remindAll: () => api.post<{ queued: number; skipped: number; failed: number; total: number }>('/payments/debts/remind-all'),
   remind: (orderId: string) =>
-    api.post<{ message: string; phones: string[]; telegram: string | null; smsStatus: string | null; smsError: string | null }>(`/payments/debts/${orderId}/remind`),
+    api.post<DebtReminder>(`/payments/debts/${orderId}/remind`),
+  // Eski qarzlar (ERP'dan oldingi)
+  createLegacy: (body: LegacyDebtInput) => api.post<LegacyDebt>('/payments/legacy-debts', body),
+  updateLegacy: (id: string, body: Partial<Omit<LegacyDebtInput, 'clientId'>>) => api.patch<LegacyDebt>(`/payments/legacy-debts/${id}`, body),
+  removeLegacy: (id: string) => api.del<{ deleted: boolean }>(`/payments/legacy-debts/${id}`),
+  payLegacy: (id: string, body: RefundInput) => api.post<Payment>(`/payments/legacy-debts/${id}/pay`, body),
+  remindLegacy: (id: string) => api.post<DebtReminder>(`/payments/legacy-debts/${id}/remind`),
+};
+
+export interface DebtReminder { message: string; phones: string[]; telegram: string | null; smsStatus: string | null; smsError: string | null }
+
+export const defectsApi = {
+  list: (q: { from?: string; to?: string; userId?: string; stage?: DefectStage; orderId?: string } = {}) => api.get<DefectList>('/defects', q),
+  create: (body: DefectInput) => api.post<Defect>('/defects', body),
+  update: (id: string, body: Partial<DefectInput>) => api.patch<Defect>(`/defects/${id}`, body),
+  remove: (id: string) => api.del<{ deleted: boolean }>(`/defects/${id}`),
 };
 
 export interface ExpenseInput {

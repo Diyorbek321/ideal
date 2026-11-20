@@ -8,6 +8,7 @@ import { formatCurrency, formatDate, formatPhone } from '@/lib/utils';
 import { useUser } from '@/lib/auth';
 import { ClientFormModal } from '@/components/clients/ClientFormModal';
 import { ClientBalanceCard } from '@/components/clients/ClientBalanceCard';
+import { LegacyDebtFormModal } from '@/components/debts/LegacyDebtModals';
 import { StatusBadge } from '@/components/orders/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -19,6 +20,7 @@ export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [editing, setEditing] = React.useState(false);
+  const [addingDebt, setAddingDebt] = React.useState(false);
   const { data: c, isLoading, error, refetch } = useQuery({ queryKey: ['client', id], queryFn: () => clientsApi.get(id!), enabled: !!id });
   const user = useUser();
   const toast = useToast();
@@ -65,6 +67,7 @@ export default function ClientDetailPage() {
         <div className="flex flex-wrap justify-end gap-2">
           <Link to={`/clients/${c.id}/statement`}><Button><FileText className="h-4 w-4" />Hisob varag'i</Button></Link>
           <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Tahrirlash</Button>
+          <Button variant="outline" onClick={() => setAddingDebt(true)}>Eski qarz</Button>
           <Button variant="ghost" isLoading={archive.isPending} onClick={() => archive.mutate(!c.isArchived)}>
             {c.isArchived ? <><ArchiveRestore className="h-4 w-4" />Arxivdan chiqarish</> : <><Archive className="h-4 w-4" />Arxivlash</>}
           </Button>
@@ -82,7 +85,7 @@ export default function ClientDetailPage() {
       <div className="grid grid-cols-3 gap-4">
         <Card className="p-4"><p className="text-sm text-gray-500">Jami buyurtma</p><p className="text-xl font-black">{formatCurrency(c.totalOrdered)}</p></Card>
         <Card className="p-4"><p className="text-sm text-gray-500">To'langan</p><p className="text-xl font-black text-emerald-600">{formatCurrency(c.totalPaid)}</p></Card>
-        <Card className="p-4"><p className="text-sm text-gray-500">Qarz</p><p className="text-xl font-black text-red-600">{formatCurrency(c.debt)}</p></Card>
+        <Card className="p-4"><p className="text-sm text-gray-500">Qarz</p><p className="text-xl font-black text-red-600">{formatCurrency(c.debt)}</p>{!!c.legacyDebt && <p className="text-xs text-amber-700">shundan eski qarz: {formatCurrency(c.legacyDebt)}</p>}</Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -127,6 +130,7 @@ export default function ClientDetailPage() {
         </div>
       </div>
       <ClientFormModal open={editing} onClose={() => setEditing(false)} client={c} />
+      <LegacyDebtFormModal open={addingDebt} onClose={() => setAddingDebt(false)} client={c} />
     </div>
   );
 }
