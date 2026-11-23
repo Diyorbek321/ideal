@@ -91,7 +91,8 @@ export default function Dashboard() {
         <h1 className="mt-1 font-display text-xl font-bold text-gray-900 sm:text-2xl">{greeting()}, {firstName}</h1>
       </div>
       <MyKpiCard />
-      <MyTasksCard />
+      {/* Direktorga kerak emas — umumiy holat pastdagi KPI va «Muammoli buyurtmalar»da */}
+      {user.role !== 'ADMIN' && <MyTasksCard />}
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Muddati o'tgan" value={kpi.overdue} icon={AlertTriangle} to="/orders?overdueOnly=true" alert={kpi.overdue > 0} />
