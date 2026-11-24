@@ -1042,6 +1042,18 @@ export interface AttendanceMonth {
   }>;
   records: AttendanceRecord[];
   pendingOvertime: Array<{ id: string; day: string; overtimeUntil: string; overtimeReason: string; checkOutAt: string | null; user: UserRef }>;
+  /** Rad etilgan «Ketdim» urinishlari — joy noto'g'ri belgilanganini aniqlash uchun */
+  rejectedCheckouts: RejectedCheckout[];
+}
+
+export interface RejectedCheckout {
+  id: string;
+  at: string;
+  userName: string | null;
+  lat: number | null;
+  lng: number | null;
+  accuracy: number | null;
+  error: string | null;
 }
 
 // ───────────── LED ekranlar (tashqi reklama) ─────────────

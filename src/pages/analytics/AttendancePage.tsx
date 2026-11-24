@@ -8,6 +8,7 @@ import { cn, currentPeriod, fileUrl, formatDateTime, toDateInput } from '@/lib/u
 import { useAuth } from '@/lib/auth';
 import { ManualMarkModal, type ManualMarkPreset } from '@/components/attendance/ManualMarkModal';
 import { NightWorkModal, type NightWorkPreset } from '@/components/attendance/NightWorkModal';
+import { RejectedCheckoutsCard } from '@/components/attendance/RejectedCheckoutsCard';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
@@ -142,6 +143,8 @@ export default function AttendancePage() {
               </ul>
             </Card>
           )}
+
+          <RejectedCheckoutsCard rows={data.rejectedCheckouts ?? []} />
 
           <Card title="Xodimlar bo'yicha">
             {data.users.length === 0 ? <Empty icon={CalendarCheck} text="Xodimlar yo'q" /> : (
