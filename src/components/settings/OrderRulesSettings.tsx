@@ -33,7 +33,7 @@ export function OrderRulesSettings({ s }: { s: CompanySettings }) {
   });
 
   return (
-    <Card title="Buyurtma qoidalari" description="Shart bajarilmasa buyurtma keyingi bosqichga o'tmaydi. Direktor sabab yozib istisno qila oladi — sabab jurnalga tushadi">
+    <Card title="Buyurtma qoidalari" description="Shart bajarilmasa buyurtma keyingi bosqichga o'tmaydi. Direktor yoki menejer sabab yozib istisno qila oladi — sabab jurnalga tushadi">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
           <Input label="Ishlab chiqarish uchun avans (%)" inputMode="numeric" placeholder="0 — tekshirilmaydi" value={percent} onChange={(e) => setPercent(e.target.value)} />

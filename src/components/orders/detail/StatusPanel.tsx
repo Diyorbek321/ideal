@@ -36,7 +36,7 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
   const [refundAmount, setRefundAmount] = React.useState('');
   const [refundMethod, setRefundMethod] = React.useState<PaymentMethod>('CASH');
   const paid = order.paidAmount ?? 0;
-  // Shart bajarilmagan o'tish: direktor sabab yozib istisno qila oladi
+  // Shart bajarilmagan o'tish: direktor yoki menejer sabab yozib istisno qila oladi
   const [blocked, setBlocked] = React.useState<{ status: OrderStatus; unmet: string[] } | null>(null);
   const [override, setOverride] = React.useState('');
 
@@ -52,7 +52,7 @@ export function StatusPanel({ order }: { order: OrderDetail }) {
     },
     onError: (err, v) => {
       const unmet = err instanceof ApiError ? (err.details as { unmet?: string[] } | null)?.unmet : undefined;
-      if (user.role === 'ADMIN' && unmet?.length) setBlocked({ status: v.status, unmet });
+      if ((user.role === 'ADMIN' || user.role === 'MANAGER') && unmet?.length) setBlocked({ status: v.status, unmet });
       else toast.error(err);
     },
   });

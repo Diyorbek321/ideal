@@ -7,10 +7,12 @@ export const NOTIFICATION_TEXT: Record<AppNotification['kind'], string> = {
   CHANGES_REQUESTED: 'o\'zgartirish so\'radi',
   READY: 'Buyurtma tayyor',
   NEW_LEAD: 'Saytdan yangi ariza',
+  OVERTIME_REQUEST: 'qolib ishlashga ruxsat so\'radi',
 };
 
 export function notificationTitle(n: AppNotification): string {
   if (n.kind === 'NEW_LEAD') return `${NOTIFICATION_TEXT.NEW_LEAD}: ${n.clientName}`;
+  if (n.kind === 'OVERTIME_REQUEST') return `${n.clientName} ${NOTIFICATION_TEXT.OVERTIME_REQUEST}`;
   if (n.kind === 'READY' || n.kind === 'NEW_ORDER' || n.kind === 'ASSIGNED') return `${n.orderNumber}: ${NOTIFICATION_TEXT[n.kind]}`;
   return `${n.orderNumber}: ${n.byClient ? 'mijoz' : 'menejer'} ${NOTIFICATION_TEXT[n.kind]}`;
 }
@@ -62,6 +64,7 @@ const VOICE_FILES: Record<AppNotification['kind'], string> = {
   CHANGES_REQUESTED: '/sounds/changes.mp3',
   READY: '/sounds/ready.mp3',
   NEW_LEAD: '/sounds/new-lead.mp3',
+  OVERTIME_REQUEST: '/sounds/overtime.mp3',
 };
 const CHIME_MS = 550;
 const MAX_SPOKEN = 3;
@@ -121,6 +124,8 @@ export function showSystemNotification(n: AppNotification) {
 // Ustanovkachi buyurtma sahifasini faqat jamoaga qo'shilgach ko'radi — "tayyor" xabari uni ochiq ishlarga olib boradi
 export function notificationLink(n: AppNotification, role?: UserRole): string {
   if (n.kind === 'NEW_LEAD') return `/leads?open=${n.leadId}`;
+  // Tasdiqlash/rad etish — davomat sahifasidagi «Qo'shimcha ish so'rovlari»
+  if (n.kind === 'OVERTIME_REQUEST') return '/attendance';
   if (role === 'INSTALLER') return '/installation';
   return `/orders/${n.orderId}`;
 }

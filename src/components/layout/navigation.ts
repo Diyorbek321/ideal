@@ -55,7 +55,7 @@ export const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
       { path: '/sms', label: 'SMS xabarlar', short: 'SMS', icon: MessageSquare, roles: ['ADMIN', 'MANAGER'] },
       { path: '/documents', label: 'Hujjatlar', short: 'Hujjat', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
       { path: '/audit', label: 'Harakatlar jurnali', short: 'Jurnal', icon: History, roles: ['ADMIN'] },
-      { path: '/settings', label: 'Sozlamalar', short: 'Sozlama', icon: Settings, roles: ['ADMIN'] },
+      { path: '/settings', label: 'Sozlamalar', short: 'Sozlama', icon: Settings, roles: ['ADMIN', 'MANAGER'] },
     ],
   },
 ];

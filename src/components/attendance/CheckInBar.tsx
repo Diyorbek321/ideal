@@ -19,11 +19,12 @@ const checkoutPosition = (geofence: boolean) => currentPosition().catch((e: unkn
   return {};
 });
 
-function currentPosition(): Promise<{ lat: number; lng: number }> {
+// accuracy — telefon aytgan xato (metr): server radiusga cheklangan zaxira qo'shadi
+function currentPosition(): Promise<{ lat: number; lng: number; accuracy: number }> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) return reject(new Error('Qurilmada joylashuv (GPS) yo\'q'));
     navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }),
       () => reject(new Error('Joylashuvga ruxsat bering — belgilash faqat ofisda (yoki o\'rnatish joyida) qilinadi')),
       { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
     );

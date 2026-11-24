@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCircle2, ClipboardPlus, Globe, PackageCheck, PencilLine, UserCheck, Volume2, VolumeX } from 'lucide-react';
+import { Bell, CheckCircle2, ClipboardPlus, Clock, Globe, PackageCheck, PencilLine, UserCheck, Volume2, VolumeX } from 'lucide-react';
 import { notificationsApi } from '@/api';
 import { useToast } from '@/components/ui/Toast';
 import { useUser } from '@/lib/auth';
@@ -18,6 +18,7 @@ const ICONS = {
   CHANGES_REQUESTED: { icon: PencilLine, cls: 'bg-amber-50 text-amber-600' },
   READY: { icon: PackageCheck, cls: 'bg-brand-50 text-brand-600' },
   NEW_LEAD: { icon: Globe, cls: 'bg-sky-50 text-sky-700' },
+  OVERTIME_REQUEST: { icon: Clock, cls: 'bg-amber-50 text-amber-700' },
 } as const;
 
 // Yangi buyurtma, tayinlash, mijoz qarori, "tayyor": 30 soniyada tekshiriladi, yangisida o'zbekcha ovozli xabar

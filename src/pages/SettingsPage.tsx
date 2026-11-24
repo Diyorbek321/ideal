@@ -6,6 +6,7 @@ import { settingsApi } from '@/api';
 import type { CompanySettings, OrderStatus, PriceKind, PriceListItem, PriceUnit } from '@/types';
 import { PRICE_KIND_LABELS, PRICE_UNIT_LABELS, STATUS_LABELS, options } from '@/lib/labels';
 import { cn, formatCurrency, parseDecimal, parseMoney } from '@/lib/utils';
+import { useUser } from '@/lib/auth';
 import { AttendanceSettings } from '@/components/settings/AttendanceSettings';
 import { LeavePlacesSettings } from '@/components/settings/LeavePlacesSettings';
 import { TelegramSettings } from '@/components/settings/TelegramSettings';
@@ -231,13 +232,19 @@ function PricesTab() {
   );
 }
 
+// Menejer faqat joylashuvlarni boshqaradi — qolgan sozlamalar direktorda
+const MANAGER_TABS: readonly Tab[] = ['places'];
+
 export default function SettingsPage() {
+  const user = useUser();
+  const isAdmin = user.role === 'ADMIN';
   const [searchParams] = useSearchParams();
-  const [tab, setTab] = React.useState<Tab>(() => (searchParams.get('tab') as Tab | null) ?? 'company');
+  const [picked, setTab] = React.useState<Tab>(() => (searchParams.get('tab') as Tab | null) ?? (isAdmin ? 'company' : 'places'));
+  const tab: Tab = isAdmin || MANAGER_TABS.includes(picked) ? picked : 'places';
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['company'], queryFn: settingsApi.company });
   // SMS alohida bo'limga ko'chdi — eski havolalar uchun
   if (searchParams.get('tab') === 'sms') return <Navigate to="/sms" replace />;
-  const tabs: Array<{ id: Tab; label: string; icon: typeof Building2 }> = [
+  const allTabs: Array<{ id: Tab; label: string; icon: typeof Building2 }> = [
     { id: 'company', label: 'Kompaniya', icon: Building2 },
     { id: 'prices', label: 'Narxlar', icon: DollarSign },
     { id: 'sla', label: 'SLA va parametrlar', icon: Timer },
@@ -247,6 +254,7 @@ export default function SettingsPage() {
     { id: 'places', label: 'Ketish joylari', icon: MapPin },
     { id: 'telegram', label: 'Telegram bot', icon: Send },
   ];
+  const tabs = isAdmin ? allTabs : allTabs.filter((t) => MANAGER_TABS.includes(t.id));
 
   return (
     <div className="max-w-5xl space-y-8">

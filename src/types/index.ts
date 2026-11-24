@@ -740,11 +740,11 @@ export interface TrackInfo {
   company: { name: string; phone: string | null; logoUrl: string | null } | null;
 }
 
-export type NotificationKind = 'NEW_ORDER' | 'ASSIGNED' | 'APPROVED' | 'CHANGES_REQUESTED' | 'READY' | 'NEW_LEAD';
+export type NotificationKind = 'NEW_ORDER' | 'ASSIGNED' | 'APPROVED' | 'CHANGES_REQUESTED' | 'READY' | 'NEW_LEAD' | 'OVERTIME_REQUEST';
 
 export interface AppNotification {
   id: string;
-  /** NEW_LEAD uchun bo'sh */
+  /** NEW_LEAD va OVERTIME_REQUEST uchun bo'sh */
   orderId: string;
   leadId?: string;
   orderNumber: string;

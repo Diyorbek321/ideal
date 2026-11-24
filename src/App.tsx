@@ -95,7 +95,7 @@ export default function App() {
                 <Route path="expenses" element={<RequireRole roles={[...staff]}><ExpensesPage /></RequireRole>} />
                 <Route path="employees" element={<RequireRole roles={['ADMIN']}><EmployeesPage /></RequireRole>} />
                 <Route path="documents" element={<RequireRole roles={[...staff]}><DocumentsPage /></RequireRole>} />
-                <Route path="settings" element={<RequireRole roles={['ADMIN']}><SettingsPage /></RequireRole>} />
+                <Route path="settings" element={<RequireRole roles={['ADMIN', 'MANAGER']}><SettingsPage /></RequireRole>} />
                 <Route path="sms" element={<RequireRole roles={['ADMIN', 'MANAGER']}><SmsPage /></RequireRole>} />
                 <Route path="audit" element={<RequireRole roles={['ADMIN']}><AuditPage /></RequireRole>} />
                 <Route path="*" element={<Navigate to="/" replace />} />

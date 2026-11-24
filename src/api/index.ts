@@ -386,6 +386,8 @@ export const reportsApi = {
 export const settingsApi = {
   company: () => api.get<CompanySettings>('/settings/company'),
   updateCompany: (body: Partial<CompanySettings>) => api.patch<CompanySettings>('/settings/company', body),
+  // Ofis va «Ketdim» joylari — menejer ham saqlaydi
+  updateLocations: (body: Partial<Pick<CompanySettings, 'officeLat' | 'officeLng' | 'officeRadiusM' | 'leavePlaces'>>) => api.patch<CompanySettings>('/settings/locations', body),
   prices: () => api.get<PriceListItem[]>('/settings/prices'),
   // code berilmasa backend nomidan yaratadi
   createPrice: (body: Omit<PriceListItem, 'id' | 'isActive' | 'materialId' | 'code'> & { code?: string; materialId?: string | null }) =>
@@ -440,8 +442,8 @@ export const analyticsApi = {
 
 export const attendanceApi = {
   today: () => api.get<{ record: AttendanceRecord | null; workStartTime: string; workEndTime: string; geofence: boolean; leavePlaces: string[]; selfieRequired: boolean; unmarkedPenalty: number }>('/attendance/me/today'),
-  checkIn: (body: { lat?: number; lng?: number; selfieUrl?: string } = {}) => api.post<AttendanceRecord>('/attendance/check-in', body),
-  checkOut: (body: { lat?: number; lng?: number } = {}) => api.post<AttendanceRecord>('/attendance/check-out', body),
+  checkIn: (body: { lat?: number; lng?: number; accuracy?: number; selfieUrl?: string } = {}) => api.post<AttendanceRecord>('/attendance/check-in', body),
+  checkOut: (body: { lat?: number; lng?: number; accuracy?: number } = {}) => api.post<AttendanceRecord>('/attendance/check-out', body),
   requestOvertime: (body: { until: string; reason: string }) => api.post<AttendanceRecord>('/attendance/overtime', body),
   reviewOvertime: (id: string, approve: boolean) => api.post<AttendanceRecord>(`/attendance/${id}/overtime`, { approve }),
   month: (period: string) => api.get<AttendanceMonth>('/attendance', { period }),

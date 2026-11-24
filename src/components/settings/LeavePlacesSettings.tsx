@@ -43,7 +43,7 @@ export function LeavePlacesSettings({ s }: { s: CompanySettings }) {
   const valid = rows.every(rowValid);
 
   const save = useMutation({
-    mutationFn: () => settingsApi.updateCompany({
+    mutationFn: () => settingsApi.updateLocations({
       leavePlaces: rows.map((r) => ({ name: r.name.trim(), lat: num(r.lat), lng: num(r.lng), radiusM: Number(r.radius) })),
     }),
     onSuccess: () => {
